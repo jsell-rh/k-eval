@@ -74,15 +74,16 @@ Do not penalize the response for including additional context as long as the cor
 | 5 | The response contains all key facts, primary commands (if applicable), and essential details present in the golden response. (Note: a response still is a 5 if it includes all golden facts alongside additional, helpful content.) | 
 
 
-### 3. Conciseness (1-5)
+### 3. Helpfulness and Clarity (1-5)
 
-Does the response present the facts in a consumable way, minimizing
-irrelevant "fluff"?
+Is the response presented in a clear, consumable, and actionable way?
+Does it use appropriate formatting (e.g., code blocks for commands) 
+and avoid burying the primary answer in unnecessary conversational prose?
 
 | Score | Description |
 |-------|-------------|
-| 1 | The response is overwhelmed by irrelevant information, hallucinations, or filler that obscures the answer, if present. |
-| 2 | Significant portions of the response are irrelevant to the golden response. |
-| 3 | The response is helpful, but contains repetitive or unnecessary prose. |
-| 4 | The response is direct, with only minimal lead-in or concluding sentences. |
-| 5 | The response is direct, every sentence is a significant contribution to answering the user query according to the golden response. |
+| 1 | The response is a wall of text, lacks formatting, or is overwhelmingly filler/irrelevant information such that the actual answer is obscured. |
+| 2 | The response contains the answer, but it is buried deep within paragraphs of unnecessary prose. Formatting may be inconsistent. |
+| 3 | The response is helpful and contains the correct answer, but includes repetitive text or minor "fluff". The response may be made more scannable with better formatting. |
+| 4 | The response is direct and easy to scan and read. It may contain a brief introduction or conclusion sentence, but the core answer is highly visible. |
+| 5 | The response is perfectly optimized to answer the user's query. Formatting is excellent, enabling scanning. Each sentence directly contributes to answering the query or providing critical context. There is no useless "fluff". |
