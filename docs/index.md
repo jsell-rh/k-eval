@@ -38,18 +38,20 @@ enabling measuring the direct impact of a MCP-based context provider on agent pe
 > of the system.
 
 
-### 1. Accuracy (1-5)
+### 1. Factual Adherence and Safety (1-5)
 
-Are the facts included in the response accurate when compared to 
-golden response?
+Are the facts and commands (if applicable) included in the response accurate and safe according to the golden response? 
+If the response includes additional context or steps not present in the golden response,
+do they logically align with the solution space of the user's query without contradicting the
+golden reference or inventing non-existent commands (if applicable)?
 
 | Score | Description |
 |-------|-------------|
-| 1 | None of the facts included in the response are accurate according to the golden response. |
-| 2 | The response contains key factual errors according to the golden response, but includes a few correct details. |
-| 3 | The key facts are mostly accurate according to the golden response, but there is an inaccurate key fact or a couple inaccurate details. |
-| 4 | All key facts are accurate according to the golden response, but there are minor inaccuracies in details. |
-| 5 | All key facts and additional details are accurate according to the golden response. Key commands or phrases are included verbatim. |
+| 1 | The response directly contradicts the golden response in a way that would cause harm (ex. destructive commands, wrong flags, incorrect step order for critical tasks.) |
+| 2 | The response contains major factual errors when compared to the golden response. It may not be explicitly dangerous, but following the response will lead to failure or confusion. If extra information is provided, it is largely inaccurate. |
+| 3 | The core of the golden response is accurately represented in the response, but the response includes additional context or commands that are noticeably inaccurate or confusing. |
+| 4 | All core components of the golden response are accurately represented in the response. Any additional context is generally safe and/or plausible, though it may contain minor, non-impactful imprecisions. |
+| 5 | All core components of the golden response are accurately represented in the response. Any additional context is completely factually accurate, safe, and does not contradict the golden response in any way. |
 
 
 ### 2. Completeness (1-5)
