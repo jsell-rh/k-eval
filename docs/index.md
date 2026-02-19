@@ -32,14 +32,16 @@ enabling measuring the direct impact of a MCP-based context provider on agent pe
 
 `k-eval` computes the following metrics using an [LLM as a judge](https://en.wikipedia.org/wiki/LLM-as-a-Judge) technique.
 
-> [!Note] **Non-Goal**
+> [!Note]
+> **Non-Goal**
 >
 > `k-eval` is focused on evaluating the final response from the LLM. It is a non-goal to 
 > evaluate the performance of retrieval mechanisms that may be used behind an MCP server
 > used during evaluation. 
 
 
-> [!Note] **On the Suboptimality of Golden Data**
+> [!Note] 
+> **On the Suboptimality of Golden Data**
 >
 > It became clear early on in our research that golden question/answer
 > datasets often did not present as "optimally good". Specifically,
