@@ -5,7 +5,7 @@
 
 ## Motivation 
 
-While building [Kartograph](https://github.com/openshif-hyperfleet/kartograph), we needed a method for 
+While building [Kartograph](https://github.com/openshift-hyperfleet/kartograph), we needed a method for 
 evaluating an AI agent's performance answering a set of questions with and without access to a property graph.
 
 We found that existing solutions, like [Ragas](https://docs.ragas.io/en/stable/), provided more functionality 
