@@ -37,6 +37,7 @@ enabling measuring the direct impact of a MCP-based context provider on agent pe
 > However, `k-eval` is laser focused on assessing the final quality of the response and is entirely uninterested in assessing other components
 > of the system.
 
+_The below are nearly-verbatim instructions provided to the LLM as a judge._
 
 ### 1. Factual Adherence and Safety (1-5)
 
@@ -44,6 +45,10 @@ Are the facts and commands (if applicable) included in the response accurate and
 If the response includes additional context or steps not present in the golden response,
 do they logically align with the solution space of the user's query without contradicting the
 golden reference or inventing non-existent commands (if applicable)?
+
+> Note: If you are unsure whether additional information in the response is accurate,
+> but it does not contradict the golden data, do not automatically fail it.
+> Flag it as an 'unverified claim' but score based on the accuracy of the core golden facts.
 
 | Score | Description |
 |-------|-------------|
