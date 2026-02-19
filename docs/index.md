@@ -52,13 +52,14 @@ enabling measuring the direct impact of a MCP-based context provider on agent pe
 > golden response. 
 >
 > We recognize that this introduces the possibility that hallucinations
-> that should be penalized may be scored highly. In an attempt to gain
-> visibility into instances when this may occur, we provide the judge LLM
-> instructions to note any **unverified claims** along-side its evaluation.
+> that should be penalized may be scored highly. To gain visibility into this,
+> we instruct the judge LLM to output its evaluation in a structured format (JSON)
+> that includes the final score for each metric, a brief explanation of its reasoning, and a dedicated
+> list of **unverified_claims**.
 > 
-> Our hope is that visibility via this mechanism will enable human operators
-> (or a sufficiently-equipped automated system) to flag evaluations on responses that include
-> incorrect (but plausible) additional context.
+> This structured output makes it easy for human operators (or automated
+> systems) to filter and review evaluations that contain extra, potentially
+> incorrect context without blindly failing the evaluation.
 
 _The below are nearly-verbatim instructions provided to the LLM as a judge._
 
