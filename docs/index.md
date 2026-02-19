@@ -54,15 +54,17 @@ golden response?
 
 ### 2. Completeness (1-5)
 
-Does the response contain all of the facts from the golden response?
+Does the response contain the essential facts (such as commands, parameters, steps)
+provided in the golden response? Focus solely on whether the golden information is present.
+Do not penalize the response for including additional context as long as the core golden facts are fully represented.
 
 | Score | Description |
 |-------|-------------|
-| 1 | The response doesn't include any facts present in the golden response. |
-| 2 | The response contains one or two details from the golden response, but misses the primary answer. |
-| 3 | The response is mostly helpful, but does not contain all the facts provided in the golden response. |
-| 4 | The response contains all the facts from the golden response, but is missing a few non-essential details. |
-| 5 | The response contains all the facts and details from the golden response. | 
+| 1 | The response doesn't include any facts, commands (if applicable), or concepts present in the golden response. |
+| 2 | The response contains one or two minor details from the golden response, but misses the primary answer or core command required to answer the user's query. |
+| 3 | The response provides the primary answer or command but misses critical parameters, flags, or important contextual facts explicitly stated in the golden response. |
+| 4 | The response contains the primary answer and almost all key facts from the golden response. It may be missing a minor, non-essential detail. |
+| 5 | The response contains all key facts, primary commands (if applicable), and essential details present in the golden response. (Note: a response still is a 5 if it includes all golden facts alongside additional, helpful content.) | 
 
 
 ### 3. Conciseness (1-5)
