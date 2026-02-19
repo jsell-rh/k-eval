@@ -32,10 +32,33 @@ enabling measuring the direct impact of a MCP-based context provider on agent pe
 
 `k-eval` computes the following metrics using an [LLM as a judge](https://en.wikipedia.org/wiki/LLM-as-a-Judge) technique.
 
-> [!Note]
-> We considered other methods of evaluation (such as assessing the semantic similarity of the retrieved content to the user's query, etc.).
-> However, `k-eval` is laser focused on assessing the final quality of the response and is entirely uninterested in assessing other components
-> of the system.
+> [!Note] **Non-Goal**
+>
+> `k-eval` is focused on evaluating the final response from the LLM. It is a non-goal to 
+> evaluate the performance of retrieval mechanisms that may be used behind an MCP server
+> used during evaluation. 
+
+
+> [!Note] **On the Suboptimality of Golden Data**
+>
+> It became clear early on in our research that golden question/answer
+> datasets often did not present as "optimally good". Specifically,
+> these datasets often provided the _core_ of a "perfect" response,
+> but lacked additional context which could improve the quality of 
+> the response to a non-subject matter expert.
+>
+> To this end, our evaluation metrics do _not_ directly penalize
+> responses that include information beyond what is provided in the 
+> golden response. 
+>
+> We recognize that this introduces the possibility that hallucinations
+> that should be penalized may be scored highly. In an attempt to gain
+> visibility into instances when this may occur, we provide the judge LLM
+> instructions to note any **unverified claims** along-side its evaluation.
+> 
+> Our hope is that visibility via this mechanism will enable human operators
+> (or a sufficiently-equipped automated system) to flag evaluations on responses that include
+> incorrect (but plausible) additional context.
 
 _The below are nearly-verbatim instructions provided to the LLM as a judge._
 
@@ -48,7 +71,7 @@ golden reference or inventing non-existent commands (if applicable)?
 
 > Note: If you are unsure whether additional information in the response is accurate,
 > but it does not contradict the golden data, do not automatically fail it.
-> Flag it as an 'unverified claim' but score based on the accuracy of the core golden facts.
+> **Flag it as an 'unverified claim' but score based on the accuracy of the core golden facts.**
 
 | Score | Description |
 |-------|-------------|
