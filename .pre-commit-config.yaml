@@ -48,6 +48,7 @@ repos:
           - "pydantic-settings"
           - "pytest"
           - "structlog"
+          - "types-PyYAML"
         files: ^src/k-eval/
 
   - repo: local

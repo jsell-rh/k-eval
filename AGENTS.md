@@ -164,6 +164,7 @@ Rules:
 - Prefer `StrEnum`, frozen `dataclass`, or Pydantic models over generic container types
 - Use Pydantic models for all config and data transfer objects that cross layer boundaries
 - Use Pydantic Settings for runtime configuration (env vars, CLI flags)
+- Always use keyword arguments at call sites: `foo(a=1, b=2)` not `foo(1, 2)`. This makes call sites self-documenting and prevents positional argument bugs as signatures evolve.
 
 ### Simplicity in Tension with DDD and DOO
 
