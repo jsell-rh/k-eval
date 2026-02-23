@@ -34,7 +34,7 @@ class ClaudeAgentSDKAgent:
     """Agent implementation that delegates to the Claude Agent SDK.
 
     One instance is constructed per (condition, sample) evaluation run.
-    The condition and sample_id are injected at construction time so that
+    The condition and sample_idx are injected at construction time so that
     observer events carry full context without polluting the ask() signature.
     """
 
@@ -42,14 +42,14 @@ class ClaudeAgentSDKAgent:
         self,
         config: AgentConfig,
         condition: str,
-        sample_id: str,
+        sample_idx: str,
         system_prompt: str,
         mcp_servers: list[ConditionMcpServer],
         observer: AgentObserver,
     ) -> None:
         self._config = config
         self._condition = condition
-        self._sample_id = sample_id
+        self._sample_idx = sample_idx
         self._system_prompt = system_prompt
         self._mcp_servers = mcp_servers
         self._observer = observer
@@ -65,20 +65,20 @@ class ClaudeAgentSDKAgent:
         """
         self._observer.agent_invocation_started(
             condition=self._condition,
-            sample_id=self._sample_id,
+            sample_idx=self._sample_idx,
             model=self._config.model,
-        )
-
-        options = ClaudeAgentOptions(
-            model=self._config.model,
-            system_prompt=self._system_prompt,
-            mcp_servers=self._build_mcp_servers(),
-            allowed_tools=self._build_allowed_tools(),
-            permission_mode="bypassPermissions",
-            setting_sources=[],
         )
 
         try:
+            options = ClaudeAgentOptions(
+                model=self._config.model,
+                system_prompt=self._system_prompt,
+                mcp_servers=self._build_mcp_servers(),
+                disallowed_tools=self._build_disallowed_tools(),
+                permission_mode="bypassPermissions",
+                setting_sources=[],
+            )
+
             result_message = await self._collect_result(
                 prompt=question, options=options
             )
@@ -86,14 +86,14 @@ class ClaudeAgentSDKAgent:
             reason = str(exc).removeprefix("Failed to invoke agent: ")
             self._observer.agent_invocation_failed(
                 condition=self._condition,
-                sample_id=self._sample_id,
+                sample_idx=self._sample_idx,
                 reason=reason,
             )
             raise
 
         self._observer.agent_invocation_completed(
             condition=self._condition,
-            sample_id=self._sample_id,
+            sample_idx=self._sample_idx,
             duration_ms=result_message.duration_ms,
             num_turns=result_message.num_turns,
             cost_usd=result_message.total_cost_usd,
@@ -127,19 +127,15 @@ class ClaudeAgentSDKAgent:
             raise AgentInvocationError(reason=str(exc)) from exc
 
         if result_message is None:
-            raise AgentInvocationError(
-                reason="Failed to receive result from agent: no ResultMessage in response"
-            )
+            raise AgentInvocationError(reason="no ResultMessage in response stream")
 
         if result_message.is_error:
             raise AgentInvocationError(
-                reason=f"Failed to invoke agent: agent returned error: {result_message.result}"
+                reason=f"agent returned error response: {result_message.result}"
             )
 
         if result_message.result is None:
-            raise AgentInvocationError(
-                reason="Failed to invoke agent: ResultMessage has no result text"
-            )
+            raise AgentInvocationError(reason="ResultMessage has no result text")
 
         return result_message
 
@@ -186,13 +182,31 @@ class ClaudeAgentSDKAgent:
             server["headers"] = dict(config.headers)
         return server
 
-    def _build_allowed_tools(self) -> list[str]:
-        """Build the allowed tools list — one wildcard entry per MCP server.
+    def _build_disallowed_tools(self) -> list[str]:
+        """Build the disallowed tools list — all Claude built-in tools.
 
-        Returns an empty list when there are no servers, which blocks all tools
-        (correct for baseline conditions with no MCP context).
+        allowed_tools alone does not remove built-in tools from the agent's
+        context; it only controls approval requirements. Explicitly disallowing
+        all built-in tools ensures the agent cannot use web search, file I/O,
+        or any other built-in capability regardless of permission_mode.
         """
-        return [f"mcp__{server.name}__*" for server in self._mcp_servers]
+        return [
+            "Bash",
+            "Edit",
+            "Glob",
+            "Grep",
+            "LS",
+            "MultiEdit",
+            "NotebookEdit",
+            "NotebookRead",
+            "Read",
+            "Task",
+            "TodoRead",
+            "TodoWrite",
+            "WebFetch",
+            "WebSearch",
+            "Write",
+        ]
 
     def _map_usage(self, raw: dict[str, Any] | None) -> UsageMetrics | None:
         """Map the SDK's raw usage dict to a typed UsageMetrics value object."""

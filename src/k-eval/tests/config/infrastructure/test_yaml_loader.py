@@ -8,6 +8,7 @@ from config.domain.condition_mcp_server import ConditionMcpServer
 from config.domain.mcp_server import HttpMcpServer, SseMcpServer, StdioMcpServer
 from config.infrastructure.errors import (
     ConfigLoadError,
+    ConfigParseError,
     ConfigValidationError,
     MissingEnvVarsError,
 )
@@ -377,3 +378,26 @@ class TestMissingConfigFile:
             YamlConfigLoader(observer=observer).load(path=missing)
 
         assert str(missing) in str(exc_info.value)
+
+
+class TestInvalidYamlFile:
+    """Loading a file with invalid YAML syntax raises ConfigParseError."""
+
+    def test_invalid_yaml_raises_config_parse_error(self) -> None:
+        observer = FakeConfigObserver()
+        with pytest.raises(ConfigParseError):
+            YamlConfigLoader(observer=observer).load(path=_fixture("invalid_yaml.yaml"))
+
+    def test_invalid_yaml_error_message_starts_with_failed(self) -> None:
+        observer = FakeConfigObserver()
+        with pytest.raises(ConfigParseError) as exc_info:
+            YamlConfigLoader(observer=observer).load(path=_fixture("invalid_yaml.yaml"))
+
+        assert str(exc_info.value).startswith("Failed to ")
+
+    def test_invalid_yaml_is_keval_error(self) -> None:
+        from core.errors import KEvalError
+
+        observer = FakeConfigObserver()
+        with pytest.raises(KEvalError):
+            YamlConfigLoader(observer=observer).load(path=_fixture("invalid_yaml.yaml"))

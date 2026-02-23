@@ -12,7 +12,7 @@ class LoadingStartedEvent:
 
 @dataclass(frozen=True)
 class SampleLoadedEvent:
-    sample_id: str
+    sample_idx: str
 
 
 @dataclass(frozen=True)
@@ -43,8 +43,8 @@ class FakeDatasetObserver:
             )
         )
 
-    def dataset_sample_loaded(self, sample_id: str) -> None:
-        self.samples_loaded.append(SampleLoadedEvent(sample_id=sample_id))
+    def dataset_sample_loaded(self, sample_idx: str) -> None:
+        self.samples_loaded.append(SampleLoadedEvent(sample_idx=sample_idx))
 
     def dataset_loading_completed(self, path: str, total_samples: int) -> None:
         self.loading_completed.append(
