@@ -1,0 +1,42 @@
+name: "env-var-eval"
+version: "1"
+
+dataset:
+  path: "./questions.jsonl"
+  question_key: "question"
+  answer_key: "answer"
+
+agent:
+  type: "claude_code_sdk"
+  model: "claude-sonnet-4-5"
+
+judge:
+  model: "vertex_ai/claude-opus-4-5"
+  temperature: 0.0
+
+mcp_servers:
+  search:
+    type: "sse"
+    url: "http://localhost:8080/sse"
+    headers:
+      Authorization: "Bearer ${SEARCH_API_KEY}"
+      X-Custom: "${CUSTOM_HEADER}"
+  myhttp:
+    type: "http"
+    url: "http://localhost:9090"
+    headers:
+      Authorization: "Bearer ${HTTP_API_KEY}"
+
+conditions:
+  baseline:
+    mcp_servers: []
+    system_prompt: |
+      Answer the following question using your own knowledge.
+
+execution:
+  num_samples: 1
+  max_concurrent: 1
+  retry:
+    max_attempts: 1
+    initial_backoff_seconds: 1
+    backoff_multiplier: 2

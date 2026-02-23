@@ -1,0 +1,35 @@
+name: "invalid-condition-eval"
+version: "1"
+
+dataset:
+  path: "./questions.jsonl"
+  question_key: "question"
+  answer_key: "answer"
+
+agent:
+  type: "claude_code_sdk"
+  model: "claude-sonnet-4-5"
+
+judge:
+  model: "vertex_ai/claude-opus-4-5"
+  temperature: 0.0
+
+mcp_servers:
+  graph:
+    type: "stdio"
+    command: "python"
+    args: ["-m", "kartograph.mcp"]
+
+conditions:
+  baseline:
+    mcp_servers: [graph, nonexistent_server]
+    system_prompt: |
+      Answer the following question.
+
+execution:
+  num_samples: 1
+  max_concurrent: 1
+  retry:
+    max_attempts: 1
+    initial_backoff_seconds: 1
+    backoff_multiplier: 2
