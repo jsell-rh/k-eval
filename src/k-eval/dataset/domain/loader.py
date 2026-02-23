@@ -3,10 +3,10 @@
 from typing import Protocol
 
 from config.domain.dataset import DatasetConfig
-from dataset.domain.sample import Sample
+from dataset.domain.load_result import DatasetLoadResult
 
 
 class DatasetLoader(Protocol):
-    """Loads a list of Sample objects from a dataset described by DatasetConfig."""
+    """Loads samples from a dataset described by DatasetConfig, returning a DatasetLoadResult."""
 
-    def load(self, config: DatasetConfig) -> list[Sample]: ...
+    def load(self, config: DatasetConfig) -> DatasetLoadResult: ...

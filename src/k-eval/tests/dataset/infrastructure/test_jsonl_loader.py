@@ -40,41 +40,64 @@ class TestValidDatasetLoading:
 
     def test_loads_correct_number_of_samples(self) -> None:
         observer = FakeDatasetObserver()
-        samples = JsonlDatasetLoader(observer=observer).load(config=_simple_config())
+        result = JsonlDatasetLoader(observer=observer).load(config=_simple_config())
 
-        assert len(samples) == 3
+        assert len(result.samples) == 3
 
     def test_loads_question_and_answer_fields(self) -> None:
         observer = FakeDatasetObserver()
-        samples = JsonlDatasetLoader(observer=observer).load(config=_simple_config())
+        result = JsonlDatasetLoader(observer=observer).load(config=_simple_config())
 
-        assert samples[0].question == "What is the capital of France?"
-        assert samples[0].answer == "Paris"
+        assert result.samples[0].question == "What is the capital of France?"
+        assert result.samples[0].answer == "Paris"
 
     def test_question_key_and_answer_key_from_config_are_used(self) -> None:
         observer = FakeDatasetObserver()
-        samples = JsonlDatasetLoader(observer=observer).load(
+        result = JsonlDatasetLoader(observer=observer).load(
             config=_custom_keys_config()
         )
 
-        assert samples[0].question == "What is the speed of light?"
-        assert samples[0].answer == "approximately 299,792,458 metres per second"
+        assert result.samples[0].question == "What is the speed of light?"
+        assert result.samples[0].answer == "approximately 299,792,458 metres per second"
 
     def test_sample_id_is_zero_based_line_index_as_string(self) -> None:
         observer = FakeDatasetObserver()
-        samples = JsonlDatasetLoader(observer=observer).load(config=_simple_config())
+        result = JsonlDatasetLoader(observer=observer).load(config=_simple_config())
 
-        assert samples[0].sample_idx == "0"
-        assert samples[1].sample_idx == "1"
-        assert samples[2].sample_idx == "2"
+        assert result.samples[0].sample_idx == "0"
+        assert result.samples[1].sample_idx == "1"
+        assert result.samples[2].sample_idx == "2"
 
     def test_all_samples_loaded_in_order(self) -> None:
         observer = FakeDatasetObserver()
-        samples = JsonlDatasetLoader(observer=observer).load(config=_simple_config())
+        result = JsonlDatasetLoader(observer=observer).load(config=_simple_config())
 
-        assert samples[0].question == "What is the capital of France?"
-        assert samples[1].question == "What is 2 + 2?"
-        assert samples[2].question == "Who wrote Hamlet?"
+        assert result.samples[0].question == "What is the capital of France?"
+        assert result.samples[1].question == "What is 2 + 2?"
+        assert result.samples[2].question == "Who wrote Hamlet?"
+
+    def test_sha256_is_a_64_character_hex_string(self) -> None:
+        observer = FakeDatasetObserver()
+        result = JsonlDatasetLoader(observer=observer).load(config=_simple_config())
+
+        assert len(result.sha256) == 64
+        assert all(c in "0123456789abcdef" for c in result.sha256)
+
+    def test_sha256_is_stable_across_loads(self) -> None:
+        observer = FakeDatasetObserver()
+        loader = JsonlDatasetLoader(observer=observer)
+        result_a = loader.load(config=_simple_config())
+        result_b = loader.load(config=_simple_config())
+
+        assert result_a.sha256 == result_b.sha256
+
+    def test_different_files_have_different_sha256(self) -> None:
+        observer = FakeDatasetObserver()
+        loader = JsonlDatasetLoader(observer=observer)
+        result_simple = loader.load(config=_simple_config())
+        result_custom = loader.load(config=_custom_keys_config())
+
+        assert result_simple.sha256 != result_custom.sha256
 
 
 class TestObserverEvents:
@@ -123,28 +146,28 @@ class TestCustomKeys:
 
     def test_custom_keys_load_all_samples(self) -> None:
         observer = FakeDatasetObserver()
-        samples = JsonlDatasetLoader(observer=observer).load(
+        result = JsonlDatasetLoader(observer=observer).load(
             config=_custom_keys_config()
         )
 
-        assert len(samples) == 3
+        assert len(result.samples) == 3
 
     def test_custom_keys_second_sample(self) -> None:
         observer = FakeDatasetObserver()
-        samples = JsonlDatasetLoader(observer=observer).load(
+        result = JsonlDatasetLoader(observer=observer).load(
             config=_custom_keys_config()
         )
 
-        assert samples[1].question == "What is the boiling point of water?"
-        assert samples[1].answer == "100 degrees Celsius at sea level"
+        assert result.samples[1].question == "What is the boiling point of water?"
+        assert result.samples[1].answer == "100 degrees Celsius at sea level"
 
     def test_custom_keys_ids_are_zero_based_strings(self) -> None:
         observer = FakeDatasetObserver()
-        samples = JsonlDatasetLoader(observer=observer).load(
+        result = JsonlDatasetLoader(observer=observer).load(
             config=_custom_keys_config()
         )
 
-        assert [s.sample_idx for s in samples] == ["0", "1", "2"]
+        assert [s.sample_idx for s in result.samples] == ["0", "1", "2"]
 
 
 class TestMissingFile:

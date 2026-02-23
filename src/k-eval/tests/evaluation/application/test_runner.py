@@ -12,6 +12,7 @@ from config.domain.execution import ExecutionConfig, RetryConfig
 from config.domain.judge import JudgeConfig
 from dataset.domain.sample import Sample
 from evaluation.application.runner import EvaluationRunner
+from evaluation.domain.summary import RunSummary
 from tests.agent.fake_factory import FakeAgentFactory
 from tests.evaluation.fake_dataset_loader import FakeDatasetLoader
 from tests.evaluation.fake_observer import FakeEvaluationObserver
@@ -93,9 +94,9 @@ class TestEvaluationRunnerResultCount:
             observer=FakeEvaluationObserver(),
         )
 
-        results = await runner.run()
+        result = await runner.run()
 
-        assert len(results) == 8  # 2 samples × 2 conditions × 2 repetitions
+        assert len(result.runs) == 8  # 2 samples × 2 conditions × 2 repetitions
 
     async def test_single_sample_single_condition_single_repetition(self) -> None:
         config = _make_eval_config(
@@ -110,9 +111,83 @@ class TestEvaluationRunnerResultCount:
             observer=FakeEvaluationObserver(),
         )
 
-        results = await runner.run()
+        result = await runner.run()
 
-        assert len(results) == 1
+        assert len(result.runs) == 1
+
+
+class TestEvaluationRunnerRunSummary:
+    """RunSummary fields are populated correctly."""
+
+    async def test_run_id_is_non_empty(self) -> None:
+        config = _make_eval_config(
+            conditions=_make_conditions(["baseline"]),
+            num_samples=1,
+        )
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        result = await runner.run()
+
+        assert result.run_id != ""
+
+    async def test_dataset_sha256_matches_fake_loader(self) -> None:
+        config = _make_eval_config(
+            conditions=_make_conditions(["baseline"]),
+            num_samples=1,
+        )
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(
+                samples=_make_samples(1), sha256="fake-sha256"
+            ),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        result = await runner.run()
+
+        assert result.dataset_sha256 == "fake-sha256"
+
+    async def test_config_name_matches_eval_config(self) -> None:
+        config = _make_eval_config(
+            conditions=_make_conditions(["baseline"]),
+            num_samples=1,
+        )
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        result = await runner.run()
+
+        assert result.config_name == config.name
+
+    async def test_returns_run_summary_instance(self) -> None:
+        config = _make_eval_config(
+            conditions=_make_conditions(["baseline"]),
+            num_samples=1,
+        )
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        result = await runner.run()
+
+        assert isinstance(result, RunSummary)
 
 
 class TestEvaluationRunnerRunId:
@@ -131,9 +206,9 @@ class TestEvaluationRunnerRunId:
             observer=FakeEvaluationObserver(),
         )
 
-        results = await runner.run()
+        result = await runner.run()
 
-        run_ids = {r.run_id for r in results}
+        run_ids = {r.run_id for r in result.runs}
         assert len(run_ids) == 1
 
     async def test_run_id_is_a_non_empty_string(self) -> None:
@@ -148,9 +223,9 @@ class TestEvaluationRunnerRunId:
             observer=FakeEvaluationObserver(),
         )
 
-        results = await runner.run()
+        result = await runner.run()
 
-        assert results[0].run_id != ""
+        assert result.runs[0].run_id != ""
 
 
 class TestEvaluationRunnerObserverEvents:
@@ -270,9 +345,9 @@ class TestEvaluationRunnerRunIndex:
             observer=FakeEvaluationObserver(),
         )
 
-        results = await runner.run()
+        result = await runner.run()
 
-        indices = [r.run_index for r in results]
+        indices = [r.run_index for r in result.runs]
         assert indices == [0, 1, 2]
 
     async def test_run_index_resets_for_each_condition(self) -> None:
@@ -288,11 +363,11 @@ class TestEvaluationRunnerRunIndex:
             observer=FakeEvaluationObserver(),
         )
 
-        results = await runner.run()
+        result = await runner.run()
 
         # Results: baseline/0, baseline/1, with-graph/0, with-graph/1
         by_condition: dict[str, list[int]] = {}
-        for r in results:
+        for r in result.runs:
             by_condition.setdefault(r.condition, []).append(r.run_index)
 
         assert by_condition["baseline"] == [0, 1]
@@ -316,10 +391,10 @@ class TestEvaluationRunnerSampleBinding:
             observer=FakeEvaluationObserver(),
         )
 
-        results = await runner.run()
+        result = await runner.run()
 
-        assert results[0].sample is samples[0]
-        assert results[1].sample is samples[1]
+        assert result.runs[0].sample is samples[0]
+        assert result.runs[1].sample is samples[1]
 
     async def test_all_results_carry_correct_condition(self) -> None:
         config = _make_eval_config(
@@ -334,7 +409,7 @@ class TestEvaluationRunnerSampleBinding:
             observer=FakeEvaluationObserver(),
         )
 
-        results = await runner.run()
+        result = await runner.run()
 
-        conditions = {r.condition for r in results}
+        conditions = {r.condition for r in result.runs}
         assert conditions == {"baseline", "with-graph"}
