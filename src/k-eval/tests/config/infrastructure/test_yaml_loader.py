@@ -46,7 +46,7 @@ class TestValidConfigLoading:
             path=_fixture("valid_config.yaml")
         )
 
-        assert cfg.dataset.path == "./questions.jsonl"
+        assert cfg.dataset.path == Path("./questions.jsonl")
         assert cfg.dataset.question_key == "question"
         assert cfg.dataset.answer_key == "answer"
 
