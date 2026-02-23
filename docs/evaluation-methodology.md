@@ -1,5 +1,20 @@
 # Evaluation Methodology
 
+## Table of Contents
+
+- [Evaluation Methodology](#evaluation-methodology)
+- [Experiment Structure](#experiment-structure)
+- [Samples, Conditions, and Runs](#samples-conditions-and-runs)
+- [The Agent](#the-agent)
+- [The Judge](#the-judge)
+- [Metrics](#metrics)
+    - [1. Factual Adherence and Safety (1-5)](#1-factual-adherence-and-safety-1-5)
+    - [2. Completeness (1-5)](#2-completeness-1-5)
+    - [3. Helpfulness and Clarity (1-5)](#3-helpfulness-and-clarity-1-5)
+- [Variance Management](#variance-management)
+    - [Variable Definition](#variable-definition)
+    - [Variance Management Techniques](#variance-management-techniques)
+
 The overarching goal of `k-eval`'s evaluation methodology is to 
 strike a balance between reproducibility and the usefulness of
 results.
