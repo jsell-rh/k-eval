@@ -42,6 +42,17 @@ class SampleConditionFailedEvent:
     reason: str
 
 
+@dataclass(frozen=True)
+class SampleConditionRetryEvent:
+    run_id: str
+    sample_idx: str
+    condition: str
+    run_index: int
+    attempt: int
+    reason: str
+    backoff_seconds: float
+
+
 class FakeEvaluationObserver:
     """Records all emitted evaluation events as typed frozen dataclasses.
 
@@ -58,6 +69,7 @@ class FakeEvaluationObserver:
         self._sc_started: list[SampleConditionStartedEvent] = []
         self._sc_completed: list[SampleConditionCompletedEvent] = []
         self._sc_failed: list[SampleConditionFailedEvent] = []
+        self._sc_retried: list[SampleConditionRetryEvent] = []
 
     @property
     def started(self) -> list[EvaluationStartedEvent]:
@@ -78,6 +90,10 @@ class FakeEvaluationObserver:
     @property
     def sc_failed(self) -> list[SampleConditionFailedEvent]:
         return self._sc_failed
+
+    @property
+    def sc_retried(self) -> list[SampleConditionRetryEvent]:
+        return self._sc_retried
 
     def evaluation_started(
         self,
@@ -147,5 +163,27 @@ class FakeEvaluationObserver:
                 condition=condition,
                 run_index=run_index,
                 reason=reason,
+            )
+        )
+
+    def sample_condition_retry(
+        self,
+        run_id: str,
+        sample_idx: str,
+        condition: str,
+        run_index: int,
+        attempt: int,
+        reason: str,
+        backoff_seconds: float,
+    ) -> None:
+        self._sc_retried.append(
+            SampleConditionRetryEvent(
+                run_id=run_id,
+                sample_idx=sample_idx,
+                condition=condition,
+                run_index=run_index,
+                attempt=attempt,
+                reason=reason,
+                backoff_seconds=backoff_seconds,
             )
         )

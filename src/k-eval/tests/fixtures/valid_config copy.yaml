@@ -1,0 +1,48 @@
+name: "kartograph-graph-context-eval"
+version: "1"
+
+dataset:
+  path: "/home/jsell/golden.jsonl"
+  question_key: "user_input"
+  answer_key: "reference"
+
+agent:
+  type: "claude_code_sdk"
+  model: "claude-sonnet-4-5"
+
+judge:
+  model: "vertex_ai/claude-opus-4-5"
+  temperature: 0.0
+
+mcp_servers:
+  graph:
+    type: "stdio"
+    command: "python"
+    args: ["-m", "kartograph.mcp"]
+  search:
+    type: "sse"
+    url: "http://localhost:8080/sse"
+    headers:
+      Authorization: "Bearer ${SEARCH_API_KEY}"
+
+conditions:
+  baseline:
+    mcp_servers: []
+    system_prompt: |
+      Answer the following question using your own knowledge.
+  with_graph:
+    mcp_servers: [graph]
+    system_prompt: |
+      You have access to a property graph tool. Use it to answer the question.
+  with_graph_and_search:
+    mcp_servers: [graph, search]
+    system_prompt: |
+      You have access to a property graph tool and a search tool. Use them to answer the question.
+
+execution:
+  num_samples: 3
+  max_concurrent: 5
+  retry:
+    max_attempts: 3
+    initial_backoff_seconds: 1
+    backoff_multiplier: 2
