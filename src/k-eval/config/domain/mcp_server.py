@@ -19,7 +19,7 @@ class SseMcpServer(BaseModel, frozen=True):
 
     type: Literal["sse"]
     url: str
-    headers: dict[str, str] | None = None
+    headers: dict[str, str] = Field(default_factory=dict)
 
 
 class HttpMcpServer(BaseModel, frozen=True):
@@ -27,11 +27,13 @@ class HttpMcpServer(BaseModel, frozen=True):
 
     type: Literal["http"]
     url: str
-    headers: dict[str, str] | None = None
+    headers: dict[str, str] = Field(default_factory=dict)
 
 
 # Discriminated union — Pydantic selects the correct subtype from the `type` field.
-McpServer = Annotated[
+# The `type` statement (Python 3.13) works correctly with Pydantic's discriminated
+# union: validated in test with model_validate and isinstance checks.
+type McpServer = Annotated[
     StdioMcpServer | SseMcpServer | HttpMcpServer,
     Field(discriminator="type"),
 ]

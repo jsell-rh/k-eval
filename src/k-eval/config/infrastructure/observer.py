@@ -1,11 +1,13 @@
 """Structlog implementation of the ConfigObserver port."""
 
 import structlog
-from config.domain.observer import ConfigObserver
 
 
-class StructlogConfigObserver(ConfigObserver):
-    """Delegates config domain events to structlog."""
+class StructlogConfigObserver:
+    """Delegates config domain events to structlog.
+
+    Satisfies the ConfigObserver protocol structurally.
+    """
 
     def __init__(self) -> None:
         self._log = structlog.get_logger()
