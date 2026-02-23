@@ -6,6 +6,8 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "claude-agent-sdk>=0.1.39",
+    "google-cloud-aiplatform>=1.138.0",
+    "litellm",
     "pydantic>=2.12.5",
     "pyyaml>=6.0.3",
     "structlog>=25.5.0",

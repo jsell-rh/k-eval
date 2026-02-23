@@ -73,3 +73,48 @@ execution:
     initial_backoff_seconds: 1
     backoff_multiplier: 2
 ```
+
+## Inference Provider Authentication
+
+As a general rule, `k-eval` relies on the user's environment
+to provide authentication details required to run the agent and
+llm judge as configured in the evaluation configuration file.
+
+The required environment variables will differ depending on the agent
+used, and are likely to differ slightly between the agent and judge.
+
+For now, we will focus on providing instructions for running Claude Agent SDK
+using Vertex AI, and running judge models hosted on Vertex AI.
+
+
+### Agent
+
+All [environment variables required to run the Claude Agent SDK](https://code.claude.com/docs/en/google-vertex-ai)
+must be present in the user's environment:
+
+```bash
+# Enable Vertex AI integration
+export CLAUDE_CODE_USE_VERTEX=1
+export CLOUD_ML_REGION=global
+export ANTHROPIC_VERTEX_PROJECT_ID=YOUR-PROJECT-ID
+
+# Disable prompt caching to support variance metrics
+export DISABLE_PROMPT_CACHING=1
+
+# When CLOUD_ML_REGION=global, override region for unsupported models
+export VERTEX_REGION_CLAUDE_3_5_HAIKU=us-east5
+```
+
+### Judge
+
+All [environment variables required to use Vertex AI models with LiteLLM](https://docs.litellm.ai/docs/providers/vertex#environment-variables)
+must be present in the user's environment. 
+
+Note that LiteLLM's environment variable names may differ slightly compared
+to those used to configure agent authentication.
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service_account.json"
+export VERTEXAI_LOCATION="us-central1" # can be any vertex location
+export VERTEXAI_PROJECT="my-test-project" # ONLY use if model project is different from service account project
+```
