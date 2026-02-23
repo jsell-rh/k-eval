@@ -15,7 +15,17 @@ We believe that this approach, though not entirely reproducible,
 still produces statistically meaningful results despite
 the inherent non-determinism of agentic systems.
 
-See [Variance Management](##variance-management) for more details.
+See [Variance Management](#variance-management) for more details.
+
+
+## Experiment Structure
+
+## Samples and Conditions
+
+## The Agent
+
+## The Judge
+
 
 ## Variance Management
 
@@ -28,7 +38,7 @@ them is managed.
 To manage variance, we first need to understand which
 variables can be fully fixed, and which cannot.
 
-#### Fixable Variables (Reproducibility Guaranteed)
+#### Fixed Variables (Reproducibility Guaranteed)
 
 These variables are guaranteed to be reproducible via
 mechanisms like hashes.
@@ -37,7 +47,7 @@ mechanisms like hashes.
     - Reason: A SHA256 digest of the input dataset is stored
       alongside the evaluation results.
 
-#### Controllable (Reproducibility Not Guaranteed)
+#### Best-effort Fixed (Reproducibility Not Guaranteed)
 
 Components of these variables may be controllable
 across runs, but there is no guarantee of reproducibility.
@@ -52,7 +62,7 @@ across runs, but there is no guarantee of reproducibility.
       that the data or mechanism behind the MCP server does
       not change over time.
 
-#### Unfixable Variables
+#### Uncontrolled (Structurally Non-deterministic)
 
 These variables are fundamentally unfixable and there is
 absolutely no guarantee of reproducibility.
