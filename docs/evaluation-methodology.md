@@ -78,8 +78,12 @@ is designed to be agentic-agnostic. An agent can be evaluated by `k-eval` if it 
 be wrapped in an interface like:
 
 ```python
-def query(user_query: str, system_prompt:str, mcp_servers) -> str:
-    ...
+class Agent:
+    def __init__(self, mcp_servers: list):
+        ...
+
+    def query(self, user_query: str, system_prompt:str) -> str:
+        ...
 ```
 
 Note that `k-eval` does not, by design, care about the internal reasoning steps,
