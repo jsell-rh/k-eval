@@ -1,6 +1,6 @@
 """EvaluationRun — the result of a single (sample, condition, run_index) evaluation."""
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from agent.domain.result import AgentResult
 from dataset.domain.sample import Sample
@@ -18,9 +18,9 @@ class EvaluationRun(BaseModel, frozen=True):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    run_id: RunId
+    run_id: RunId = Field(min_length=1)
     sample: Sample
-    condition: str
-    run_index: int
+    condition: str = Field(min_length=1)
+    run_index: int = Field(ge=0)
     agent_result: AgentResult
     judge_result: JudgeResult

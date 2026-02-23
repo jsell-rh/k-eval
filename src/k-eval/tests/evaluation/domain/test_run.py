@@ -1,5 +1,8 @@
 """Tests for the EvaluationRun domain model."""
 
+import pytest
+from pydantic import ValidationError
+
 from agent.domain.result import AgentResult
 from agent.domain.usage import UsageMetrics
 from dataset.domain.sample import Sample
@@ -115,3 +118,51 @@ class TestEvaluationRun:
         )
 
         assert run.run_index == 2
+
+
+class TestEvaluationRunConstraints:
+    """EvaluationRun rejects invalid field values."""
+
+    def test_empty_run_id_raises_validation_error(self) -> None:
+        with pytest.raises(ValidationError):
+            EvaluationRun(
+                run_id="",
+                sample=_make_sample(),
+                condition="baseline",
+                run_index=0,
+                agent_result=_make_agent_result(),
+                judge_result=_make_judge_result(),
+            )
+
+    def test_empty_condition_raises_validation_error(self) -> None:
+        with pytest.raises(ValidationError):
+            EvaluationRun(
+                run_id="run-abc",
+                sample=_make_sample(),
+                condition="",
+                run_index=0,
+                agent_result=_make_agent_result(),
+                judge_result=_make_judge_result(),
+            )
+
+    def test_negative_run_index_raises_validation_error(self) -> None:
+        with pytest.raises(ValidationError):
+            EvaluationRun(
+                run_id="run-abc",
+                sample=_make_sample(),
+                condition="baseline",
+                run_index=-1,
+                agent_result=_make_agent_result(),
+                judge_result=_make_judge_result(),
+            )
+
+    def test_run_index_zero_is_valid(self) -> None:
+        run = EvaluationRun(
+            run_id="run-abc",
+            sample=_make_sample(),
+            condition="baseline",
+            run_index=0,
+            agent_result=_make_agent_result(),
+            judge_result=_make_judge_result(),
+        )
+        assert run.run_index == 0

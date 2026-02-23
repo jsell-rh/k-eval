@@ -1,6 +1,6 @@
 """Top-level EvalConfig aggregate — the root configuration object."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from config.domain.agent import AgentConfig
 from config.domain.condition import ConditionConfig
@@ -16,11 +16,11 @@ type ServerName = str
 class EvalConfig(BaseModel, frozen=True):
     """Root configuration aggregate for a k-eval evaluation run."""
 
-    name: str
-    version: str
+    name: str = Field(min_length=1)
+    version: str = Field(min_length=1)
     dataset: DatasetConfig
     agent: AgentConfig
     judge: JudgeConfig
     mcp_servers: dict[ServerName, McpServer]
-    conditions: dict[ConditionName, ConditionConfig]
+    conditions: dict[ConditionName, ConditionConfig] = Field(min_length=1)
     execution: ExecutionConfig
