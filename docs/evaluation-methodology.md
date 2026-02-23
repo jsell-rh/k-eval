@@ -55,6 +55,31 @@ when naming conditions. For example,
 
 ## The Agent
 
+The agent (or agentic system) is the target of `k-eval`'s evaluation efforts. `k-eval`
+is designed to be agentic-agnostic. An agent can be evaluated by `k-eval` if it can
+be wrapped in an interface like:
+
+```python
+def query(user_query: str, system_prompt:str, mcp_servers) -> str:
+    ...
+```
+
+Note that `k-eval` does not, by design, care about the internal reasoning steps,
+tool calls, or other implementation details of the agent. This is both for the 
+sake of simplicity, and also to maximize compatibility with current and future systems.
+This decision is also a direct consequence of the authors' belief that the most
+valuable metric [for their use-case] is the final output of the agent, regardless
+of how it achieved that response.
+
+The agent is configured once per run and held constant across all conditions.
+
+> [!Note]
+>
+> The first (and currently only) agentic system to be supported is Claude Code,
+> through the Agent SDK.
+>
+> Community contributions are welcomed to enable support of additional agents.
+
 ## The Judge
 
 
