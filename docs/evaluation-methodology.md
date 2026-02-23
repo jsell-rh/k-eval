@@ -20,6 +20,18 @@ See [Variance Management](#variance-management) for more details.
 
 ## Experiment Structure
 
+A `k-eval` run evaluates an agentic system against a golden dataset, comprised of
+high-quality question/answer pairs, under one or more conditions.
+
+A condition is a combination of a system prompt and a set of 0 or more MCP servers.
+
+The condition is the unit of comparison within `k-eval`. Within a run, the agentic system
+is constant. The experimental variable is the context that is (or is not) provided
+to the agent.
+
+Cross-agent comparison is out of scope for a single run. If you wish to compare
+agents, separate runs (config files) can be used and results compared externally.
+
 ## Samples and Conditions
 
 ## The Agent
