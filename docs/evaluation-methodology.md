@@ -21,7 +21,7 @@ See [Variance Management](#variance-management) for more details.
 ## Experiment Structure
 
 A `k-eval` run evaluates an agentic system against a golden dataset, comprised of
-high-quality question/answer pairs, under one or more conditions.
+high-quality question/answer pairs, under one or more **conditions**.
 
 A condition is a combination of a system prompt and a set of 0 or more MCP servers.
 
@@ -32,7 +32,26 @@ to the agent.
 Cross-agent comparison is out of scope for a single run. If you wish to compare
 agents, separate runs (config files) can be used and results compared externally.
 
-## Samples and Conditions
+## Samples, Conditions, and Runs
+
+A **sample** is a single question/answer pair from the golden dataset.
+
+A **condition** is a named experimental configuration specifying which MCP servers (if any)
+are available to the agent, and what system prompt is used.
+
+A **run** is the full evaluation of every sample under every condition. For example, a run with
+50 samples and 3 conditions would consist of 150 evaluations. With the default per-sample sampling
+of `N=3` (see [variance management techniques](#variance-management-techniques)), this would result
+in 450 total agent calls and 450 LLM judge calls. (Note that sampled scores are reported as 
+average score & standard deviation. So the final reported scores would be the aggregate of 150 scores.)
+
+Conditions are explicitly defined by the user. `k-eval` does not automatically enumerate combinations.
+Named conditions serve as meaningful labels in the output, and thus some thought should be used
+when naming conditions. For example,
+
+- `baseline`
+- `with-graph`
+- `with-graph-and-rag`
 
 ## The Agent
 
