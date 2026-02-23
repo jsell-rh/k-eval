@@ -2,8 +2,10 @@
 
 from pathlib import Path
 
+from core.errors import KEvalError
 
-class MissingEnvVarsError(Exception):
+
+class MissingEnvVarsError(KEvalError):
     """Raised when one or more required environment variables are not set."""
 
     def __init__(self, missing_vars: list[str]) -> None:
@@ -14,14 +16,14 @@ class MissingEnvVarsError(Exception):
         )
 
 
-class ConfigValidationError(Exception):
+class ConfigValidationError(KEvalError):
     """Raised when the loaded config fails semantic validation."""
 
     def __init__(self, reason: str) -> None:
         super().__init__(f"Failed to validate config: {reason}")
 
 
-class ConfigLoadError(Exception):
+class ConfigLoadError(KEvalError):
     """Raised when the config file cannot be opened or read."""
 
     def __init__(self, path: Path) -> None:
