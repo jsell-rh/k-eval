@@ -10,21 +10,18 @@ k-eval uses [uv](https://docs.astral.sh/uv/) for dependency management. Install 
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Then add k-eval to your project:
+### From source
 
 ```bash
-# Core install
-uv add k-eval
+git clone https://github.com/jsell-rh/k-eval.git
+cd k-eval/src/k-eval
+
+# Core dependencies
+uv sync
 
 # With Vertex AI provider support
-uv add "k-eval[vertex_ai]"
+uv sync --extra vertex_ai
 
 # All provider dependencies
-uv add "k-eval[all]"
-```
-
-Once installed, run k-eval via uv:
-
-```bash
-uv run k-eval run eval.yaml
+uv sync --extra all
 ```
