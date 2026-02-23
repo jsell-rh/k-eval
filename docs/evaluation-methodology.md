@@ -84,7 +84,16 @@ The agent is configured once per run and held constant across all conditions.
 
 The judge is an LLM, distinct from the agent being evaluated, that is used
 to score the responses from the agent with regard to the golden dataset answer
-and according to the [`k-eval` metrics](#metrics)
+and according to the [`k-eval` metrics](#metrics).
+
+The judge's inference parameters are pinned (configuration per-run) in
+an attempt to limit variance in its scoring.
+
+The judge produces structured JSON output per evaluation that contains
+a score for each metric as well as its reasoning for each score. This reasoning
+is provided for human assessment if there is reason to question the judge's score.
+Additionally, a section for `unverified_claims` contains any details in the agent's response
+that the judge believes are helpful, but that it cannot guarantee are factual.
 
 
 ## Metrics
