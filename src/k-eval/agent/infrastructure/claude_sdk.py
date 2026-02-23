@@ -74,7 +74,7 @@ class ClaudeAgentSDKAgent:
                 model=self._config.model,
                 system_prompt=self._system_prompt,
                 mcp_servers=self._build_mcp_servers(),
-                allowed_tools=self._build_allowed_tools(),
+                disallowed_tools=self._build_disallowed_tools(),
                 permission_mode="bypassPermissions",
                 setting_sources=[],
             )
@@ -182,13 +182,31 @@ class ClaudeAgentSDKAgent:
             server["headers"] = dict(config.headers)
         return server
 
-    def _build_allowed_tools(self) -> list[str]:
-        """Build the allowed tools list — one wildcard entry per MCP server.
+    def _build_disallowed_tools(self) -> list[str]:
+        """Build the disallowed tools list — all Claude built-in tools.
 
-        Returns an empty list when there are no servers, which blocks all tools
-        (correct for baseline conditions with no MCP context).
+        allowed_tools alone does not remove built-in tools from the agent's
+        context; it only controls approval requirements. Explicitly disallowing
+        all built-in tools ensures the agent cannot use web search, file I/O,
+        or any other built-in capability regardless of permission_mode.
         """
-        return [f"mcp__{server.name}__*" for server in self._mcp_servers]
+        return [
+            "Bash",
+            "Edit",
+            "Glob",
+            "Grep",
+            "LS",
+            "MultiEdit",
+            "NotebookEdit",
+            "NotebookRead",
+            "Read",
+            "Task",
+            "TodoRead",
+            "TodoWrite",
+            "WebFetch",
+            "WebSearch",
+            "Write",
+        ]
 
     def _map_usage(self, raw: dict[str, Any] | None) -> UsageMetrics | None:
         """Map the SDK's raw usage dict to a typed UsageMetrics value object."""

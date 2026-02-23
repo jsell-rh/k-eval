@@ -269,38 +269,68 @@ class TestBuildMcpServers:
 
 
 # ---------------------------------------------------------------------------
-# _build_allowed_tools tests
+# _build_disallowed_tools tests
 # ---------------------------------------------------------------------------
 
 
-class TestBuildAllowedTools:
-    """_build_allowed_tools() produces correct wildcard tool entries."""
+class TestBuildDisallowedTools:
+    """_build_disallowed_tools() blocks all Claude built-in tools.
 
-    def test_empty_servers_returns_empty_list(self) -> None:
-        agent = _make_agent(mcp_servers=[])
+    MCP tool whitelisting via allowed_tools wildcards (mcp__server__*) does not
+    work reliably in the SDK. Instead, we rely entirely on disallowed_tools to
+    remove all built-in tools, leaving only MCP tools available by default.
+    """
 
-        result = agent._build_allowed_tools()
+    _EXPECTED_BUILTINS = [
+        "Bash",
+        "Edit",
+        "Glob",
+        "Grep",
+        "LS",
+        "MultiEdit",
+        "NotebookEdit",
+        "NotebookRead",
+        "Read",
+        "Task",
+        "TodoRead",
+        "TodoWrite",
+        "WebFetch",
+        "WebSearch",
+        "Write",
+    ]
 
-        assert result == []
+    def test_returns_all_builtin_tools(self) -> None:
+        agent = _make_agent()
 
-    def test_single_server_returns_wildcard_entry(self) -> None:
-        agent = _make_agent(mcp_servers=[_stdio_server(name="graph")])
+        result = agent._build_disallowed_tools()
 
-        result = agent._build_allowed_tools()
+        assert result == self._EXPECTED_BUILTINS
 
-        assert result == ["mcp__graph__*"]
-
-    def test_multiple_servers_returns_all_wildcard_entries(self) -> None:
-        agent = _make_agent(
-            mcp_servers=[
-                _stdio_server(name="graph"),
-                _sse_server(name="search"),
-            ]
+    def test_same_regardless_of_mcp_servers(self) -> None:
+        agent_no_servers = _make_agent(mcp_servers=[])
+        agent_with_servers = _make_agent(
+            mcp_servers=[_stdio_server(name="graph"), _sse_server(name="search")]
         )
 
-        result = agent._build_allowed_tools()
+        assert (
+            agent_no_servers._build_disallowed_tools()
+            == agent_with_servers._build_disallowed_tools()
+        )
 
-        assert result == ["mcp__graph__*", "mcp__search__*"]
+    def test_websearch_is_blocked(self) -> None:
+        result = _make_agent()._build_disallowed_tools()
+
+        assert "WebSearch" in result
+
+    def test_bash_is_blocked(self) -> None:
+        result = _make_agent()._build_disallowed_tools()
+
+        assert "Bash" in result
+
+    def test_webfetch_is_blocked(self) -> None:
+        result = _make_agent()._build_disallowed_tools()
+
+        assert "WebFetch" in result
 
 
 # ---------------------------------------------------------------------------
