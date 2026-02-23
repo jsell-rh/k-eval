@@ -32,13 +32,13 @@ def _make_agent(
     mcp_servers: list[ConditionMcpServer] | None = None,
     model: str = "claude-3-5-sonnet-20241022",
     condition: str = "baseline",
-    sample_id: str = "0",
+    sample_idx: str = "0",
     observer: FakeAgentObserver | None = None,
 ) -> ClaudeAgentSDKAgent:
     return ClaudeAgentSDKAgent(
         config=AgentConfig(type="claude-sdk", model=model),
         condition=condition,
-        sample_id=sample_id,
+        sample_idx=sample_idx,
         system_prompt="You are a helpful assistant.",
         mcp_servers=mcp_servers if mcp_servers is not None else [],
         observer=observer if observer is not None else FakeAgentObserver(),
@@ -477,7 +477,7 @@ class TestObserverEvents:
     async def test_invocation_started_emitted_before_query(self) -> None:
         result_msg = _make_result_message()
         observer = FakeAgentObserver()
-        agent = _make_agent(condition="with-graph", sample_id="7", observer=observer)
+        agent = _make_agent(condition="with-graph", sample_idx="7", observer=observer)
 
         with patch(
             "agent.infrastructure.claude_sdk.query",
@@ -487,7 +487,7 @@ class TestObserverEvents:
 
         assert len(observer.invocation_started) == 1
         assert observer.invocation_started[0].condition == "with-graph"
-        assert observer.invocation_started[0].sample_id == "7"
+        assert observer.invocation_started[0].sample_idx == "7"
         assert observer.invocation_started[0].model == "claude-3-5-sonnet-20241022"
 
     async def test_invocation_completed_emitted_on_success(self) -> None:
@@ -495,7 +495,7 @@ class TestObserverEvents:
             duration_ms=1500, num_turns=2, total_cost_usd=0.005
         )
         observer = FakeAgentObserver()
-        agent = _make_agent(condition="with-graph", sample_id="7", observer=observer)
+        agent = _make_agent(condition="with-graph", sample_idx="7", observer=observer)
 
         with patch(
             "agent.infrastructure.claude_sdk.query",
@@ -506,14 +506,14 @@ class TestObserverEvents:
         assert len(observer.invocation_completed) == 1
         event = observer.invocation_completed[0]
         assert event.condition == "with-graph"
-        assert event.sample_id == "7"
+        assert event.sample_idx == "7"
         assert event.duration_ms == 1500
         assert event.num_turns == 2
         assert event.cost_usd == pytest.approx(0.005)
 
     async def test_invocation_failed_emitted_on_sdk_error(self) -> None:
         observer = FakeAgentObserver()
-        agent = _make_agent(condition="with-graph", sample_id="7", observer=observer)
+        agent = _make_agent(condition="with-graph", sample_idx="7", observer=observer)
 
         with patch(
             "agent.infrastructure.claude_sdk.query",
@@ -524,12 +524,12 @@ class TestObserverEvents:
 
         assert len(observer.invocation_failed) == 1
         assert observer.invocation_failed[0].condition == "with-graph"
-        assert observer.invocation_failed[0].sample_id == "7"
+        assert observer.invocation_failed[0].sample_idx == "7"
 
     async def test_invocation_failed_emitted_on_result_error(self) -> None:
         result_msg = _make_result_message(is_error=True, result="agent errored")
         observer = FakeAgentObserver()
-        agent = _make_agent(condition="baseline", sample_id="3", observer=observer)
+        agent = _make_agent(condition="baseline", sample_idx="3", observer=observer)
 
         with patch(
             "agent.infrastructure.claude_sdk.query",
@@ -558,7 +558,7 @@ class TestObserverEvents:
     ) -> None:
         """Observer event is emitted even when _build_mcp_servers raises (Fix 2)."""
         observer = FakeAgentObserver()
-        agent = _make_agent(condition="with-graph", sample_id="9", observer=observer)
+        agent = _make_agent(condition="with-graph", sample_idx="9", observer=observer)
 
         def _raise() -> None:
             raise AgentInvocationError(
@@ -571,4 +571,4 @@ class TestObserverEvents:
 
         assert len(observer.invocation_failed) == 1
         assert observer.invocation_failed[0].condition == "with-graph"
-        assert observer.invocation_failed[0].sample_id == "9"
+        assert observer.invocation_failed[0].sample_idx == "9"

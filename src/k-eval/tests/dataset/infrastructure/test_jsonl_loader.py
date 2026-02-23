@@ -64,9 +64,9 @@ class TestValidDatasetLoading:
         observer = FakeDatasetObserver()
         samples = JsonlDatasetLoader(observer=observer).load(config=_simple_config())
 
-        assert samples[0].id == "0"
-        assert samples[1].id == "1"
-        assert samples[2].id == "2"
+        assert samples[0].sample_idx == "0"
+        assert samples[1].sample_idx == "1"
+        assert samples[2].sample_idx == "2"
 
     def test_all_samples_loaded_in_order(self) -> None:
         observer = FakeDatasetObserver()
@@ -100,7 +100,7 @@ class TestObserverEvents:
         observer = FakeDatasetObserver()
         JsonlDatasetLoader(observer=observer).load(config=_simple_config())
 
-        ids = [e.sample_id for e in observer.samples_loaded]
+        ids = [e.sample_idx for e in observer.samples_loaded]
         assert ids == ["0", "1", "2"]
 
     def test_dataset_loading_completed_emitted_with_correct_path(self) -> None:
@@ -144,7 +144,7 @@ class TestCustomKeys:
             config=_custom_keys_config()
         )
 
-        assert [s.id for s in samples] == ["0", "1", "2"]
+        assert [s.sample_idx for s in samples] == ["0", "1", "2"]
 
 
 class TestMissingFile:

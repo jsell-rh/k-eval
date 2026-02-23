@@ -83,7 +83,7 @@ class JsonlDatasetLoader:
                 errors.append(result)
             else:
                 samples.append(result)
-                self._observer.dataset_sample_loaded(sample_id=result.id)
+                self._observer.dataset_sample_loaded(sample_idx=result.sample_idx)
 
         return samples, errors
 
@@ -115,7 +115,7 @@ class JsonlDatasetLoader:
             return f"line {index}: missing key(s) {keys}"
 
         return Sample(
-            id=str(index),
+            sample_idx=str(index),
             question=str(data[question_key]),
             answer=str(data[answer_key]),
         )

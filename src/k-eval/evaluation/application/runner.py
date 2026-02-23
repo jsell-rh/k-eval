@@ -56,14 +56,14 @@ class EvaluationRunner:
                 for run_index in range(self._config.execution.num_samples):
                     self._observer.sample_condition_started(
                         run_id=run_id,
-                        sample_id=sample.id,
+                        sample_idx=sample.sample_idx,
                         condition=condition_name,
                         run_index=run_index,
                     )
 
                     agent = self._agent_factory.create(
                         condition=condition_name,
-                        sample_id=sample.id,
+                        sample_idx=sample.sample_idx,
                         system_prompt=condition.system_prompt,
                         mcp_servers=condition.mcp_servers,
                     )
@@ -71,7 +71,7 @@ class EvaluationRunner:
 
                     judge = self._judge_factory.create(
                         condition=condition_name,
-                        sample_id=sample.id,
+                        sample_idx=sample.sample_idx,
                     )
                     judge_result = await judge.score(
                         question=sample.question,
@@ -92,7 +92,7 @@ class EvaluationRunner:
 
                     self._observer.sample_condition_completed(
                         run_id=run_id,
-                        sample_id=sample.id,
+                        sample_idx=sample.sample_idx,
                         condition=condition_name,
                         run_index=run_index,
                     )

@@ -27,7 +27,7 @@ def _make_config(
 def _make_judge(
     config: JudgeConfig | None = None,
     condition: str = "baseline",
-    sample_id: str = "0",
+    sample_idx: str = "0",
     observer: FakeJudgeObserver | None = None,
 ) -> tuple[LiteLLMJudge, FakeJudgeObserver]:
     obs = observer if observer is not None else FakeJudgeObserver()
@@ -35,7 +35,7 @@ def _make_judge(
     judge = LiteLLMJudge(
         config=cfg,
         condition=condition,
-        sample_id=sample_id,
+        sample_idx=sample_idx,
         observer=obs,
     )
     return judge, obs
@@ -98,13 +98,13 @@ class TestConstruction:
         _, observer = _make_judge(
             config=_make_config(temperature=0.7),
             condition="with-graph",
-            sample_id="3",
+            sample_idx="3",
         )
 
         warning = observer.temperature_warnings[0]
         assert warning.temperature == pytest.approx(0.7)
         assert warning.condition == "with-graph"
-        assert warning.sample_id == "3"
+        assert warning.sample_idx == "3"
 
     def test_very_small_positive_temperature_emits_warning(self) -> None:
         _, observer = _make_judge(config=_make_config(temperature=0.01))
@@ -149,7 +149,7 @@ class TestScoreSuccess:
     async def test_emits_started_event_before_scoring(self) -> None:
         content = _make_result_json()
         mock_response = _make_acompletion_response(content=content)
-        judge, observer = _make_judge(condition="with-graph", sample_id="7")
+        judge, observer = _make_judge(condition="with-graph", sample_idx="7")
 
         with patch(
             "judge.infrastructure.litellm.litellm.acompletion",
@@ -163,13 +163,13 @@ class TestScoreSuccess:
 
         assert len(observer.started) == 1
         assert observer.started[0].condition == "with-graph"
-        assert observer.started[0].sample_id == "7"
+        assert observer.started[0].sample_idx == "7"
         assert observer.started[0].model == "gpt-4o"
 
     async def test_emits_completed_event_on_success(self) -> None:
         content = _make_result_json()
         mock_response = _make_acompletion_response(content=content)
-        judge, observer = _make_judge(condition="baseline", sample_id="1")
+        judge, observer = _make_judge(condition="baseline", sample_idx="1")
 
         with patch(
             "judge.infrastructure.litellm.litellm.acompletion",
@@ -183,7 +183,7 @@ class TestScoreSuccess:
 
         assert len(observer.completed) == 1
         assert observer.completed[0].condition == "baseline"
-        assert observer.completed[0].sample_id == "1"
+        assert observer.completed[0].sample_idx == "1"
         assert observer.completed[0].duration_ms >= 0
 
     async def test_no_failed_event_on_success(self) -> None:
@@ -262,7 +262,7 @@ class TestScoreLiteLLMFailure:
         assert str(exc_info.value).startswith("Failed to ")
 
     async def test_litellm_exception_emits_failed_event(self) -> None:
-        judge, observer = _make_judge(condition="with-graph", sample_id="5")
+        judge, observer = _make_judge(condition="with-graph", sample_idx="5")
 
         with patch(
             "judge.infrastructure.litellm.litellm.acompletion",
@@ -277,7 +277,7 @@ class TestScoreLiteLLMFailure:
 
         assert len(observer.failed) == 1
         assert observer.failed[0].condition == "with-graph"
-        assert observer.failed[0].sample_id == "5"
+        assert observer.failed[0].sample_idx == "5"
 
     async def test_litellm_exception_does_not_emit_completed_event(self) -> None:
         judge, observer = _make_judge()
@@ -338,7 +338,7 @@ class TestScoreParseFailure:
 
     async def test_invalid_response_emits_failed_event(self) -> None:
         mock_response = _make_acompletion_response(content="garbage")
-        judge, observer = _make_judge(condition="baseline", sample_id="2")
+        judge, observer = _make_judge(condition="baseline", sample_idx="2")
 
         with patch(
             "judge.infrastructure.litellm.litellm.acompletion",
@@ -353,7 +353,7 @@ class TestScoreParseFailure:
 
         assert len(observer.failed) == 1
         assert observer.failed[0].condition == "baseline"
-        assert observer.failed[0].sample_id == "2"
+        assert observer.failed[0].sample_idx == "2"
 
     async def test_invalid_response_does_not_emit_completed_event(self) -> None:
         mock_response = _make_acompletion_response(content="garbage")

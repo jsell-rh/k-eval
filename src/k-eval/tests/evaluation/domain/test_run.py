@@ -13,7 +13,9 @@ from judge.domain.score import JudgeResult
 
 
 def _make_sample() -> Sample:
-    return Sample(id="s1", question="What is k-eval?", answer="An eval framework.")
+    return Sample(
+        sample_idx="s1", question="What is k-eval?", answer="An eval framework."
+    )
 
 
 def _make_agent_result() -> AgentResult:
@@ -200,7 +202,7 @@ class TestEvaluationRunSerialization:
 
         parsed = json.loads(run.model_dump_json())
 
-        assert parsed["sample"]["id"] == "s1"
+        assert parsed["sample"]["sample_idx"] == "s1"
         assert parsed["sample"]["question"] == "What is k-eval?"
 
     def test_model_dump_json_includes_agent_result_fields(self) -> None:

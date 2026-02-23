@@ -34,7 +34,7 @@ class ClaudeAgentSDKAgent:
     """Agent implementation that delegates to the Claude Agent SDK.
 
     One instance is constructed per (condition, sample) evaluation run.
-    The condition and sample_id are injected at construction time so that
+    The condition and sample_idx are injected at construction time so that
     observer events carry full context without polluting the ask() signature.
     """
 
@@ -42,14 +42,14 @@ class ClaudeAgentSDKAgent:
         self,
         config: AgentConfig,
         condition: str,
-        sample_id: str,
+        sample_idx: str,
         system_prompt: str,
         mcp_servers: list[ConditionMcpServer],
         observer: AgentObserver,
     ) -> None:
         self._config = config
         self._condition = condition
-        self._sample_id = sample_id
+        self._sample_idx = sample_idx
         self._system_prompt = system_prompt
         self._mcp_servers = mcp_servers
         self._observer = observer
@@ -65,7 +65,7 @@ class ClaudeAgentSDKAgent:
         """
         self._observer.agent_invocation_started(
             condition=self._condition,
-            sample_id=self._sample_id,
+            sample_idx=self._sample_idx,
             model=self._config.model,
         )
 
@@ -86,14 +86,14 @@ class ClaudeAgentSDKAgent:
             reason = str(exc).removeprefix("Failed to invoke agent: ")
             self._observer.agent_invocation_failed(
                 condition=self._condition,
-                sample_id=self._sample_id,
+                sample_idx=self._sample_idx,
                 reason=reason,
             )
             raise
 
         self._observer.agent_invocation_completed(
             condition=self._condition,
-            sample_id=self._sample_id,
+            sample_idx=self._sample_idx,
             duration_ms=result_message.duration_ms,
             num_turns=result_message.num_turns,
             cost_usd=result_message.total_cost_usd,

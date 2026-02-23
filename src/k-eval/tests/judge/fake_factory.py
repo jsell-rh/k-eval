@@ -15,9 +15,9 @@ class FakeJudgeFactory:
     def create(
         self,
         condition: str,
-        sample_id: str,
+        sample_idx: str,
     ) -> Judge:
-        self.created.append({"condition": condition, "sample_id": sample_id})
+        self.created.append({"condition": condition, "sample_idx": sample_idx})
         if self._result is not None:
             return FakeJudge(result=self._result)
         return FakeJudge()

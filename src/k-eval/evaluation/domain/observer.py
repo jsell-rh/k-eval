@@ -22,7 +22,7 @@ class EvaluationObserver(Protocol):
     def sample_condition_started(
         self,
         run_id: str,
-        sample_id: str,
+        sample_idx: str,
         condition: str,
         run_index: int,
     ) -> None: ...
@@ -30,7 +30,7 @@ class EvaluationObserver(Protocol):
     def sample_condition_completed(
         self,
         run_id: str,
-        sample_id: str,
+        sample_idx: str,
         condition: str,
         run_index: int,
     ) -> None: ...
@@ -38,7 +38,7 @@ class EvaluationObserver(Protocol):
     def sample_condition_failed(
         self,
         run_id: str,
-        sample_id: str,
+        sample_idx: str,
         condition: str,
         run_index: int,
         reason: str,

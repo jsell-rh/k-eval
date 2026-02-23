@@ -19,7 +19,7 @@ class TestLiteLLMJudgeFactoryProtocolCompliance:
         params = list(sig.parameters.keys())
 
         assert "condition" in params
-        assert "sample_id" in params
+        assert "sample_idx" in params
 
 
 class TestFakeJudgeFactoryProtocolCompliance:
@@ -39,15 +39,15 @@ class TestFakeJudgeFactoryProtocolCompliance:
     def test_fake_factory_create_returns_judge(self) -> None:
         factory = FakeJudgeFactory()
 
-        judge = factory.create(condition="baseline", sample_id="s1")
+        judge = factory.create(condition="baseline", sample_idx="s1")
 
         assert judge is not None
 
     def test_fake_factory_records_create_calls(self) -> None:
         factory = FakeJudgeFactory()
 
-        factory.create(condition="baseline", sample_id="s1")
-        factory.create(condition="with-graph", sample_id="s2")
+        factory.create(condition="baseline", sample_idx="s1")
+        factory.create(condition="with-graph", sample_idx="s2")
 
         assert len(factory.created) == 2
         assert factory.created[0]["condition"] == "baseline"

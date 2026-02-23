@@ -20,7 +20,7 @@ class EvaluationCompletedEvent:
 @dataclass(frozen=True)
 class SampleConditionStartedEvent:
     run_id: str
-    sample_id: str
+    sample_idx: str
     condition: str
     run_index: int
 
@@ -28,7 +28,7 @@ class SampleConditionStartedEvent:
 @dataclass(frozen=True)
 class SampleConditionCompletedEvent:
     run_id: str
-    sample_id: str
+    sample_idx: str
     condition: str
     run_index: int
 
@@ -36,7 +36,7 @@ class SampleConditionCompletedEvent:
 @dataclass(frozen=True)
 class SampleConditionFailedEvent:
     run_id: str
-    sample_id: str
+    sample_idx: str
     condition: str
     run_index: int
     reason: str
@@ -103,14 +103,14 @@ class FakeEvaluationObserver:
     def sample_condition_started(
         self,
         run_id: str,
-        sample_id: str,
+        sample_idx: str,
         condition: str,
         run_index: int,
     ) -> None:
         self._sc_started.append(
             SampleConditionStartedEvent(
                 run_id=run_id,
-                sample_id=sample_id,
+                sample_idx=sample_idx,
                 condition=condition,
                 run_index=run_index,
             )
@@ -119,14 +119,14 @@ class FakeEvaluationObserver:
     def sample_condition_completed(
         self,
         run_id: str,
-        sample_id: str,
+        sample_idx: str,
         condition: str,
         run_index: int,
     ) -> None:
         self._sc_completed.append(
             SampleConditionCompletedEvent(
                 run_id=run_id,
-                sample_id=sample_id,
+                sample_idx=sample_idx,
                 condition=condition,
                 run_index=run_index,
             )
@@ -135,7 +135,7 @@ class FakeEvaluationObserver:
     def sample_condition_failed(
         self,
         run_id: str,
-        sample_id: str,
+        sample_idx: str,
         condition: str,
         run_index: int,
         reason: str,
@@ -143,7 +143,7 @@ class FakeEvaluationObserver:
         self._sc_failed.append(
             SampleConditionFailedEvent(
                 run_id=run_id,
-                sample_id=sample_id,
+                sample_idx=sample_idx,
                 condition=condition,
                 run_index=run_index,
                 reason=reason,

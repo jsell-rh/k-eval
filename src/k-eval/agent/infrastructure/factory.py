@@ -17,7 +17,7 @@ class ClaudeAgentSDKAgentFactory:
     def create(
         self,
         condition: str,
-        sample_id: str,
+        sample_idx: str,
         system_prompt: str,
         mcp_servers: list[ConditionMcpServer],
     ) -> Agent:
@@ -25,7 +25,7 @@ class ClaudeAgentSDKAgentFactory:
         return ClaudeAgentSDKAgent(
             config=self._config,
             condition=condition,
-            sample_id=sample_id,
+            sample_idx=sample_idx,
             system_prompt=system_prompt,
             mcp_servers=mcp_servers,
             observer=self._observer,

@@ -70,7 +70,7 @@ def _make_conditions(names: list[str]) -> dict[str, ConditionConfig]:
 
 def _make_samples(count: int) -> list[Sample]:
     return [
-        Sample(id=f"s{i}", question=f"Question {i}?", answer=f"Answer {i}.")
+        Sample(sample_idx=f"s{i}", question=f"Question {i}?", answer=f"Answer {i}.")
         for i in range(count)
     ]
 

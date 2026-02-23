@@ -13,19 +13,19 @@ class StructlogAgentObserver:
         self._log = structlog.get_logger()
 
     def agent_invocation_started(
-        self, condition: str, sample_id: str, model: str
+        self, condition: str, sample_idx: str, model: str
     ) -> None:
         self._log.info(
             "agent.invocation_started",
             condition=condition,
-            sample_id=sample_id,
+            sample_idx=sample_idx,
             model=model,
         )
 
     def agent_invocation_completed(
         self,
         condition: str,
-        sample_id: str,
+        sample_idx: str,
         duration_ms: int,
         num_turns: int,
         cost_usd: float | None,
@@ -33,18 +33,18 @@ class StructlogAgentObserver:
         self._log.info(
             "agent.invocation_completed",
             condition=condition,
-            sample_id=sample_id,
+            sample_idx=sample_idx,
             duration_ms=duration_ms,
             num_turns=num_turns,
             cost_usd=cost_usd,
         )
 
     def agent_invocation_failed(
-        self, condition: str, sample_id: str, reason: str
+        self, condition: str, sample_idx: str, reason: str
     ) -> None:
         self._log.error(
             "agent.invocation_failed",
             condition=condition,
-            sample_id=sample_id,
+            sample_idx=sample_idx,
             reason=reason,
         )

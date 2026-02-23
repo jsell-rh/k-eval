@@ -12,7 +12,7 @@ class AgentFactory(Protocol):
     def create(
         self,
         condition: str,
-        sample_id: str,
+        sample_idx: str,
         system_prompt: str,
         mcp_servers: list[ConditionMcpServer],
     ) -> Agent: ...

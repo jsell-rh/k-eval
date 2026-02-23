@@ -16,12 +16,12 @@ class LiteLLMJudgeFactory:
     def create(
         self,
         condition: str,
-        sample_id: str,
+        sample_idx: str,
     ) -> Judge:
         """Construct a new LiteLLMJudge for the given condition and sample."""
         return LiteLLMJudge(
             config=self._config,
             condition=condition,
-            sample_id=sample_id,
+            sample_idx=sample_idx,
             observer=self._observer,
         )

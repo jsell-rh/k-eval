@@ -106,7 +106,7 @@ class LiteLLMJudge:
     """Judge implementation that delegates to an LLM via LiteLLM.
 
     One instance is constructed per (condition, sample) evaluation run.
-    The condition and sample_id are injected at construction time so that
+    The condition and sample_idx are injected at construction time so that
     observer events carry full context without polluting the score() signature.
     """
 
@@ -114,18 +114,18 @@ class LiteLLMJudge:
         self,
         config: JudgeConfig,
         condition: str,
-        sample_id: str,
+        sample_idx: str,
         observer: JudgeObserver,
     ) -> None:
         self._config = config
         self._condition = condition
-        self._sample_id = sample_id
+        self._sample_idx = sample_idx
         self._observer = observer
 
         if config.temperature > 0.0:
             self._observer.judge_high_temperature_warned(
                 condition=condition,
-                sample_id=sample_id,
+                sample_idx=sample_idx,
                 temperature=config.temperature,
             )
 
@@ -140,7 +140,7 @@ class LiteLLMJudge:
         """
         self._observer.judge_scoring_started(
             condition=self._condition,
-            sample_id=self._sample_id,
+            sample_idx=self._sample_idx,
             model=self._config.model,
         )
 
@@ -166,7 +166,7 @@ class LiteLLMJudge:
             reason = str(exc)
             self._observer.judge_scoring_failed(
                 condition=self._condition,
-                sample_id=self._sample_id,
+                sample_idx=self._sample_idx,
                 reason=reason,
             )
             raise JudgeInvocationError(reason=reason) from exc
@@ -183,14 +183,14 @@ class LiteLLMJudge:
             reason = f"Failed to parse judge response: {detail}"
             self._observer.judge_scoring_failed(
                 condition=self._condition,
-                sample_id=self._sample_id,
+                sample_idx=self._sample_idx,
                 reason=reason,
             )
             raise JudgeInvocationError(reason=reason) from exc
 
         self._observer.judge_scoring_completed(
             condition=self._condition,
-            sample_id=self._sample_id,
+            sample_idx=self._sample_idx,
             duration_ms=duration_ms,
         )
 

@@ -32,7 +32,7 @@ class TestClaudeAgentSDKAgentFactoryProtocolCompliance:
         params = list(sig.parameters.keys())
 
         assert "condition" in params
-        assert "sample_id" in params
+        assert "sample_idx" in params
         assert "system_prompt" in params
         assert "mcp_servers" in params
 
@@ -56,7 +56,7 @@ class TestFakeAgentFactoryProtocolCompliance:
 
         agent = factory.create(
             condition="baseline",
-            sample_id="s1",
+            sample_idx="s1",
             system_prompt="You are helpful.",
             mcp_servers=[],
         )
@@ -68,13 +68,13 @@ class TestFakeAgentFactoryProtocolCompliance:
 
         factory.create(
             condition="baseline",
-            sample_id="s1",
+            sample_idx="s1",
             system_prompt="You are helpful.",
             mcp_servers=[],
         )
         factory.create(
             condition="with-graph",
-            sample_id="s2",
+            sample_idx="s2",
             system_prompt="You have graph context.",
             mcp_servers=[],
         )

@@ -8,6 +8,6 @@ class Sample(BaseModel, frozen=True):
 
     model_config = ConfigDict(frozen=True)
 
-    id: str
+    sample_idx: str
     question: str
     answer: str

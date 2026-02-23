@@ -37,14 +37,14 @@ class StructlogEvaluationObserver:
     def sample_condition_started(
         self,
         run_id: str,
-        sample_id: str,
+        sample_idx: str,
         condition: str,
         run_index: int,
     ) -> None:
         self._log.info(
             "evaluation.sample_condition.started",
             run_id=run_id,
-            sample_id=sample_id,
+            sample_idx=sample_idx,
             condition=condition,
             run_index=run_index,
         )
@@ -52,14 +52,14 @@ class StructlogEvaluationObserver:
     def sample_condition_completed(
         self,
         run_id: str,
-        sample_id: str,
+        sample_idx: str,
         condition: str,
         run_index: int,
     ) -> None:
         self._log.info(
             "evaluation.sample_condition.completed",
             run_id=run_id,
-            sample_id=sample_id,
+            sample_idx=sample_idx,
             condition=condition,
             run_index=run_index,
         )
@@ -67,7 +67,7 @@ class StructlogEvaluationObserver:
     def sample_condition_failed(
         self,
         run_id: str,
-        sample_id: str,
+        sample_idx: str,
         condition: str,
         run_index: int,
         reason: str,
@@ -75,7 +75,7 @@ class StructlogEvaluationObserver:
         self._log.error(
             "evaluation.sample_condition.failed",
             run_id=run_id,
-            sample_id=sample_id,
+            sample_idx=sample_idx,
             condition=condition,
             run_index=run_index,
             reason=reason,

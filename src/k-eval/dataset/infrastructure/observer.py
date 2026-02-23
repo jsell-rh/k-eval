@@ -22,8 +22,8 @@ class StructlogDatasetObserver:
             answer_key=answer_key,
         )
 
-    def dataset_sample_loaded(self, sample_id: str) -> None:
-        self._log.debug("dataset.sample_loaded", sample_id=sample_id)
+    def dataset_sample_loaded(self, sample_idx: str) -> None:
+        self._log.debug("dataset.sample_loaded", sample_idx=sample_idx)
 
     def dataset_loading_completed(self, path: str, total_samples: int) -> None:
         self._log.info(

@@ -6,14 +6,14 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class InvocationStartedEvent:
     condition: str
-    sample_id: str
+    sample_idx: str
     model: str
 
 
 @dataclass(frozen=True)
 class InvocationCompletedEvent:
     condition: str
-    sample_id: str
+    sample_idx: str
     duration_ms: int
     num_turns: int
     cost_usd: float | None
@@ -22,7 +22,7 @@ class InvocationCompletedEvent:
 @dataclass(frozen=True)
 class InvocationFailedEvent:
     condition: str
-    sample_id: str
+    sample_idx: str
     reason: str
 
 
@@ -39,18 +39,18 @@ class FakeAgentObserver:
         self.invocation_failed: list[InvocationFailedEvent] = []
 
     def agent_invocation_started(
-        self, condition: str, sample_id: str, model: str
+        self, condition: str, sample_idx: str, model: str
     ) -> None:
         self.invocation_started.append(
             InvocationStartedEvent(
-                condition=condition, sample_id=sample_id, model=model
+                condition=condition, sample_idx=sample_idx, model=model
             )
         )
 
     def agent_invocation_completed(
         self,
         condition: str,
-        sample_id: str,
+        sample_idx: str,
         duration_ms: int,
         num_turns: int,
         cost_usd: float | None,
@@ -58,7 +58,7 @@ class FakeAgentObserver:
         self.invocation_completed.append(
             InvocationCompletedEvent(
                 condition=condition,
-                sample_id=sample_id,
+                sample_idx=sample_idx,
                 duration_ms=duration_ms,
                 num_turns=num_turns,
                 cost_usd=cost_usd,
@@ -66,10 +66,10 @@ class FakeAgentObserver:
         )
 
     def agent_invocation_failed(
-        self, condition: str, sample_id: str, reason: str
+        self, condition: str, sample_idx: str, reason: str
     ) -> None:
         self.invocation_failed.append(
             InvocationFailedEvent(
-                condition=condition, sample_id=sample_id, reason=reason
+                condition=condition, sample_idx=sample_idx, reason=reason
             )
         )

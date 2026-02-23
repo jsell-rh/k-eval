@@ -11,5 +11,5 @@ class JudgeFactory(Protocol):
     def create(
         self,
         condition: str,
-        sample_id: str,
+        sample_idx: str,
     ) -> Judge: ...
