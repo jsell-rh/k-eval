@@ -552,3 +552,23 @@ class TestObserverEvents:
                 await agent.ask(question="What?")
 
         assert len(observer.invocation_completed) == 0
+
+    async def test_invocation_failed_emitted_when_build_mcp_servers_raises(
+        self,
+    ) -> None:
+        """Observer event is emitted even when _build_mcp_servers raises (Fix 2)."""
+        observer = FakeAgentObserver()
+        agent = _make_agent(condition="with-graph", sample_id="9", observer=observer)
+
+        def _raise() -> None:
+            raise AgentInvocationError(
+                reason="unsupported MCP server type for server 'bad'"
+            )
+
+        with patch.object(agent, "_build_mcp_servers", side_effect=_raise):
+            with pytest.raises(AgentInvocationError):
+                await agent.ask(question="What?")
+
+        assert len(observer.invocation_failed) == 1
+        assert observer.invocation_failed[0].condition == "with-graph"
+        assert observer.invocation_failed[0].sample_id == "9"

@@ -1,6 +1,6 @@
 """EvaluationRun — the result of a single (sample, condition, run_index) evaluation."""
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from agent.domain.result import AgentResult
 from dataset.domain.sample import Sample
@@ -10,13 +10,7 @@ type RunId = str
 
 
 class EvaluationRun(BaseModel, frozen=True):
-    """Immutable record of one complete evaluation: agent asked, judge scored.
-
-    Pydantic needs arbitrary_types_allowed because Sample is a stdlib frozen dataclass,
-    not a Pydantic model.
-    """
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    """Immutable record of one complete evaluation: agent asked, judge scored."""
 
     run_id: RunId = Field(min_length=1)
     sample: Sample

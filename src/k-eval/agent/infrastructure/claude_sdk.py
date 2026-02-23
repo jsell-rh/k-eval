@@ -69,16 +69,16 @@ class ClaudeAgentSDKAgent:
             model=self._config.model,
         )
 
-        options = ClaudeAgentOptions(
-            model=self._config.model,
-            system_prompt=self._system_prompt,
-            mcp_servers=self._build_mcp_servers(),
-            allowed_tools=self._build_allowed_tools(),
-            permission_mode="bypassPermissions",
-            setting_sources=[],
-        )
-
         try:
+            options = ClaudeAgentOptions(
+                model=self._config.model,
+                system_prompt=self._system_prompt,
+                mcp_servers=self._build_mcp_servers(),
+                allowed_tools=self._build_allowed_tools(),
+                permission_mode="bypassPermissions",
+                setting_sources=[],
+            )
+
             result_message = await self._collect_result(
                 prompt=question, options=options
             )
@@ -127,19 +127,15 @@ class ClaudeAgentSDKAgent:
             raise AgentInvocationError(reason=str(exc)) from exc
 
         if result_message is None:
-            raise AgentInvocationError(
-                reason="Failed to receive result from agent: no ResultMessage in response"
-            )
+            raise AgentInvocationError(reason="no ResultMessage in response stream")
 
         if result_message.is_error:
             raise AgentInvocationError(
-                reason=f"Failed to invoke agent: agent returned error: {result_message.result}"
+                reason=f"agent returned error response: {result_message.result}"
             )
 
         if result_message.result is None:
-            raise AgentInvocationError(
-                reason="Failed to invoke agent: ResultMessage has no result text"
-            )
+            raise AgentInvocationError(reason="ResultMessage has no result text")
 
         return result_message
 

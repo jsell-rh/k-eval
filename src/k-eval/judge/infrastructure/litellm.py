@@ -1,8 +1,11 @@
 """LiteLLMJudge — judge implementation using LiteLLM for structured scoring."""
 
+import json
 import time
 
 import litellm
+import openai
+from pydantic import ValidationError
 
 from config.domain.judge import JudgeConfig
 from judge.domain.observer import JudgeObserver
@@ -158,7 +161,8 @@ class LiteLLMJudge:
                     {"role": "user", "content": user_message},
                 ],
             )
-        except Exception as exc:
+        except openai.APIError as exc:
+            # openai.APIError is the common base class for all litellm API errors.
             reason = str(exc)
             self._observer.judge_scoring_failed(
                 condition=self._condition,
@@ -172,7 +176,9 @@ class LiteLLMJudge:
         raw_content: str = response.choices[0].message.content
         try:
             result = JudgeResult.model_validate_json(raw_content)
-        except Exception as exc:
+        except (ValidationError, json.JSONDecodeError) as exc:
+            # ValidationError: valid JSON but schema mismatch.
+            # JSONDecodeError: response is not valid JSON at all.
             detail = str(exc)
             reason = f"Failed to parse judge response: {detail}"
             self._observer.judge_scoring_failed(

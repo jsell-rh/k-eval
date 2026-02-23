@@ -1,11 +1,12 @@
 """UsageMetrics value object — token usage from an agent invocation."""
 
-from dataclasses import dataclass
+from pydantic import BaseModel, ConfigDict
 
 
-@dataclass(frozen=True)
-class UsageMetrics:
+class UsageMetrics(BaseModel, frozen=True):
     """Immutable value object capturing token usage from a single agent invocation."""
+
+    model_config = ConfigDict(frozen=True)
 
     input_tokens: int | None
     output_tokens: int | None

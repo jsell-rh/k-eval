@@ -1,5 +1,7 @@
 """Tests for the EvaluationRun domain model."""
 
+import json
+
 import pytest
 from pydantic import ValidationError
 
@@ -75,11 +77,8 @@ class TestEvaluationRun:
             judge_result=_make_judge_result(),
         )
 
-        try:
+        with pytest.raises(ValidationError):
             run.run_id = "changed"  # type: ignore[misc]
-            raise AssertionError("Expected assignment to raise")
-        except Exception:
-            pass
 
     def test_agent_result_is_stored(self) -> None:
         agent_result = _make_agent_result()
@@ -166,3 +165,55 @@ class TestEvaluationRunConstraints:
             judge_result=_make_judge_result(),
         )
         assert run.run_index == 0
+
+
+class TestEvaluationRunSerialization:
+    """EvaluationRun is fully serializable via Pydantic."""
+
+    def test_model_dump_json_succeeds(self) -> None:
+        run = EvaluationRun(
+            run_id="run-abc",
+            sample=_make_sample(),
+            condition="baseline",
+            run_index=0,
+            agent_result=_make_agent_result(),
+            judge_result=_make_judge_result(),
+        )
+
+        raw = run.model_dump_json()
+
+        assert isinstance(raw, str)
+        parsed = json.loads(raw)
+        assert parsed["run_id"] == "run-abc"
+        assert parsed["condition"] == "baseline"
+        assert parsed["run_index"] == 0
+
+    def test_model_dump_json_includes_sample_fields(self) -> None:
+        run = EvaluationRun(
+            run_id="run-abc",
+            sample=_make_sample(),
+            condition="baseline",
+            run_index=0,
+            agent_result=_make_agent_result(),
+            judge_result=_make_judge_result(),
+        )
+
+        parsed = json.loads(run.model_dump_json())
+
+        assert parsed["sample"]["id"] == "s1"
+        assert parsed["sample"]["question"] == "What is k-eval?"
+
+    def test_model_dump_json_includes_agent_result_fields(self) -> None:
+        run = EvaluationRun(
+            run_id="run-abc",
+            sample=_make_sample(),
+            condition="baseline",
+            run_index=0,
+            agent_result=_make_agent_result(),
+            judge_result=_make_judge_result(),
+        )
+
+        parsed = json.loads(run.model_dump_json())
+
+        assert parsed["agent_result"]["response"] == "It is an eval framework."
+        assert parsed["agent_result"]["usage"]["input_tokens"] == 50

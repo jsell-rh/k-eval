@@ -11,6 +11,7 @@ from config.domain.observer import ConfigObserver
 from config.infrastructure.env_interpolation import collect_missing_vars, interpolate
 from config.infrastructure.errors import (
     ConfigLoadError,
+    ConfigParseError,
     ConfigValidationError,
     MissingEnvVarsError,
 )
@@ -28,10 +29,10 @@ class YamlConfigLoader:
 
         Raises:
             ConfigLoadError: if the file does not exist.
+            ConfigParseError: if the file is not valid YAML.
             MissingEnvVarsError: if any ${ENV_VAR} references are unset (all collected first).
-            ConfigValidationError: if any condition references an unknown MCP server name.
-            yaml.YAMLError: if the file is not valid YAML.
-            pydantic.ValidationError: if the schema is violated.
+            ConfigValidationError: if any condition references an unknown MCP server name,
+                or if the schema is violated.
         """
         raw = self._parse_yaml(path=path)
         self._check_missing_env_vars(raw=raw)
@@ -48,6 +49,8 @@ class YamlConfigLoader:
                 return yaml.safe_load(fh)
         except FileNotFoundError as exc:
             raise ConfigLoadError(path=path) from exc
+        except yaml.YAMLError as exc:
+            raise ConfigParseError(reason=str(exc)) from exc
 
     def _check_missing_env_vars(self, raw: Any) -> None:
         """Raise MissingEnvVarsError if any ${ENV_VAR} references in raw are unset."""

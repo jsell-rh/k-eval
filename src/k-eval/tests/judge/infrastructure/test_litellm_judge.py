@@ -3,6 +3,7 @@
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import openai
 import pytest
 
 from config.domain.judge import JudgeConfig
@@ -235,7 +236,7 @@ class TestScoreLiteLLMFailure:
 
         with patch(
             "judge.infrastructure.litellm.litellm.acompletion",
-            new=AsyncMock(side_effect=RuntimeError("connection refused")),
+            new=AsyncMock(side_effect=openai.APIConnectionError(request=MagicMock())),
         ):
             with pytest.raises(JudgeInvocationError):
                 await judge.score(
@@ -249,7 +250,7 @@ class TestScoreLiteLLMFailure:
 
         with patch(
             "judge.infrastructure.litellm.litellm.acompletion",
-            new=AsyncMock(side_effect=RuntimeError("connection refused")),
+            new=AsyncMock(side_effect=openai.APIConnectionError(request=MagicMock())),
         ):
             with pytest.raises(JudgeInvocationError) as exc_info:
                 await judge.score(
@@ -265,7 +266,7 @@ class TestScoreLiteLLMFailure:
 
         with patch(
             "judge.infrastructure.litellm.litellm.acompletion",
-            new=AsyncMock(side_effect=RuntimeError("timeout")),
+            new=AsyncMock(side_effect=openai.APITimeoutError(request=MagicMock())),
         ):
             with pytest.raises(JudgeInvocationError):
                 await judge.score(
@@ -283,7 +284,7 @@ class TestScoreLiteLLMFailure:
 
         with patch(
             "judge.infrastructure.litellm.litellm.acompletion",
-            new=AsyncMock(side_effect=RuntimeError("timeout")),
+            new=AsyncMock(side_effect=openai.APITimeoutError(request=MagicMock())),
         ):
             with pytest.raises(JudgeInvocationError):
                 await judge.score(
