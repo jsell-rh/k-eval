@@ -6,13 +6,15 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "claude-agent-sdk>=0.1.39",
-    "google-cloud-aiplatform>=1.138.0",
     "litellm",
     "pydantic>=2.12.5",
     "pyyaml>=6.0.3",
     "structlog>=25.5.0",
-    "types-pyyaml>=6.0.12.20250915",
 ]
+
+[project.optional-dependencies]
+vertex_ai = ["google-cloud-aiplatform>=1.138.0"]
+all = ["k-eval[vertex_ai]"]
 
 [dependency-groups]
 dev = [

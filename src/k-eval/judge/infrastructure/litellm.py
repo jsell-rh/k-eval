@@ -1,8 +1,11 @@
 """LiteLLMJudge — judge implementation using LiteLLM for structured scoring."""
 
+import json
 import time
 
 import litellm
+import openai
+from pydantic import ValidationError
 
 from config.domain.judge import JudgeConfig
 from judge.domain.observer import JudgeObserver
@@ -103,7 +106,7 @@ class LiteLLMJudge:
     """Judge implementation that delegates to an LLM via LiteLLM.
 
     One instance is constructed per (condition, sample) evaluation run.
-    The condition and sample_id are injected at construction time so that
+    The condition and sample_idx are injected at construction time so that
     observer events carry full context without polluting the score() signature.
     """
 
@@ -111,18 +114,18 @@ class LiteLLMJudge:
         self,
         config: JudgeConfig,
         condition: str,
-        sample_id: str,
+        sample_idx: str,
         observer: JudgeObserver,
     ) -> None:
         self._config = config
         self._condition = condition
-        self._sample_id = sample_id
+        self._sample_idx = sample_idx
         self._observer = observer
 
         if config.temperature > 0.0:
             self._observer.judge_high_temperature_warned(
                 condition=condition,
-                sample_id=sample_id,
+                sample_idx=sample_idx,
                 temperature=config.temperature,
             )
 
@@ -137,7 +140,7 @@ class LiteLLMJudge:
         """
         self._observer.judge_scoring_started(
             condition=self._condition,
-            sample_id=self._sample_id,
+            sample_idx=self._sample_idx,
             model=self._config.model,
         )
 
@@ -158,11 +161,12 @@ class LiteLLMJudge:
                     {"role": "user", "content": user_message},
                 ],
             )
-        except Exception as exc:
+        except openai.APIError as exc:
+            # openai.APIError is the common base class for all litellm API errors.
             reason = str(exc)
             self._observer.judge_scoring_failed(
                 condition=self._condition,
-                sample_id=self._sample_id,
+                sample_idx=self._sample_idx,
                 reason=reason,
             )
             raise JudgeInvocationError(reason=reason) from exc
@@ -172,19 +176,21 @@ class LiteLLMJudge:
         raw_content: str = response.choices[0].message.content
         try:
             result = JudgeResult.model_validate_json(raw_content)
-        except Exception as exc:
+        except (ValidationError, json.JSONDecodeError) as exc:
+            # ValidationError: valid JSON but schema mismatch.
+            # JSONDecodeError: response is not valid JSON at all.
             detail = str(exc)
             reason = f"Failed to parse judge response: {detail}"
             self._observer.judge_scoring_failed(
                 condition=self._condition,
-                sample_id=self._sample_id,
+                sample_idx=self._sample_idx,
                 reason=reason,
             )
             raise JudgeInvocationError(reason=reason) from exc
 
         self._observer.judge_scoring_completed(
             condition=self._condition,
-            sample_id=self._sample_id,
+            sample_idx=self._sample_idx,
             duration_ms=duration_ms,
         )
 

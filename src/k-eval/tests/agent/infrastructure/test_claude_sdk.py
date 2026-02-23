@@ -32,13 +32,13 @@ def _make_agent(
     mcp_servers: list[ConditionMcpServer] | None = None,
     model: str = "claude-3-5-sonnet-20241022",
     condition: str = "baseline",
-    sample_id: str = "0",
+    sample_idx: str = "0",
     observer: FakeAgentObserver | None = None,
 ) -> ClaudeAgentSDKAgent:
     return ClaudeAgentSDKAgent(
         config=AgentConfig(type="claude-sdk", model=model),
         condition=condition,
-        sample_id=sample_id,
+        sample_idx=sample_idx,
         system_prompt="You are a helpful assistant.",
         mcp_servers=mcp_servers if mcp_servers is not None else [],
         observer=observer if observer is not None else FakeAgentObserver(),
@@ -269,38 +269,68 @@ class TestBuildMcpServers:
 
 
 # ---------------------------------------------------------------------------
-# _build_allowed_tools tests
+# _build_disallowed_tools tests
 # ---------------------------------------------------------------------------
 
 
-class TestBuildAllowedTools:
-    """_build_allowed_tools() produces correct wildcard tool entries."""
+class TestBuildDisallowedTools:
+    """_build_disallowed_tools() blocks all Claude built-in tools.
 
-    def test_empty_servers_returns_empty_list(self) -> None:
-        agent = _make_agent(mcp_servers=[])
+    MCP tool whitelisting via allowed_tools wildcards (mcp__server__*) does not
+    work reliably in the SDK. Instead, we rely entirely on disallowed_tools to
+    remove all built-in tools, leaving only MCP tools available by default.
+    """
 
-        result = agent._build_allowed_tools()
+    _EXPECTED_BUILTINS = [
+        "Bash",
+        "Edit",
+        "Glob",
+        "Grep",
+        "LS",
+        "MultiEdit",
+        "NotebookEdit",
+        "NotebookRead",
+        "Read",
+        "Task",
+        "TodoRead",
+        "TodoWrite",
+        "WebFetch",
+        "WebSearch",
+        "Write",
+    ]
 
-        assert result == []
+    def test_returns_all_builtin_tools(self) -> None:
+        agent = _make_agent()
 
-    def test_single_server_returns_wildcard_entry(self) -> None:
-        agent = _make_agent(mcp_servers=[_stdio_server(name="graph")])
+        result = agent._build_disallowed_tools()
 
-        result = agent._build_allowed_tools()
+        assert result == self._EXPECTED_BUILTINS
 
-        assert result == ["mcp__graph__*"]
-
-    def test_multiple_servers_returns_all_wildcard_entries(self) -> None:
-        agent = _make_agent(
-            mcp_servers=[
-                _stdio_server(name="graph"),
-                _sse_server(name="search"),
-            ]
+    def test_same_regardless_of_mcp_servers(self) -> None:
+        agent_no_servers = _make_agent(mcp_servers=[])
+        agent_with_servers = _make_agent(
+            mcp_servers=[_stdio_server(name="graph"), _sse_server(name="search")]
         )
 
-        result = agent._build_allowed_tools()
+        assert (
+            agent_no_servers._build_disallowed_tools()
+            == agent_with_servers._build_disallowed_tools()
+        )
 
-        assert result == ["mcp__graph__*", "mcp__search__*"]
+    def test_websearch_is_blocked(self) -> None:
+        result = _make_agent()._build_disallowed_tools()
+
+        assert "WebSearch" in result
+
+    def test_bash_is_blocked(self) -> None:
+        result = _make_agent()._build_disallowed_tools()
+
+        assert "Bash" in result
+
+    def test_webfetch_is_blocked(self) -> None:
+        result = _make_agent()._build_disallowed_tools()
+
+        assert "WebFetch" in result
 
 
 # ---------------------------------------------------------------------------
@@ -477,7 +507,7 @@ class TestObserverEvents:
     async def test_invocation_started_emitted_before_query(self) -> None:
         result_msg = _make_result_message()
         observer = FakeAgentObserver()
-        agent = _make_agent(condition="with-graph", sample_id="7", observer=observer)
+        agent = _make_agent(condition="with-graph", sample_idx="7", observer=observer)
 
         with patch(
             "agent.infrastructure.claude_sdk.query",
@@ -487,7 +517,7 @@ class TestObserverEvents:
 
         assert len(observer.invocation_started) == 1
         assert observer.invocation_started[0].condition == "with-graph"
-        assert observer.invocation_started[0].sample_id == "7"
+        assert observer.invocation_started[0].sample_idx == "7"
         assert observer.invocation_started[0].model == "claude-3-5-sonnet-20241022"
 
     async def test_invocation_completed_emitted_on_success(self) -> None:
@@ -495,7 +525,7 @@ class TestObserverEvents:
             duration_ms=1500, num_turns=2, total_cost_usd=0.005
         )
         observer = FakeAgentObserver()
-        agent = _make_agent(condition="with-graph", sample_id="7", observer=observer)
+        agent = _make_agent(condition="with-graph", sample_idx="7", observer=observer)
 
         with patch(
             "agent.infrastructure.claude_sdk.query",
@@ -506,14 +536,14 @@ class TestObserverEvents:
         assert len(observer.invocation_completed) == 1
         event = observer.invocation_completed[0]
         assert event.condition == "with-graph"
-        assert event.sample_id == "7"
+        assert event.sample_idx == "7"
         assert event.duration_ms == 1500
         assert event.num_turns == 2
         assert event.cost_usd == pytest.approx(0.005)
 
     async def test_invocation_failed_emitted_on_sdk_error(self) -> None:
         observer = FakeAgentObserver()
-        agent = _make_agent(condition="with-graph", sample_id="7", observer=observer)
+        agent = _make_agent(condition="with-graph", sample_idx="7", observer=observer)
 
         with patch(
             "agent.infrastructure.claude_sdk.query",
@@ -524,12 +554,12 @@ class TestObserverEvents:
 
         assert len(observer.invocation_failed) == 1
         assert observer.invocation_failed[0].condition == "with-graph"
-        assert observer.invocation_failed[0].sample_id == "7"
+        assert observer.invocation_failed[0].sample_idx == "7"
 
     async def test_invocation_failed_emitted_on_result_error(self) -> None:
         result_msg = _make_result_message(is_error=True, result="agent errored")
         observer = FakeAgentObserver()
-        agent = _make_agent(condition="baseline", sample_id="3", observer=observer)
+        agent = _make_agent(condition="baseline", sample_idx="3", observer=observer)
 
         with patch(
             "agent.infrastructure.claude_sdk.query",
@@ -552,3 +582,23 @@ class TestObserverEvents:
                 await agent.ask(question="What?")
 
         assert len(observer.invocation_completed) == 0
+
+    async def test_invocation_failed_emitted_when_build_mcp_servers_raises(
+        self,
+    ) -> None:
+        """Observer event is emitted even when _build_mcp_servers raises (Fix 2)."""
+        observer = FakeAgentObserver()
+        agent = _make_agent(condition="with-graph", sample_idx="9", observer=observer)
+
+        def _raise() -> None:
+            raise AgentInvocationError(
+                reason="unsupported MCP server type for server 'bad'"
+            )
+
+        with patch.object(agent, "_build_mcp_servers", side_effect=_raise):
+            with pytest.raises(AgentInvocationError):
+                await agent.ask(question="What?")
+
+        assert len(observer.invocation_failed) == 1
+        assert observer.invocation_failed[0].condition == "with-graph"
+        assert observer.invocation_failed[0].sample_idx == "9"

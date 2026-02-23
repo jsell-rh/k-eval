@@ -5,6 +5,13 @@ from pathlib import Path
 from core.errors import KEvalError
 
 
+class ConfigParseError(KEvalError):
+    """Raised when the config file exists but cannot be parsed as valid YAML."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(f"Failed to parse config: {reason}")
+
+
 class MissingEnvVarsError(KEvalError):
     """Raised when one or more required environment variables are not set."""
 

@@ -8,3 +8,12 @@ class AgentInvocationError(KEvalError):
 
     def __init__(self, reason: str) -> None:
         super().__init__(f"Failed to invoke agent: {reason}")
+
+
+class AgentTypeNotSupportedError(KEvalError):
+    """Raised when the agent type specified in config is not a known agent type."""
+
+    def __init__(self, agent_type: str) -> None:
+        super().__init__(
+            f"Failed to create agent factory: unsupported agent type '{agent_type}'"
+        )

@@ -937,12 +937,18 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "claude-agent-sdk" },
-    { name = "google-cloud-aiplatform" },
     { name = "litellm" },
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "structlog" },
-    { name = "types-pyyaml" },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "google-cloud-aiplatform" },
+]
+vertex-ai = [
+    { name = "google-cloud-aiplatform" },
 ]
 
 [package.dev-dependencies]
@@ -956,13 +962,14 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "claude-agent-sdk", specifier = ">=0.1.39" },
-    { name = "google-cloud-aiplatform", specifier = ">=1.138.0" },
+    { name = "google-cloud-aiplatform", marker = "extra == 'vertex-ai'", specifier = ">=1.138.0" },
+    { name = "k-eval", extras = ["vertex-ai"], marker = "extra == 'all'" },
     { name = "litellm" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "structlog", specifier = ">=25.5.0" },
-    { name = "types-pyyaml", specifier = ">=6.0.12.20250915" },
 ]
+provides-extras = ["vertex-ai", "all"]
 
 [package.metadata.requires-dev]
 dev = [

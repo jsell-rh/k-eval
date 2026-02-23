@@ -1,12 +1,13 @@
 """Sample domain value object — one question/answer pair from a dataset."""
 
-from dataclasses import dataclass
+from pydantic import BaseModel, ConfigDict
 
 
-@dataclass(frozen=True)
-class Sample:
+class Sample(BaseModel, frozen=True):
     """Immutable value object representing a single question/answer pair."""
 
-    id: str
+    model_config = ConfigDict(frozen=True)
+
+    sample_idx: str
     question: str
     answer: str

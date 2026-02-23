@@ -9,7 +9,7 @@ class StdioMcpServer(BaseModel, frozen=True):
     """MCP server launched as a subprocess via stdio."""
 
     type: Literal["stdio"]
-    command: str
+    command: str = Field(min_length=1)
     args: list[str] = Field(default_factory=list)
     env: dict[str, str] = Field(default_factory=dict)
 
@@ -18,7 +18,7 @@ class SseMcpServer(BaseModel, frozen=True):
     """MCP server reachable over Server-Sent Events."""
 
     type: Literal["sse"]
-    url: str
+    url: str = Field(min_length=1)
     headers: dict[str, str] = Field(default_factory=dict)
 
 
@@ -26,7 +26,7 @@ class HttpMcpServer(BaseModel, frozen=True):
     """MCP server reachable over HTTP."""
 
     type: Literal["http"]
-    url: str
+    url: str = Field(min_length=1)
     headers: dict[str, str] = Field(default_factory=dict)
 
 

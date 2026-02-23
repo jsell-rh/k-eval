@@ -1,15 +1,15 @@
 """Execution configuration models."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class RetryConfig(BaseModel, frozen=True):
-    max_attempts: int
-    initial_backoff_seconds: int
-    backoff_multiplier: int
+    max_attempts: int = Field(ge=1)
+    initial_backoff_seconds: int = Field(ge=0)
+    backoff_multiplier: int = Field(ge=1)
 
 
 class ExecutionConfig(BaseModel, frozen=True):
-    num_samples: int
-    max_concurrent: int
+    num_samples: int = Field(ge=1)
+    max_concurrent: int = Field(ge=1)
     retry: RetryConfig
