@@ -40,7 +40,6 @@ class JsonlDatasetLoader:
 
         samples, errors = self._parse_lines(
             lines=lines,
-            path=config.path,
             question_key=config.question_key,
             answer_key=config.answer_key,
         )
@@ -64,7 +63,6 @@ class JsonlDatasetLoader:
     def _parse_lines(
         self,
         lines: list[str],
-        path: str,
         question_key: str,
         answer_key: str,
     ) -> tuple[list[Sample], list[str]]:
