@@ -53,6 +53,9 @@ when naming conditions. For example,
 - `with-graph`
 - `with-graph-and-rag`
 
+See [run-configuration.md](./run-configuration.md) for more details on how runs
+are defined.
+
 ## The Agent
 
 The agent (or agentic system) is the target of `k-eval`'s evaluation efforts. `k-eval`
