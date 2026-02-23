@@ -21,20 +21,24 @@ class TestValidConfigLoading:
 
     def test_loads_name_and_version(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("SEARCH_API_KEY", "secret123")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
 
         observer = FakeConfigObserver()
-        cfg = load_config(_fixture("valid_config.yaml"), observer)
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
 
         assert cfg.name == "kartograph-graph-context-eval"
         assert cfg.version == "1"
 
     def test_loads_dataset(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("SEARCH_API_KEY", "secret123")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
 
         observer = FakeConfigObserver()
-        cfg = load_config(_fixture("valid_config.yaml"), observer)
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
 
         assert cfg.dataset.path == "./questions.jsonl"
         assert cfg.dataset.question_key == "question"
@@ -42,31 +46,37 @@ class TestValidConfigLoading:
 
     def test_loads_agent(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("SEARCH_API_KEY", "secret123")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
 
         observer = FakeConfigObserver()
-        cfg = load_config(_fixture("valid_config.yaml"), observer)
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
 
         assert cfg.agent.type == "claude_code_sdk"
         assert cfg.agent.model == "claude-sonnet-4-5"
 
     def test_loads_judge(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("SEARCH_API_KEY", "secret123")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
 
         observer = FakeConfigObserver()
-        cfg = load_config(_fixture("valid_config.yaml"), observer)
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
 
         assert cfg.judge.model == "vertex_ai/claude-opus-4-5"
         assert cfg.judge.temperature == 0.0
 
     def test_loads_stdio_mcp_server(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("SEARCH_API_KEY", "secret123")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
         from config.domain.mcp_server import StdioMcpServer
 
         observer = FakeConfigObserver()
-        cfg = load_config(_fixture("valid_config.yaml"), observer)
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
 
         graph = cfg.mcp_servers["graph"]
         assert isinstance(graph, StdioMcpServer)
@@ -75,11 +85,13 @@ class TestValidConfigLoading:
 
     def test_loads_sse_mcp_server(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("SEARCH_API_KEY", "secret123")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
         from config.domain.mcp_server import SseMcpServer
 
         observer = FakeConfigObserver()
-        cfg = load_config(_fixture("valid_config.yaml"), observer)
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
 
         search = cfg.mcp_servers["search"]
         assert isinstance(search, SseMcpServer)
@@ -87,10 +99,12 @@ class TestValidConfigLoading:
 
     def test_loads_conditions(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("SEARCH_API_KEY", "secret123")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
 
         observer = FakeConfigObserver()
-        cfg = load_config(_fixture("valid_config.yaml"), observer)
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
 
         assert "baseline" in cfg.conditions
         assert "with_graph" in cfg.conditions
@@ -102,10 +116,12 @@ class TestValidConfigLoading:
 
     def test_loads_execution(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("SEARCH_API_KEY", "secret123")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
 
         observer = FakeConfigObserver()
-        cfg = load_config(_fixture("valid_config.yaml"), observer)
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
 
         assert cfg.execution.num_samples == 3
         assert cfg.execution.max_concurrent == 5
@@ -115,14 +131,117 @@ class TestValidConfigLoading:
 
     def test_emits_config_loaded_event(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("SEARCH_API_KEY", "secret123")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
 
         observer = FakeConfigObserver()
-        load_config(_fixture("valid_config.yaml"), observer)
+        YamlConfigLoader(observer=observer).load(path=_fixture("valid_config.yaml"))
 
         assert len(observer.loaded) == 1
         assert observer.loaded[0]["name"] == "kartograph-graph-context-eval"
         assert observer.loaded[0]["version"] == "1"
+
+
+class TestConditionMcpServerResolution:
+    """Condition mcp_servers are resolved from names to ConditionMcpServer objects."""
+
+    def test_condition_mcp_servers_is_list_of_condition_mcp_server(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("SEARCH_API_KEY", "secret123")
+        from config.infrastructure.yaml_loader import YamlConfigLoader
+        from config.domain.condition_mcp_server import ConditionMcpServer
+
+        observer = FakeConfigObserver()
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
+
+        with_graph = cfg.conditions["with_graph"]
+        assert len(with_graph.mcp_servers) == 1
+        assert isinstance(with_graph.mcp_servers[0], ConditionMcpServer)
+
+    def test_condition_mcp_server_name_matches_key(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("SEARCH_API_KEY", "secret123")
+        from config.infrastructure.yaml_loader import YamlConfigLoader
+
+        observer = FakeConfigObserver()
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
+
+        with_graph = cfg.conditions["with_graph"]
+        assert with_graph.mcp_servers[0].name == "graph"
+
+    def test_condition_mcp_server_config_matches_top_level(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("SEARCH_API_KEY", "secret123")
+        from config.infrastructure.yaml_loader import YamlConfigLoader
+        from config.domain.mcp_server import StdioMcpServer
+
+        observer = FakeConfigObserver()
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
+
+        with_graph = cfg.conditions["with_graph"]
+        server_config = with_graph.mcp_servers[0].config
+        assert isinstance(server_config, StdioMcpServer)
+        assert server_config.command == "python"
+        assert server_config.args == ["-m", "kartograph.mcp"]
+
+    def test_condition_with_two_servers_resolves_both(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("SEARCH_API_KEY", "secret123")
+        from config.infrastructure.yaml_loader import YamlConfigLoader
+        from config.domain.mcp_server import StdioMcpServer, SseMcpServer
+
+        observer = FakeConfigObserver()
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
+
+        combined = cfg.conditions["with_graph_and_search"]
+        assert len(combined.mcp_servers) == 2
+        names = [s.name for s in combined.mcp_servers]
+        assert names == ["graph", "search"]
+
+        graph_cfg = combined.mcp_servers[0].config
+        search_cfg = combined.mcp_servers[1].config
+        assert isinstance(graph_cfg, StdioMcpServer)
+        assert isinstance(search_cfg, SseMcpServer)
+
+    def test_condition_with_empty_mcp_servers_resolves_to_empty_list(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("SEARCH_API_KEY", "secret123")
+        from config.infrastructure.yaml_loader import YamlConfigLoader
+
+        observer = FakeConfigObserver()
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
+
+        baseline = cfg.conditions["baseline"]
+        assert baseline.mcp_servers == []
+
+    def test_all_invalid_refs_collected_before_raising(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """All invalid server references across all conditions are reported at once."""
+        from config.infrastructure.yaml_loader import YamlConfigLoader
+        from config.infrastructure.errors import ConfigValidationError
+
+        observer = FakeConfigObserver()
+        with pytest.raises(ConfigValidationError) as exc_info:
+            YamlConfigLoader(observer=observer).load(
+                path=_fixture("invalid_condition_ref.yaml")
+            )
+
+        assert "nonexistent_server" in str(exc_info.value)
 
 
 class TestEnvVarInterpolation:
@@ -132,11 +251,13 @@ class TestEnvVarInterpolation:
         monkeypatch.setenv("SEARCH_API_KEY", "mysecretkey")
         monkeypatch.setenv("CUSTOM_HEADER", "custom-value")
         monkeypatch.setenv("HTTP_API_KEY", "httpkey")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
         from config.domain.mcp_server import SseMcpServer
 
         observer = FakeConfigObserver()
-        cfg = load_config(_fixture("env_var_config.yaml"), observer)
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("env_var_config.yaml")
+        )
 
         search = cfg.mcp_servers["search"]
         assert isinstance(search, SseMcpServer)
@@ -150,11 +271,13 @@ class TestEnvVarInterpolation:
         monkeypatch.setenv("SEARCH_API_KEY", "mysecretkey")
         monkeypatch.setenv("CUSTOM_HEADER", "custom-value")
         monkeypatch.setenv("HTTP_API_KEY", "httpkey")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
         from config.domain.mcp_server import HttpMcpServer
 
         observer = FakeConfigObserver()
-        cfg = load_config(_fixture("env_var_config.yaml"), observer)
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("env_var_config.yaml")
+        )
 
         myhttp = cfg.mcp_servers["myhttp"]
         assert isinstance(myhttp, HttpMcpServer)
@@ -168,12 +291,14 @@ class TestEnvVarInterpolation:
         monkeypatch.delenv("SEARCH_API_KEY", raising=False)
         monkeypatch.delenv("CUSTOM_HEADER", raising=False)
         monkeypatch.delenv("HTTP_API_KEY", raising=False)
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
         from config.infrastructure.errors import MissingEnvVarsError
 
         observer = FakeConfigObserver()
         with pytest.raises(MissingEnvVarsError) as exc_info:
-            load_config(_fixture("env_var_config.yaml"), observer)
+            YamlConfigLoader(observer=observer).load(
+                path=_fixture("env_var_config.yaml")
+            )
 
         error = exc_info.value
         # All three missing vars must be listed in one error
@@ -187,12 +312,14 @@ class TestEnvVarInterpolation:
         monkeypatch.delenv("SEARCH_API_KEY", raising=False)
         monkeypatch.delenv("CUSTOM_HEADER", raising=False)
         monkeypatch.delenv("HTTP_API_KEY", raising=False)
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
         from config.infrastructure.errors import MissingEnvVarsError
 
         observer = FakeConfigObserver()
         with pytest.raises(MissingEnvVarsError) as exc_info:
-            load_config(_fixture("env_var_config.yaml"), observer)
+            YamlConfigLoader(observer=observer).load(
+                path=_fixture("env_var_config.yaml")
+            )
 
         assert str(exc_info.value).startswith("Failed to ")
 
@@ -203,24 +330,28 @@ class TestConditionValidation:
     def test_unknown_mcp_server_ref_raises_validation_error(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
         from config.infrastructure.errors import ConfigValidationError
 
         observer = FakeConfigObserver()
         with pytest.raises(ConfigValidationError) as exc_info:
-            load_config(_fixture("invalid_condition_ref.yaml"), observer)
+            YamlConfigLoader(observer=observer).load(
+                path=_fixture("invalid_condition_ref.yaml")
+            )
 
         assert "nonexistent_server" in str(exc_info.value)
 
     def test_unknown_mcp_server_error_message_starts_with_failed(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
         from config.infrastructure.errors import ConfigValidationError
 
         observer = FakeConfigObserver()
         with pytest.raises(ConfigValidationError) as exc_info:
-            load_config(_fixture("invalid_condition_ref.yaml"), observer)
+            YamlConfigLoader(observer=observer).load(
+                path=_fixture("invalid_condition_ref.yaml")
+            )
 
         assert str(exc_info.value).startswith("Failed to ")
 
@@ -229,10 +360,10 @@ class TestJudgeTemperatureWarning:
     """Judge temperature > 0.0 triggers an observer warning."""
 
     def test_high_judge_temperature_emits_warning(self) -> None:
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
 
         observer = FakeConfigObserver()
-        load_config(_fixture("high_temp_judge.yaml"), observer)
+        YamlConfigLoader(observer=observer).load(path=_fixture("high_temp_judge.yaml"))
 
         assert len(observer.warnings) == 1
         assert float(observer.warnings[0]["temperature"]) == 0.5
@@ -241,10 +372,10 @@ class TestJudgeTemperatureWarning:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setenv("SEARCH_API_KEY", "secret123")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
 
         observer = FakeConfigObserver()
-        load_config(_fixture("valid_config.yaml"), observer)
+        YamlConfigLoader(observer=observer).load(path=_fixture("valid_config.yaml"))
 
         assert len(observer.warnings) == 0
 
@@ -256,10 +387,12 @@ class TestConditionOrdering:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setenv("SEARCH_API_KEY", "secret123")
-        from config.infrastructure.yaml_loader import load_config
+        from config.infrastructure.yaml_loader import YamlConfigLoader
 
         observer = FakeConfigObserver()
-        cfg = load_config(_fixture("valid_config.yaml"), observer)
+        cfg = YamlConfigLoader(observer=observer).load(
+            path=_fixture("valid_config.yaml")
+        )
 
         keys = list(cfg.conditions.keys())
         assert keys == ["baseline", "with_graph", "with_graph_and_search"]

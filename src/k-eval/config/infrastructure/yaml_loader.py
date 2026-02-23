@@ -12,23 +12,30 @@ from config.infrastructure.env_interpolation import collect_missing_vars, interp
 from config.infrastructure.errors import ConfigValidationError, MissingEnvVarsError
 
 
-def load_config(path: Path, observer: ConfigObserver) -> EvalConfig:
-    """
-    Load, interpolate, validate, and return an EvalConfig from a YAML file.
+class YamlConfigLoader:
+    """Loads, interpolates, validates, and returns an EvalConfig from a YAML file."""
 
-    Raises:
-        MissingEnvVarsError: if any ${ENV_VAR} references are unset (all collected first).
-        ConfigValidationError: if condition references an unknown MCP server name.
-        yaml.YAMLError: if the file is not valid YAML.
-        pydantic.ValidationError: if the schema is violated.
-    """
-    raw = _parse_yaml(path)
-    _interpolate_env_vars(raw)
-    cfg = _build_config(raw)
-    _validate_condition_server_refs(cfg)
-    _emit_warnings(cfg, observer)
-    observer.config_loaded(name=cfg.name, version=cfg.version)
-    return cfg
+    def __init__(self, observer: ConfigObserver) -> None:
+        self._observer = observer
+
+    def load(self, path: Path) -> EvalConfig:
+        """
+        Load, interpolate, validate, and return an EvalConfig from a YAML file.
+
+        Raises:
+            MissingEnvVarsError: if any ${ENV_VAR} references are unset (all collected first).
+            ConfigValidationError: if any condition references an unknown MCP server name.
+            yaml.YAMLError: if the file is not valid YAML.
+            pydantic.ValidationError: if the schema is violated.
+        """
+        raw = _parse_yaml(path=path)
+        _check_missing_env_vars(raw=raw)
+        interpolated = _interpolate(raw=raw)
+        resolved = _resolve_condition_server_refs(interpolated=interpolated)
+        cfg = _build_config(resolved=resolved)
+        _emit_warnings(cfg=cfg, observer=self._observer)
+        self._observer.config_loaded(name=cfg.name, version=cfg.version)
+        return cfg
 
 
 def _parse_yaml(path: Path) -> Any:
@@ -36,39 +43,68 @@ def _parse_yaml(path: Path) -> Any:
         return yaml.safe_load(fh)
 
 
-def _interpolate_env_vars(raw: Any) -> Any:
-    """Mutates nothing — returns the interpolated tree.  Raises if vars are missing."""
+def _check_missing_env_vars(raw: Any) -> None:
+    """Raise MissingEnvVarsError if any ${ENV_VAR} references in raw are unset."""
     missing = collect_missing_vars(raw)
     if missing:
         raise MissingEnvVarsError(missing)
+
+
+def _interpolate(raw: Any) -> Any:
+    """Return a fully interpolated copy of raw with all ${ENV_VAR} substituted."""
     return interpolate(raw)
 
 
-def _build_config(raw: Any) -> EvalConfig:
-    # _interpolate_env_vars returns the interpolated copy but we need to pass it to
-    # Pydantic.  Re-run interpolation (env vars are present now) to get the final dict.
-    interpolated = interpolate(raw)
-    try:
-        return EvalConfig.model_validate(interpolated)
-    except ValidationError as exc:
-        raise ConfigValidationError(str(exc)) from exc
+def _resolve_condition_server_refs(interpolated: Any) -> Any:
+    """
+    Validate condition MCP server references and replace each name with a resolved dict.
 
+    Replaces each condition's ``mcp_servers: [str, ...]`` with
+    ``mcp_servers: [{"name": str, "config": dict}, ...]`` so that Pydantic can
+    validate the full ``EvalConfig`` — including ``ConditionMcpServer`` — in one pass.
 
-def _validate_condition_server_refs(cfg: EvalConfig) -> None:
-    """Ensure every server name referenced by a condition exists in mcp_servers."""
-    defined_servers = set(cfg.mcp_servers.keys())
+    Raises:
+        ConfigValidationError: listing ALL invalid references across ALL conditions
+            before raising (not just the first one).
+    """
+    mcp_servers_raw: dict[str, Any] = interpolated.get("mcp_servers", {}) or {}
+    conditions_raw: dict[str, Any] = interpolated.get("conditions", {}) or {}
+    defined_names = set(mcp_servers_raw.keys())
+
     unknown: list[str] = []
-
-    for condition_name, condition in cfg.conditions.items():
-        for server_name in condition.mcp_servers:
-            if server_name not in defined_servers:
+    for condition_name, condition_data in conditions_raw.items():
+        server_names: list[str] = condition_data.get("mcp_servers", []) or []
+        for server_name in server_names:
+            if server_name not in defined_names:
                 unknown.append(
-                    f"condition '{condition_name}' references unknown MCP server '{server_name}'"
+                    f"condition '{condition_name}' references unknown MCP server"
+                    f" '{server_name}'"
                 )
 
     if unknown:
         detail = "; ".join(unknown)
         raise ConfigValidationError(detail)
+
+    # All references are valid — replace names with resolved dicts for Pydantic.
+    resolved_conditions: dict[str, Any] = {}
+    for condition_name, condition_data in conditions_raw.items():
+        server_names = condition_data.get("mcp_servers", []) or []
+        resolved_servers = [
+            {"name": name, "config": mcp_servers_raw[name]} for name in server_names
+        ]
+        resolved_conditions[condition_name] = {
+            **condition_data,
+            "mcp_servers": resolved_servers,
+        }
+
+    return {**interpolated, "conditions": resolved_conditions}
+
+
+def _build_config(resolved: Any) -> EvalConfig:
+    try:
+        return EvalConfig.model_validate(resolved)
+    except ValidationError as exc:
+        raise ConfigValidationError(str(exc)) from exc
 
 
 def _emit_warnings(cfg: EvalConfig, observer: ConfigObserver) -> None:
