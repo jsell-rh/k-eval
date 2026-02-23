@@ -124,7 +124,7 @@ class ClaudeAgentSDKAgent:
                 if isinstance(message, ResultMessage):
                     result_message = message
         except ClaudeSDKError as exc:
-            raise AgentInvocationError(reason=str(exc)) from exc
+            raise AgentInvocationError(reason=str(exc), retriable=True) from exc
 
         if result_message is None:
             raise AgentInvocationError(reason="no ResultMessage in response stream")

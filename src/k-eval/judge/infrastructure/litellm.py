@@ -163,13 +163,21 @@ class LiteLLMJudge:
             )
         except openai.APIError as exc:
             # openai.APIError is the common base class for all litellm API errors.
+            retriable = isinstance(
+                exc,
+                (
+                    openai.RateLimitError,
+                    openai.APIConnectionError,
+                    openai.APITimeoutError,
+                ),
+            )
             reason = str(exc)
             self._observer.judge_scoring_failed(
                 condition=self._condition,
                 sample_idx=self._sample_idx,
                 reason=reason,
             )
-            raise JudgeInvocationError(reason=reason) from exc
+            raise JudgeInvocationError(reason=reason, retriable=retriable) from exc
 
         duration_ms = int((time.monotonic() - start) * 1000)
 

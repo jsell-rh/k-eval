@@ -1,5 +1,7 @@
 """LiteLLMJudgeFactory — constructs LiteLLMJudge instances."""
 
+import litellm
+
 from judge.domain.judge import Judge
 from judge.domain.observer import JudgeObserver
 from judge.infrastructure.litellm import LiteLLMJudge
@@ -10,6 +12,7 @@ class LiteLLMJudgeFactory:
     """Creates LiteLLMJudge instances configured for a given condition and sample."""
 
     def __init__(self, config: JudgeConfig, observer: JudgeObserver) -> None:
+        litellm.suppress_debug_info = True
         self._config = config
         self._observer = observer
 

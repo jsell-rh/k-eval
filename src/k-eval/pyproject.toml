@@ -2,7 +2,6 @@
 name = "k-eval"
 version = "0.1.0"
 description = "Context-aware evaluation framework for AI agents using MCP."
-readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "claude-agent-sdk>=0.1.39",
@@ -10,7 +9,11 @@ dependencies = [
     "pydantic>=2.12.5",
     "pyyaml>=6.0.3",
     "structlog>=25.5.0",
+    "typer>=0.24.1",
 ]
+
+[project.scripts]
+k-eval = "cli.main:app"
 
 [project.optional-dependencies]
 vertex_ai = ["google-cloud-aiplatform>=1.138.0"]
