@@ -1,6 +1,7 @@
 """JSONL dataset loader — reads a dataset file and returns typed Sample objects."""
 
 import json
+from pathlib import Path
 
 from config.domain.dataset import DatasetConfig
 from dataset.domain.observer import DatasetObserver
@@ -25,8 +26,9 @@ class JsonlDatasetLoader:
             DatasetLoadError: if the file is not found, any line is invalid JSON,
                 or any line is missing the configured question or answer key.
         """
+        path_str = str(config.path)
         self._observer.dataset_loading_started(
-            path=config.path,
+            path=path_str,
             question_key=config.question_key,
             answer_key=config.answer_key,
         )
@@ -34,8 +36,8 @@ class JsonlDatasetLoader:
         try:
             lines = self._read_lines(path=config.path)
         except FileNotFoundError:
-            reason = f"file not found: {config.path}"
-            self._observer.dataset_loading_failed(path=config.path, reason=reason)
+            reason = f"file not found: {path_str}"
+            self._observer.dataset_loading_failed(path=path_str, reason=reason)
             raise DatasetLoadError(reason=reason)
 
         samples, errors = self._parse_lines(
@@ -46,16 +48,16 @@ class JsonlDatasetLoader:
 
         if errors:
             reason = "; ".join(errors)
-            self._observer.dataset_loading_failed(path=config.path, reason=reason)
+            self._observer.dataset_loading_failed(path=path_str, reason=reason)
             raise DatasetLoadError(reason=reason)
 
         self._observer.dataset_loading_completed(
-            path=config.path,
+            path=path_str,
             total_samples=len(samples),
         )
         return samples
 
-    def _read_lines(self, path: str) -> list[str]:
+    def _read_lines(self, path: Path) -> list[str]:
         """Open the file and return all non-empty lines."""
         with open(path, encoding="utf-8") as fh:
             return [line for line in fh if line.strip()]

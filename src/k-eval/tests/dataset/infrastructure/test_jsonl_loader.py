@@ -21,7 +21,7 @@ def _fixture(name: str) -> Path:
 
 def _simple_config() -> DatasetConfig:
     return DatasetConfig(
-        path=str(_fixture("simple_dataset.jsonl")),
+        path=_fixture("simple_dataset.jsonl"),
         question_key="question",
         answer_key="answer",
     )
@@ -29,7 +29,7 @@ def _simple_config() -> DatasetConfig:
 
 def _custom_keys_config() -> DatasetConfig:
     return DatasetConfig(
-        path=str(_fixture("custom_keys_dataset.jsonl")),
+        path=_fixture("custom_keys_dataset.jsonl"),
         question_key="prompt",
         answer_key="response",
     )
@@ -86,9 +86,9 @@ class TestObserverEvents:
         JsonlDatasetLoader(observer=observer).load(config=config)
 
         assert len(observer.loading_started) == 1
-        assert observer.loading_started[0]["path"] == config.path
-        assert observer.loading_started[0]["question_key"] == "question"
-        assert observer.loading_started[0]["answer_key"] == "answer"
+        assert observer.loading_started[0].path == str(config.path)
+        assert observer.loading_started[0].question_key == "question"
+        assert observer.loading_started[0].answer_key == "answer"
 
     def test_dataset_sample_loaded_emitted_once_per_sample(self) -> None:
         observer = FakeDatasetObserver()
@@ -100,7 +100,7 @@ class TestObserverEvents:
         observer = FakeDatasetObserver()
         JsonlDatasetLoader(observer=observer).load(config=_simple_config())
 
-        ids = [e["sample_id"] for e in observer.samples_loaded]
+        ids = [e.sample_id for e in observer.samples_loaded]
         assert ids == ["0", "1", "2"]
 
     def test_dataset_loading_completed_emitted_with_correct_path(self) -> None:
@@ -109,13 +109,13 @@ class TestObserverEvents:
         JsonlDatasetLoader(observer=observer).load(config=config)
 
         assert len(observer.loading_completed) == 1
-        assert observer.loading_completed[0]["path"] == config.path
+        assert observer.loading_completed[0].path == str(config.path)
 
     def test_dataset_loading_completed_emitted_with_correct_total_count(self) -> None:
         observer = FakeDatasetObserver()
         JsonlDatasetLoader(observer=observer).load(config=_simple_config())
 
-        assert observer.loading_completed[0]["total_samples"] == "3"
+        assert observer.loading_completed[0].total_samples == 3
 
 
 class TestCustomKeys:
@@ -153,7 +153,7 @@ class TestMissingFile:
     def test_missing_file_raises_dataset_load_error(self) -> None:
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path="/nonexistent/path/dataset.jsonl",
+            path=Path("/nonexistent/path/dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
@@ -163,7 +163,7 @@ class TestMissingFile:
     def test_missing_file_error_message_starts_with_failed(self) -> None:
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path="/nonexistent/path/dataset.jsonl",
+            path=Path("/nonexistent/path/dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
@@ -175,7 +175,7 @@ class TestMissingFile:
     def test_missing_file_emits_dataset_loading_failed(self) -> None:
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path="/nonexistent/path/dataset.jsonl",
+            path=Path("/nonexistent/path/dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
@@ -183,7 +183,7 @@ class TestMissingFile:
             JsonlDatasetLoader(observer=observer).load(config=config)
 
         assert len(observer.loading_failed) == 1
-        assert observer.loading_failed[0]["path"] == config.path
+        assert observer.loading_failed[0].path == str(config.path)
 
 
 class TestMissingKeys:
@@ -192,7 +192,7 @@ class TestMissingKeys:
     def test_missing_answer_key_raises_dataset_load_error(self) -> None:
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path=str(_fixture("missing_key_dataset.jsonl")),
+            path=_fixture("missing_key_dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
@@ -202,7 +202,7 @@ class TestMissingKeys:
     def test_missing_keys_error_message_starts_with_failed(self) -> None:
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path=str(_fixture("missing_key_dataset.jsonl")),
+            path=_fixture("missing_key_dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
@@ -214,7 +214,7 @@ class TestMissingKeys:
     def test_missing_answer_key_reports_line_number(self) -> None:
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path=str(_fixture("missing_key_dataset.jsonl")),
+            path=_fixture("missing_key_dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
@@ -227,7 +227,7 @@ class TestMissingKeys:
     def test_missing_question_key_reports_line_number(self) -> None:
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path=str(_fixture("missing_key_dataset.jsonl")),
+            path=_fixture("missing_key_dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
@@ -241,7 +241,7 @@ class TestMissingKeys:
         """All lines with missing keys are reported in a single error."""
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path=str(_fixture("missing_key_dataset.jsonl")),
+            path=_fixture("missing_key_dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
@@ -256,7 +256,7 @@ class TestMissingKeys:
     def test_missing_keys_emits_dataset_loading_failed(self) -> None:
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path=str(_fixture("missing_key_dataset.jsonl")),
+            path=_fixture("missing_key_dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
@@ -272,7 +272,7 @@ class TestInvalidJson:
     def test_invalid_json_raises_dataset_load_error(self) -> None:
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path=str(_fixture("invalid_json_dataset.jsonl")),
+            path=_fixture("invalid_json_dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
@@ -282,7 +282,7 @@ class TestInvalidJson:
     def test_invalid_json_error_message_starts_with_failed(self) -> None:
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path=str(_fixture("invalid_json_dataset.jsonl")),
+            path=_fixture("invalid_json_dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
@@ -294,7 +294,7 @@ class TestInvalidJson:
     def test_invalid_json_emits_dataset_loading_failed(self) -> None:
         observer = FakeDatasetObserver()
         config = DatasetConfig(
-            path=str(_fixture("invalid_json_dataset.jsonl")),
+            path=_fixture("invalid_json_dataset.jsonl"),
             question_key="question",
             answer_key="answer",
         )
