@@ -2,9 +2,9 @@
 
 import inspect
 
-from agent.domain.result import AgentResult
-from agent.domain.usage import UsageMetrics
-from agent.infrastructure.claude_sdk import ClaudeAgentSDKAgent
+from k_eval.agent.domain.result import AgentResult
+from k_eval.agent.domain.usage import UsageMetrics
+from k_eval.agent.infrastructure.claude_sdk import ClaudeAgentSDKAgent
 from tests.agent.fake_agent import FakeAgent
 
 

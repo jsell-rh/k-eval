@@ -15,11 +15,11 @@ import pytest
 from claude_agent_sdk._errors import ClaudeSDKError
 from claude_agent_sdk.types import ResultMessage
 
-from agent.infrastructure.claude_sdk import ClaudeAgentSDKAgent
-from agent.infrastructure.errors import AgentInvocationError
-from config.domain.agent import AgentConfig
-from config.domain.condition_mcp_server import ConditionMcpServer
-from config.domain.mcp_server import HttpMcpServer, SseMcpServer, StdioMcpServer
+from k_eval.agent.infrastructure.claude_sdk import ClaudeAgentSDKAgent
+from k_eval.agent.infrastructure.errors import AgentInvocationError
+from k_eval.config.domain.agent import AgentConfig
+from k_eval.config.domain.condition_mcp_server import ConditionMcpServer
+from k_eval.config.domain.mcp_server import HttpMcpServer, SseMcpServer, StdioMcpServer
 from tests.agent.fake_observer import FakeAgentObserver
 
 
@@ -346,7 +346,7 @@ class TestAskSuccess:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             result = await agent.ask(question="What is the answer?")
@@ -358,7 +358,7 @@ class TestAskSuccess:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             result = await agent.ask(question="What is the answer?")
@@ -370,7 +370,7 @@ class TestAskSuccess:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             result = await agent.ask(question="What is the answer?")
@@ -383,7 +383,7 @@ class TestAskSuccess:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             result = await agent.ask(question="What is the answer?")
@@ -397,7 +397,7 @@ class TestAskSuccess:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             result = await agent.ask(question="What is the answer?")
@@ -411,7 +411,7 @@ class TestAskSuccess:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             result = await agent.ask(question="What is the answer?")
@@ -429,7 +429,7 @@ class TestAskErrors:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             with pytest.raises(AgentInvocationError):
@@ -440,7 +440,7 @@ class TestAskErrors:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             with pytest.raises(AgentInvocationError) as exc_info:
@@ -455,7 +455,7 @@ class TestAskErrors:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             with pytest.raises(AgentInvocationError):
@@ -467,7 +467,7 @@ class TestAskErrors:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(),  # empty — no ResultMessage
         ):
             with pytest.raises(AgentInvocationError):
@@ -477,7 +477,7 @@ class TestAskErrors:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query_raising(ClaudeSDKError("CLI not found")),
         ):
             with pytest.raises(AgentInvocationError):
@@ -487,7 +487,7 @@ class TestAskErrors:
         agent = _make_agent()
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query_raising(ClaudeSDKError("CLI not found")),
         ):
             with pytest.raises(AgentInvocationError) as exc_info:
@@ -510,7 +510,7 @@ class TestObserverEvents:
         agent = _make_agent(condition="with-graph", sample_idx="7", observer=observer)
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             await agent.ask(question="What?")
@@ -528,7 +528,7 @@ class TestObserverEvents:
         agent = _make_agent(condition="with-graph", sample_idx="7", observer=observer)
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             await agent.ask(question="What?")
@@ -546,7 +546,7 @@ class TestObserverEvents:
         agent = _make_agent(condition="with-graph", sample_idx="7", observer=observer)
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query_raising(ClaudeSDKError("connection refused")),
         ):
             with pytest.raises(AgentInvocationError):
@@ -562,7 +562,7 @@ class TestObserverEvents:
         agent = _make_agent(condition="baseline", sample_idx="3", observer=observer)
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query(result_msg),
         ):
             with pytest.raises(AgentInvocationError):
@@ -575,7 +575,7 @@ class TestObserverEvents:
         agent = _make_agent(observer=observer)
 
         with patch(
-            "agent.infrastructure.claude_sdk.query",
+            "k_eval.agent.infrastructure.claude_sdk.query",
             new=_mock_query_raising(ClaudeSDKError("timeout")),
         ):
             with pytest.raises(AgentInvocationError):

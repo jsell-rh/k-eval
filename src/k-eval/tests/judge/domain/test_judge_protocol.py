@@ -1,6 +1,6 @@
 """Tests that the Judge Protocol is satisfied by FakeJudge."""
 
-from judge.domain.judge import Judge
+from k_eval.judge.domain.judge import Judge
 from tests.judge.fake_judge import FakeJudge
 
 

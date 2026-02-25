@@ -1,0 +1,5 @@
+include README.md
+include pyproject.toml
+recursive-exclude results *
+exclude out.json
+exclude uv.lock

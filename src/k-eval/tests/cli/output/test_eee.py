@@ -2,16 +2,16 @@
 
 import json
 
-from agent.domain.result import AgentResult
-from agent.domain.usage import UsageMetrics
-from cli.output.aggregator import AggregatedResult, aggregate
-from cli.output.eee import build_aggregate_json, build_instance_jsonl_lines
-from config.domain.agent import AgentConfig
-from config.domain.judge import JudgeConfig
-from dataset.domain.sample import Sample
-from evaluation.domain.run import EvaluationRun
-from evaluation.domain.summary import RunSummary
-from judge.domain.score import JudgeResult
+from k_eval.agent.domain.result import AgentResult
+from k_eval.agent.domain.usage import UsageMetrics
+from k_eval.cli.output.aggregator import AggregatedResult, aggregate
+from k_eval.cli.output.eee import build_aggregate_json, build_instance_jsonl_lines
+from k_eval.config.domain.agent import AgentConfig
+from k_eval.config.domain.judge import JudgeConfig
+from k_eval.dataset.domain.sample import Sample
+from k_eval.evaluation.domain.run import EvaluationRun
+from k_eval.evaluation.domain.summary import RunSummary
+from k_eval.judge.domain.score import JudgeResult
 
 
 # ---------------------------------------------------------------------------

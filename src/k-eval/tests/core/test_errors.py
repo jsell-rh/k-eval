@@ -2,13 +2,13 @@
 
 from pathlib import Path
 
-from config.infrastructure.errors import (
+from k_eval.config.infrastructure.errors import (
     ConfigLoadError,
     ConfigValidationError,
     MissingEnvVarsError,
 )
-from core.errors import KEvalError
-from dataset.infrastructure.errors import DatasetLoadError
+from k_eval.core.errors import KEvalError
+from k_eval.dataset.infrastructure.errors import DatasetLoadError
 
 
 class TestKEvalErrorHierarchy:

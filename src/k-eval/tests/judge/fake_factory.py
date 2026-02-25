@@ -1,7 +1,7 @@
 """FakeJudgeFactory — in-memory JudgeFactory implementation for use in tests."""
 
-from judge.domain.judge import Judge
-from judge.domain.score import JudgeResult
+from k_eval.judge.domain.judge import Judge
+from k_eval.judge.domain.score import JudgeResult
 from tests.judge.fake_judge import FakeJudge
 
 

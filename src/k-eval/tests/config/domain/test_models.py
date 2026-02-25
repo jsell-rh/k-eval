@@ -5,13 +5,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from config.domain.agent import AgentConfig
-from config.domain.condition import ConditionConfig
-from config.domain.config import EvalConfig
-from config.domain.dataset import DatasetConfig
-from config.domain.execution import ExecutionConfig, RetryConfig
-from config.domain.judge import JudgeConfig
-from config.domain.mcp_server import HttpMcpServer, SseMcpServer, StdioMcpServer
+from k_eval.config.domain.agent import AgentConfig
+from k_eval.config.domain.condition import ConditionConfig
+from k_eval.config.domain.config import EvalConfig
+from k_eval.config.domain.dataset import DatasetConfig
+from k_eval.config.domain.execution import ExecutionConfig, RetryConfig
+from k_eval.config.domain.judge import JudgeConfig
+from k_eval.config.domain.mcp_server import HttpMcpServer, SseMcpServer, StdioMcpServer
 
 
 # ---------------------------------------------------------------------------
