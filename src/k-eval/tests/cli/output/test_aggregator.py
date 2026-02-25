@@ -52,7 +52,7 @@ def _make_run(
     run_id: str,
     sample: Sample,
     condition: str,
-    run_index: int,
+    repetition_index: int,
     judge_result: JudgeResult | None = None,
     agent_result: AgentResult | None = None,
 ) -> EvaluationRun:
@@ -60,7 +60,7 @@ def _make_run(
         run_id=run_id,
         sample=sample,
         condition=condition,
-        run_index=run_index,
+        repetition_index=repetition_index,
         agent_result=agent_result or _make_agent_result(),
         judge_result=judge_result or _make_judge_result(),
     )
@@ -73,14 +73,22 @@ class TestAggregateResultCount:
         s0 = _make_sample(idx="0")
         s1 = _make_sample(idx="1")
         runs = [
-            _make_run(run_id="r", sample=s0, condition="baseline", run_index=0),
-            _make_run(run_id="r", sample=s0, condition="baseline", run_index=1),
-            _make_run(run_id="r", sample=s0, condition="with-graph", run_index=0),
-            _make_run(run_id="r", sample=s0, condition="with-graph", run_index=1),
-            _make_run(run_id="r", sample=s1, condition="baseline", run_index=0),
-            _make_run(run_id="r", sample=s1, condition="baseline", run_index=1),
-            _make_run(run_id="r", sample=s1, condition="with-graph", run_index=0),
-            _make_run(run_id="r", sample=s1, condition="with-graph", run_index=1),
+            _make_run(run_id="r", sample=s0, condition="baseline", repetition_index=0),
+            _make_run(run_id="r", sample=s0, condition="baseline", repetition_index=1),
+            _make_run(
+                run_id="r", sample=s0, condition="with-graph", repetition_index=0
+            ),
+            _make_run(
+                run_id="r", sample=s0, condition="with-graph", repetition_index=1
+            ),
+            _make_run(run_id="r", sample=s1, condition="baseline", repetition_index=0),
+            _make_run(run_id="r", sample=s1, condition="baseline", repetition_index=1),
+            _make_run(
+                run_id="r", sample=s1, condition="with-graph", repetition_index=0
+            ),
+            _make_run(
+                run_id="r", sample=s1, condition="with-graph", repetition_index=1
+            ),
         ]
 
         results = aggregate(runs=runs)
@@ -92,7 +100,7 @@ class TestAggregateResultCount:
     ) -> None:
         s0 = _make_sample(idx="0")
         runs = [
-            _make_run(run_id="r", sample=s0, condition="baseline", run_index=0),
+            _make_run(run_id="r", sample=s0, condition="baseline", repetition_index=0),
         ]
 
         results = aggregate(runs=runs)
@@ -102,8 +110,8 @@ class TestAggregateResultCount:
     def test_each_result_groups_all_runs_for_that_pair(self) -> None:
         s0 = _make_sample(idx="0")
         runs = [
-            _make_run(run_id="r", sample=s0, condition="baseline", run_index=0),
-            _make_run(run_id="r", sample=s0, condition="baseline", run_index=1),
+            _make_run(run_id="r", sample=s0, condition="baseline", repetition_index=0),
+            _make_run(run_id="r", sample=s0, condition="baseline", repetition_index=1),
         ]
 
         results = aggregate(runs=runs)
@@ -121,7 +129,7 @@ class TestAggregateMeanAndStddev:
                 run_id="r",
                 sample=s0,
                 condition="baseline",
-                run_index=0,
+                repetition_index=0,
                 judge_result=_make_judge_result(
                     factual_adherence=3,
                     completeness=4,
@@ -132,7 +140,7 @@ class TestAggregateMeanAndStddev:
                 run_id="r",
                 sample=s0,
                 condition="baseline",
-                run_index=1,
+                repetition_index=1,
                 judge_result=_make_judge_result(
                     factual_adherence=5,
                     completeness=2,
@@ -155,14 +163,14 @@ class TestAggregateMeanAndStddev:
                 run_id="r",
                 sample=s0,
                 condition="baseline",
-                run_index=0,
+                repetition_index=0,
                 judge_result=_make_judge_result(factual_adherence=3),
             ),
             _make_run(
                 run_id="r",
                 sample=s0,
                 condition="baseline",
-                run_index=1,
+                repetition_index=1,
                 judge_result=_make_judge_result(factual_adherence=5),
             ),
         ]
@@ -180,7 +188,7 @@ class TestAggregateMeanAndStddev:
                 run_id="r",
                 sample=s0,
                 condition="baseline",
-                run_index=0,
+                repetition_index=0,
                 judge_result=_make_judge_result(factual_adherence=4),
             ),
         ]
@@ -199,7 +207,7 @@ class TestAggregateMeanAndStddev:
                 run_id="r",
                 sample=s0,
                 condition="baseline",
-                run_index=i,
+                repetition_index=i,
                 judge_result=_make_judge_result(factual_adherence=4),
             )
             for i in range(3)
@@ -222,7 +230,7 @@ class TestAggregateUnverifiedClaims:
                 run_id="r",
                 sample=s0,
                 condition="baseline",
-                run_index=0,
+                repetition_index=0,
                 judge_result=_make_judge_result(
                     unverified_claims=["claim A", "claim B"]
                 ),
@@ -231,7 +239,7 @@ class TestAggregateUnverifiedClaims:
                 run_id="r",
                 sample=s0,
                 condition="baseline",
-                run_index=1,
+                repetition_index=1,
                 judge_result=_make_judge_result(
                     unverified_claims=["claim B", "claim C"]
                 ),
@@ -250,14 +258,14 @@ class TestAggregateUnverifiedClaims:
                 run_id="r",
                 sample=s0,
                 condition="baseline",
-                run_index=0,
+                repetition_index=0,
                 judge_result=_make_judge_result(unverified_claims=["same claim"]),
             ),
             _make_run(
                 run_id="r",
                 sample=s0,
                 condition="baseline",
-                run_index=1,
+                repetition_index=1,
                 judge_result=_make_judge_result(unverified_claims=["same claim"]),
             ),
         ]
@@ -274,7 +282,7 @@ class TestAggregateUnverifiedClaims:
                 run_id="r",
                 sample=s0,
                 condition="baseline",
-                run_index=0,
+                repetition_index=0,
                 judge_result=_make_judge_result(unverified_claims=[]),
             ),
         ]
@@ -290,7 +298,9 @@ class TestAggregateFields:
 
     def test_sample_is_preserved(self) -> None:
         s0 = _make_sample(idx="42")
-        runs = [_make_run(run_id="r", sample=s0, condition="baseline", run_index=0)]
+        runs = [
+            _make_run(run_id="r", sample=s0, condition="baseline", repetition_index=0)
+        ]
 
         results = aggregate(runs=runs)
 
@@ -298,7 +308,9 @@ class TestAggregateFields:
 
     def test_condition_is_preserved(self) -> None:
         s0 = _make_sample(idx="0")
-        runs = [_make_run(run_id="r", sample=s0, condition="with-graph", run_index=0)]
+        runs = [
+            _make_run(run_id="r", sample=s0, condition="with-graph", repetition_index=0)
+        ]
 
         results = aggregate(runs=runs)
 
@@ -307,8 +319,10 @@ class TestAggregateFields:
     def test_conditions_are_keyed_separately(self) -> None:
         s0 = _make_sample(idx="0")
         runs = [
-            _make_run(run_id="r", sample=s0, condition="baseline", run_index=0),
-            _make_run(run_id="r", sample=s0, condition="with-graph", run_index=0),
+            _make_run(run_id="r", sample=s0, condition="baseline", repetition_index=0),
+            _make_run(
+                run_id="r", sample=s0, condition="with-graph", repetition_index=0
+            ),
         ]
 
         results = aggregate(runs=runs)

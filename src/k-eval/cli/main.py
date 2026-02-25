@@ -3,6 +3,7 @@
 import asyncio
 import json
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -21,16 +22,28 @@ from core.errors import KEvalError
 from dataset.infrastructure.jsonl_loader import JsonlDatasetLoader
 from dataset.infrastructure.observer import StructlogDatasetObserver
 from evaluation.application.runner import EvaluationRunner
+from evaluation.domain.observer import EvaluationObserver
 from evaluation.domain.summary import RunSummary
+from evaluation.infrastructure.composite_observer import CompositeEvaluationObserver
 from evaluation.infrastructure.observer import StructlogEvaluationObserver
+from evaluation.infrastructure.progress_observer import ProgressEvaluationObserver
 from judge.infrastructure.factory import LiteLLMJudgeFactory
 from judge.infrastructure.observer import StructlogJudgeObserver
 
 app = typer.Typer(add_completion=False)
 
 
-def _configure_structlog(log_format: str) -> None:
-    """Configure structlog based on the requested format."""
+def _configure_structlog(log_format: str, quiet: bool = False) -> None:
+    """Configure structlog based on the requested format and verbosity.
+
+    When quiet=True, debug and info messages are suppressed; only warnings
+    and errors are emitted so the Rich progress bars are the primary output.
+
+    Rich's Live display captures stderr writes automatically, so log lines
+    appear cleanly above the progress bars without any special logger factory.
+    """
+    import logging
+
     if log_format == "console":
         renderer: structlog.types.Processor = structlog.dev.ConsoleRenderer()
     elif log_format == "json":
@@ -39,6 +52,8 @@ def _configure_structlog(log_format: str) -> None:
         typer.echo(f"Invalid log format: {log_format!r}. Must be 'console' or 'json'.")
         raise typer.Exit(code=1)
 
+    min_level = logging.WARNING if quiet else logging.DEBUG
+
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,
@@ -46,7 +61,7 @@ def _configure_structlog(log_format: str) -> None:
             structlog.processors.TimeStamper(fmt="iso"),
             renderer,
         ],
-        wrapper_class=structlog.make_filtering_bound_logger(0),
+        wrapper_class=structlog.make_filtering_bound_logger(min_level),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
     )
@@ -305,11 +320,20 @@ def _print_comparison_table(
             )
 
 
+def _format_elapsed(elapsed_seconds: float) -> str:
+    """Format elapsed seconds as '1m 23.4s' or '5.2s'."""
+    minutes, seconds = divmod(elapsed_seconds, 60)
+    if minutes >= 1:
+        return f"{int(minutes)}m {seconds:.1f}s"
+    return f"{elapsed_seconds:.1f}s"
+
+
 def _print_summary(
     summary: RunSummary,
     aggregated: list[AggregatedResult],
     json_path: Path,
     jsonl_path: Path,
+    elapsed_seconds: float,
 ) -> None:
     """Print a colorized summary to stdout.
 
@@ -336,6 +360,7 @@ def _print_summary(
         ("Samples", str(total_samples)),
         ("Conditions", ", ".join(conditions)),
         ("Total runs", str(total_runs)),
+        ("Elapsed", _format_elapsed(elapsed_seconds=elapsed_seconds)),
         ("Aggregate JSON", str(json_path)),
         ("Detailed JSONL", str(jsonl_path)),
     ]
@@ -395,10 +420,16 @@ def run(
         "--log-format",
         help="Log format: 'console' or 'json'",
     ),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        "-q",
+        help="Suppress debug and info logs; show only the progress bar plus warnings/errors.",
+    ),
 ) -> None:
     """Run a k-eval evaluation from a YAML config file."""
     try:
-        _configure_structlog(log_format=log_format)
+        _configure_structlog(log_format=log_format, quiet=quiet)
 
         config_observer = StructlogConfigObserver()
         loader = YamlConfigLoader(observer=config_observer)
@@ -419,7 +450,10 @@ def run(
             config=config.judge,
             observer=StructlogJudgeObserver(),
         )
-        evaluation_observer = StructlogEvaluationObserver()
+        observers: list[EvaluationObserver] = [StructlogEvaluationObserver()]
+        if log_format != "json":
+            observers.append(ProgressEvaluationObserver())
+        evaluation_observer = CompositeEvaluationObserver(observers=observers)
 
         evaluation_runner = EvaluationRunner(
             config=config,
@@ -429,7 +463,9 @@ def run(
             observer=evaluation_observer,
         )
 
+        started_at = time.monotonic()
         summary: RunSummary = asyncio.run(evaluation_runner.run())
+        elapsed_seconds = time.monotonic() - started_at
 
         aggregated = aggregate(runs=summary.runs)
         stem = _output_stem(config_name=summary.config_name, run_id=summary.run_id)
@@ -447,16 +483,17 @@ def run(
             aggregated=aggregated,
             json_path=json_path,
             jsonl_path=jsonl_path,
+            elapsed_seconds=elapsed_seconds,
         )
 
     except KeyboardInterrupt:
-        typer.echo("Evaluation interrupted.")
+        typer.echo("\nEvaluation interrupted.")
         sys.exit(1)
     except KEvalError as exc:
         typer.echo(str(exc))
         sys.exit(1)
     except Exception as exc:  # noqa: BLE001
-        typer.echo(f"Unexpected error: {exc}\nPlease report this bug.")
+        typer.echo(f"Unexpected error: {repr(exc)}")
         sys.exit(1)
 
 

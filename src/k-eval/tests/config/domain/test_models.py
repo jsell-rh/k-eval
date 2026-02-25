@@ -24,7 +24,7 @@ def _valid_retry() -> RetryConfig:
 
 
 def _valid_execution() -> ExecutionConfig:
-    return ExecutionConfig(num_samples=1, max_concurrent=1, retry=_valid_retry())
+    return ExecutionConfig(num_repetitions=1, max_concurrent=1, retry=_valid_retry())
 
 
 def _valid_agent() -> AgentConfig:
@@ -72,28 +72,28 @@ def _valid_eval_config() -> EvalConfig:
 class TestExecutionConfigConstraints:
     """ExecutionConfig rejects invalid numeric ranges."""
 
-    def test_num_samples_zero_raises_validation_error(self) -> None:
+    def test_num_repetitions_zero_raises_validation_error(self) -> None:
         with pytest.raises(ValidationError):
-            ExecutionConfig(num_samples=0, max_concurrent=1, retry=_valid_retry())
+            ExecutionConfig(num_repetitions=0, max_concurrent=1, retry=_valid_retry())
 
-    def test_num_samples_negative_raises_validation_error(self) -> None:
+    def test_num_repetitions_negative_raises_validation_error(self) -> None:
         with pytest.raises(ValidationError):
-            ExecutionConfig(num_samples=-1, max_concurrent=1, retry=_valid_retry())
+            ExecutionConfig(num_repetitions=-1, max_concurrent=1, retry=_valid_retry())
 
-    def test_num_samples_one_is_valid(self) -> None:
-        cfg = ExecutionConfig(num_samples=1, max_concurrent=1, retry=_valid_retry())
-        assert cfg.num_samples == 1
+    def test_num_repetitions_one_is_valid(self) -> None:
+        cfg = ExecutionConfig(num_repetitions=1, max_concurrent=1, retry=_valid_retry())
+        assert cfg.num_repetitions == 1
 
     def test_max_concurrent_zero_raises_validation_error(self) -> None:
         with pytest.raises(ValidationError):
-            ExecutionConfig(num_samples=1, max_concurrent=0, retry=_valid_retry())
+            ExecutionConfig(num_repetitions=1, max_concurrent=0, retry=_valid_retry())
 
     def test_max_concurrent_negative_raises_validation_error(self) -> None:
         with pytest.raises(ValidationError):
-            ExecutionConfig(num_samples=1, max_concurrent=-5, retry=_valid_retry())
+            ExecutionConfig(num_repetitions=1, max_concurrent=-5, retry=_valid_retry())
 
     def test_max_concurrent_one_is_valid(self) -> None:
-        cfg = ExecutionConfig(num_samples=1, max_concurrent=1, retry=_valid_retry())
+        cfg = ExecutionConfig(num_repetitions=1, max_concurrent=1, retry=_valid_retry())
         assert cfg.max_concurrent == 1
 
 

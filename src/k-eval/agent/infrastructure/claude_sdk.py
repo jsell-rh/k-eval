@@ -125,6 +125,10 @@ class ClaudeAgentSDKAgent:
                     result_message = message
         except ClaudeSDKError as exc:
             raise AgentInvocationError(reason=str(exc), retriable=True) from exc
+        except Exception as exc:
+            # The SDK internally raises a bare Exception (not ClaudeSDKError) when
+            # its message reader encounters a fatal error (e.g. subprocess exit).
+            raise AgentInvocationError(reason=str(exc), retriable=True) from exc
 
         if result_message is None:
             raise AgentInvocationError(reason="no ResultMessage in response stream")

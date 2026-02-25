@@ -10,6 +10,6 @@ class RetryConfig(BaseModel, frozen=True):
 
 
 class ExecutionConfig(BaseModel, frozen=True):
-    num_samples: int = Field(ge=1)
+    num_repetitions: int = Field(ge=1)
     max_concurrent: int = Field(ge=1)
     retry: RetryConfig
