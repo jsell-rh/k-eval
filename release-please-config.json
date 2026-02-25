@@ -3,7 +3,8 @@
   "packages": {
     "src/k-eval": {
       "release-type": "python",
-      "package-name": "k-eval"
+      "package-name": "k-eval",
+      "include-component-in-tag": false
     }
   }
 }
