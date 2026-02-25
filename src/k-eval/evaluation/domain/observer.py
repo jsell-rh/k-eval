@@ -14,7 +14,7 @@ class EvaluationObserver(Protocol):
         run_id: str,
         total_samples: int,
         total_conditions: int,
-        num_samples: int,
+        num_repetitions: int,
         max_concurrent: int,
     ) -> None: ...
 
@@ -25,7 +25,7 @@ class EvaluationObserver(Protocol):
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
     ) -> None: ...
 
     def sample_condition_completed(
@@ -33,7 +33,7 @@ class EvaluationObserver(Protocol):
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
     ) -> None: ...
 
     def sample_condition_failed(
@@ -41,7 +41,7 @@ class EvaluationObserver(Protocol):
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
         reason: str,
     ) -> None: ...
 
@@ -50,7 +50,7 @@ class EvaluationObserver(Protocol):
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
         attempt: int,
         reason: str,
         backoff_seconds: float,

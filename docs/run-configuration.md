@@ -66,7 +66,7 @@ conditions:
       Use them to answer the question.
       
 execution:
-  num_samples: 3
+  num_repetitions: 3
   max_concurrent: 5
   retry:
     max_attempts: 3

@@ -15,6 +15,6 @@ class EvaluationRun(BaseModel, frozen=True):
     run_id: RunId = Field(min_length=1)
     sample: Sample
     condition: str = Field(min_length=1)
-    run_index: int = Field(ge=0)
+    repetition_index: int = Field(ge=0)
     agent_result: AgentResult
     judge_result: JudgeResult

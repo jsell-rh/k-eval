@@ -40,10 +40,10 @@ class EvaluationRunner:
     async def run(self) -> RunSummary:
         """Execute the full evaluation and return a RunSummary.
 
-        Runs all (sample, condition, run_index) triples concurrently, bounded by
+        Runs all (sample, condition, repetition_index) triples concurrently, bounded by
         max_concurrent. Non-retriable errors (or retry-exhausted errors) abort the
         entire run. On success, results are sorted deterministically by
-        (sample_idx, condition, run_index) before being returned.
+        (sample_idx, condition, repetition_index) before being returned.
         """
         run_id = str(uuid.uuid4())
         load_result = self._dataset_loader.load(config=self._config.dataset)
@@ -53,7 +53,7 @@ class EvaluationRunner:
             run_id=run_id,
             total_samples=len(samples),
             total_conditions=len(self._config.conditions),
-            num_samples=self._config.execution.num_samples,
+            num_repetitions=self._config.execution.num_repetitions,
             max_concurrent=self._config.execution.max_concurrent,
         )
 
@@ -64,7 +64,9 @@ class EvaluationRunner:
             async with asyncio.TaskGroup() as tg:
                 for sample in samples:
                     for condition_name, condition in self._config.conditions.items():
-                        for run_index in range(self._config.execution.num_samples):
+                        for repetition_index in range(
+                            self._config.execution.num_repetitions
+                        ):
                             tg.create_task(
                                 self._run_one_triple(
                                     sem=sem,
@@ -72,7 +74,7 @@ class EvaluationRunner:
                                     sample=sample,
                                     condition_name=condition_name,
                                     condition=condition,
-                                    run_index=run_index,
+                                    repetition_index=repetition_index,
                                     results=results,
                                 )
                             )
@@ -81,8 +83,10 @@ class EvaluationRunner:
             # Raise the first error as a plain KEvalError to the caller.
             raise eg.exceptions[0]
 
-        # Sort results deterministically: (sample_idx, condition, run_index).
-        results.sort(key=lambda r: (r.sample.sample_idx, r.condition, r.run_index))
+        # Sort results deterministically: (sample_idx, condition, repetition_index).
+        results.sort(
+            key=lambda r: (r.sample.sample_idx, r.condition, r.repetition_index)
+        )
 
         self._observer.evaluation_completed(
             run_id=run_id,
@@ -103,10 +107,10 @@ class EvaluationRunner:
         sample: Sample,
         condition_name: str,
         condition: ConditionConfig,
-        run_index: int,
+        repetition_index: int,
         results: list[EvaluationRun],
     ) -> None:
-        """Execute one (sample, condition, run_index) triple with retry and backoff.
+        """Execute one (sample, condition, repetition_index) triple with retry and backoff.
 
         The semaphore is held only during active agent/judge calls. The sleep
         between retry attempts happens outside the semaphore so that other tasks
@@ -120,7 +124,7 @@ class EvaluationRunner:
             run_id=run_id,
             sample_idx=sample.sample_idx,
             condition=condition_name,
-            run_index=run_index,
+            repetition_index=repetition_index,
         )
 
         for attempt in range(1, max_attempts + 1):
@@ -149,7 +153,7 @@ class EvaluationRunner:
                             run_id=run_id,
                             sample=sample,
                             condition=condition_name,
-                            run_index=run_index,
+                            repetition_index=repetition_index,
                             agent_result=agent_result,
                             judge_result=judge_result,
                         )
@@ -159,7 +163,7 @@ class EvaluationRunner:
                         run_id=run_id,
                         sample_idx=sample.sample_idx,
                         condition=condition_name,
-                        run_index=run_index,
+                        repetition_index=repetition_index,
                     )
                     return  # success
 
@@ -169,7 +173,7 @@ class EvaluationRunner:
                             run_id=run_id,
                             sample_idx=sample.sample_idx,
                             condition=condition_name,
-                            run_index=run_index,
+                            repetition_index=repetition_index,
                             reason=str(exc),
                         )
                         raise
@@ -178,7 +182,7 @@ class EvaluationRunner:
                         run_id=run_id,
                         sample_idx=sample.sample_idx,
                         condition=condition_name,
-                        run_index=run_index,
+                        repetition_index=repetition_index,
                         attempt=attempt,
                         reason=str(exc),
                         backoff_seconds=backoff,

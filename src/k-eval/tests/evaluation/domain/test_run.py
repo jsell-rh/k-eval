@@ -47,14 +47,14 @@ class TestEvaluationRun:
             run_id="run-abc",
             sample=_make_sample(),
             condition="baseline",
-            run_index=0,
+            repetition_index=0,
             agent_result=_make_agent_result(),
             judge_result=_make_judge_result(),
         )
 
         assert run.run_id == "run-abc"
         assert run.condition == "baseline"
-        assert run.run_index == 0
+        assert run.repetition_index == 0
 
     def test_sample_is_preserved(self) -> None:
         sample = _make_sample()
@@ -62,7 +62,7 @@ class TestEvaluationRun:
             run_id="run-abc",
             sample=sample,
             condition="baseline",
-            run_index=0,
+            repetition_index=0,
             agent_result=_make_agent_result(),
             judge_result=_make_judge_result(),
         )
@@ -74,7 +74,7 @@ class TestEvaluationRun:
             run_id="run-abc",
             sample=_make_sample(),
             condition="baseline",
-            run_index=0,
+            repetition_index=0,
             agent_result=_make_agent_result(),
             judge_result=_make_judge_result(),
         )
@@ -88,7 +88,7 @@ class TestEvaluationRun:
             run_id="run-abc",
             sample=_make_sample(),
             condition="baseline",
-            run_index=0,
+            repetition_index=0,
             agent_result=agent_result,
             judge_result=_make_judge_result(),
         )
@@ -101,24 +101,24 @@ class TestEvaluationRun:
             run_id="run-abc",
             sample=_make_sample(),
             condition="baseline",
-            run_index=0,
+            repetition_index=0,
             agent_result=_make_agent_result(),
             judge_result=judge_result,
         )
 
         assert run.judge_result is judge_result
 
-    def test_run_index_reflects_repetition(self) -> None:
+    def test_repetition_index_reflects_repetition(self) -> None:
         run = EvaluationRun(
             run_id="run-abc",
             sample=_make_sample(),
             condition="with-graph",
-            run_index=2,
+            repetition_index=2,
             agent_result=_make_agent_result(),
             judge_result=_make_judge_result(),
         )
 
-        assert run.run_index == 2
+        assert run.repetition_index == 2
 
 
 class TestEvaluationRunConstraints:
@@ -130,7 +130,7 @@ class TestEvaluationRunConstraints:
                 run_id="",
                 sample=_make_sample(),
                 condition="baseline",
-                run_index=0,
+                repetition_index=0,
                 agent_result=_make_agent_result(),
                 judge_result=_make_judge_result(),
             )
@@ -141,32 +141,32 @@ class TestEvaluationRunConstraints:
                 run_id="run-abc",
                 sample=_make_sample(),
                 condition="",
-                run_index=0,
+                repetition_index=0,
                 agent_result=_make_agent_result(),
                 judge_result=_make_judge_result(),
             )
 
-    def test_negative_run_index_raises_validation_error(self) -> None:
+    def test_negative_repetition_index_raises_validation_error(self) -> None:
         with pytest.raises(ValidationError):
             EvaluationRun(
                 run_id="run-abc",
                 sample=_make_sample(),
                 condition="baseline",
-                run_index=-1,
+                repetition_index=-1,
                 agent_result=_make_agent_result(),
                 judge_result=_make_judge_result(),
             )
 
-    def test_run_index_zero_is_valid(self) -> None:
+    def test_repetition_index_zero_is_valid(self) -> None:
         run = EvaluationRun(
             run_id="run-abc",
             sample=_make_sample(),
             condition="baseline",
-            run_index=0,
+            repetition_index=0,
             agent_result=_make_agent_result(),
             judge_result=_make_judge_result(),
         )
-        assert run.run_index == 0
+        assert run.repetition_index == 0
 
 
 class TestEvaluationRunSerialization:
@@ -177,7 +177,7 @@ class TestEvaluationRunSerialization:
             run_id="run-abc",
             sample=_make_sample(),
             condition="baseline",
-            run_index=0,
+            repetition_index=0,
             agent_result=_make_agent_result(),
             judge_result=_make_judge_result(),
         )
@@ -188,14 +188,14 @@ class TestEvaluationRunSerialization:
         parsed = json.loads(raw)
         assert parsed["run_id"] == "run-abc"
         assert parsed["condition"] == "baseline"
-        assert parsed["run_index"] == 0
+        assert parsed["repetition_index"] == 0
 
     def test_model_dump_json_includes_sample_fields(self) -> None:
         run = EvaluationRun(
             run_id="run-abc",
             sample=_make_sample(),
             condition="baseline",
-            run_index=0,
+            repetition_index=0,
             agent_result=_make_agent_result(),
             judge_result=_make_judge_result(),
         )
@@ -210,7 +210,7 @@ class TestEvaluationRunSerialization:
             run_id="run-abc",
             sample=_make_sample(),
             condition="baseline",
-            run_index=0,
+            repetition_index=0,
             agent_result=_make_agent_result(),
             judge_result=_make_judge_result(),
         )

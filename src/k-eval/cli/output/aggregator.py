@@ -56,7 +56,7 @@ def aggregate(runs: list[EvaluationRun]) -> list[AggregatedResult]:
         sample = samples[key]
         condition = key[1]
 
-        sorted_runs = sorted(group_runs, key=lambda r: r.run_index)
+        sorted_runs = sorted(group_runs, key=lambda r: r.repetition_index)
 
         fa_scores = [float(r.judge_result.factual_adherence) for r in sorted_runs]
         co_scores = [float(r.judge_result.completeness) for r in sorted_runs]

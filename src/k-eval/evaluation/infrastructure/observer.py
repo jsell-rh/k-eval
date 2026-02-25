@@ -17,7 +17,7 @@ class StructlogEvaluationObserver:
         run_id: str,
         total_samples: int,
         total_conditions: int,
-        num_samples: int,
+        num_repetitions: int,
         max_concurrent: int,
     ) -> None:
         self._log.info(
@@ -25,7 +25,7 @@ class StructlogEvaluationObserver:
             run_id=run_id,
             total_samples=total_samples,
             total_conditions=total_conditions,
-            num_samples=num_samples,
+            num_repetitions=num_repetitions,
             max_concurrent=max_concurrent,
         )
 
@@ -41,14 +41,14 @@ class StructlogEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
     ) -> None:
         self._log.info(
             "evaluation.sample_condition.started",
             run_id=run_id,
             sample_idx=sample_idx,
             condition=condition,
-            run_index=run_index,
+            repetition_index=repetition_index,
         )
 
     def sample_condition_completed(
@@ -56,14 +56,14 @@ class StructlogEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
     ) -> None:
         self._log.info(
             "evaluation.sample_condition.completed",
             run_id=run_id,
             sample_idx=sample_idx,
             condition=condition,
-            run_index=run_index,
+            repetition_index=repetition_index,
         )
 
     def sample_condition_failed(
@@ -71,7 +71,7 @@ class StructlogEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
         reason: str,
     ) -> None:
         self._log.error(
@@ -79,7 +79,7 @@ class StructlogEvaluationObserver:
             run_id=run_id,
             sample_idx=sample_idx,
             condition=condition,
-            run_index=run_index,
+            repetition_index=repetition_index,
             reason=reason,
         )
 
@@ -88,7 +88,7 @@ class StructlogEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
         attempt: int,
         reason: str,
         backoff_seconds: float,
@@ -98,7 +98,7 @@ class StructlogEvaluationObserver:
             run_id=run_id,
             sample_idx=sample_idx,
             condition=condition,
-            run_index=run_index,
+            repetition_index=repetition_index,
             attempt=attempt,
             reason=reason,
             backoff_seconds=backoff_seconds,

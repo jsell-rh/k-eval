@@ -8,7 +8,7 @@ class EvaluationStartedEvent:
     run_id: str
     total_samples: int
     total_conditions: int
-    num_samples: int
+    num_repetitions: int
     max_concurrent: int
 
 
@@ -23,7 +23,7 @@ class SampleConditionStartedEvent:
     run_id: str
     sample_idx: str
     condition: str
-    run_index: int
+    repetition_index: int
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,7 @@ class SampleConditionCompletedEvent:
     run_id: str
     sample_idx: str
     condition: str
-    run_index: int
+    repetition_index: int
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ class SampleConditionFailedEvent:
     run_id: str
     sample_idx: str
     condition: str
-    run_index: int
+    repetition_index: int
     reason: str
 
 
@@ -48,7 +48,7 @@ class SampleConditionRetryEvent:
     run_id: str
     sample_idx: str
     condition: str
-    run_index: int
+    repetition_index: int
     attempt: int
     reason: str
     backoff_seconds: float
@@ -101,7 +101,7 @@ class FakeEvaluationObserver:
         run_id: str,
         total_samples: int,
         total_conditions: int,
-        num_samples: int,
+        num_repetitions: int,
         max_concurrent: int,
     ) -> None:
         self._started.append(
@@ -109,7 +109,7 @@ class FakeEvaluationObserver:
                 run_id=run_id,
                 total_samples=total_samples,
                 total_conditions=total_conditions,
-                num_samples=num_samples,
+                num_repetitions=num_repetitions,
                 max_concurrent=max_concurrent,
             )
         )
@@ -124,14 +124,14 @@ class FakeEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
     ) -> None:
         self._sc_started.append(
             SampleConditionStartedEvent(
                 run_id=run_id,
                 sample_idx=sample_idx,
                 condition=condition,
-                run_index=run_index,
+                repetition_index=repetition_index,
             )
         )
 
@@ -140,14 +140,14 @@ class FakeEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
     ) -> None:
         self._sc_completed.append(
             SampleConditionCompletedEvent(
                 run_id=run_id,
                 sample_idx=sample_idx,
                 condition=condition,
-                run_index=run_index,
+                repetition_index=repetition_index,
             )
         )
 
@@ -156,7 +156,7 @@ class FakeEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
         reason: str,
     ) -> None:
         self._sc_failed.append(
@@ -164,7 +164,7 @@ class FakeEvaluationObserver:
                 run_id=run_id,
                 sample_idx=sample_idx,
                 condition=condition,
-                run_index=run_index,
+                repetition_index=repetition_index,
                 reason=reason,
             )
         )
@@ -174,7 +174,7 @@ class FakeEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
         attempt: int,
         reason: str,
         backoff_seconds: float,
@@ -184,7 +184,7 @@ class FakeEvaluationObserver:
                 run_id=run_id,
                 sample_idx=sample_idx,
                 condition=condition,
-                run_index=run_index,
+                repetition_index=repetition_index,
                 attempt=attempt,
                 reason=reason,
                 backoff_seconds=backoff_seconds,

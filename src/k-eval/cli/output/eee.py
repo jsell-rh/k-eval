@@ -171,7 +171,7 @@ def build_instance_jsonl_lines(
 
         run_details: list[JsonDict] = [
             {
-                "run_index": run.run_index,
+                "repetition_index": run.repetition_index,
                 "agent_response": run.agent_result.response,
                 "cost_usd": run.agent_result.cost_usd,
                 "duration_ms": run.agent_result.duration_ms,
