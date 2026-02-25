@@ -58,14 +58,14 @@ def _make_judge_result(
 def _make_run(
     sample: Sample,
     condition: str,
-    run_index: int,
+    repetition_index: int,
     run_id: str = "aaaabbbb-cccc-dddd-eeee-ffffaaaabbbb",
 ) -> EvaluationRun:
     return EvaluationRun(
         run_id=run_id,
         sample=sample,
         condition=condition,
-        run_index=run_index,
+        repetition_index=repetition_index,
         agent_result=_make_agent_result(),
         judge_result=_make_judge_result(),
     )
@@ -101,10 +101,10 @@ def _make_two_run_scenario() -> tuple[
     s1 = _make_sample(idx="1")
     run_id = "aaaabbbb-cccc-dddd-eeee-ffffaaaabbbb"
     runs = [
-        _make_run(sample=s0, condition="baseline", run_index=0, run_id=run_id),
-        _make_run(sample=s0, condition="baseline", run_index=1, run_id=run_id),
-        _make_run(sample=s1, condition="baseline", run_index=0, run_id=run_id),
-        _make_run(sample=s1, condition="baseline", run_index=1, run_id=run_id),
+        _make_run(sample=s0, condition="baseline", repetition_index=0, run_id=run_id),
+        _make_run(sample=s0, condition="baseline", repetition_index=1, run_id=run_id),
+        _make_run(sample=s1, condition="baseline", repetition_index=0, run_id=run_id),
+        _make_run(sample=s1, condition="baseline", repetition_index=1, run_id=run_id),
     ]
     summary = _make_summary(runs=runs, run_id=run_id)
     aggregated = aggregate(runs=runs)
@@ -453,7 +453,7 @@ class TestInstanceJsonlLines:
         )
 
         detail = lines[0]["run_details"][0]
-        assert "run_index" in detail
+        assert "repetition_index" in detail
         assert "agent_response" in detail
         assert "cost_usd" in detail
         assert "duration_ms" in detail

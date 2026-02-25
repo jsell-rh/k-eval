@@ -23,7 +23,7 @@ conditions:
       Answer the following question using your own knowledge.
 
 execution:
-  num_samples: 1
+  num_repetitions: 1
   max_concurrent: 1
   retry:
     max_attempts: 1

@@ -122,7 +122,7 @@ class TestValidConfigLoading:
             path=_fixture("valid_config.yaml")
         )
 
-        assert cfg.execution.num_samples == 3
+        assert cfg.execution.num_repetitions == 3
         assert cfg.execution.max_concurrent == 5
         assert cfg.execution.retry.max_attempts == 3
         assert cfg.execution.retry.initial_backoff_seconds == 1

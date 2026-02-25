@@ -17,21 +17,47 @@ class StructlogEvaluationObserver:
         run_id: str,
         total_samples: int,
         total_conditions: int,
-        num_samples: int,
+        condition_names: list[str],
+        num_repetitions: int,
+        max_concurrent: int,
     ) -> None:
         self._log.info(
             "evaluation.started",
             run_id=run_id,
             total_samples=total_samples,
             total_conditions=total_conditions,
-            num_samples=num_samples,
+            condition_names=condition_names,
+            num_repetitions=num_repetitions,
+            max_concurrent=max_concurrent,
         )
 
-    def evaluation_completed(self, run_id: str, total_runs: int) -> None:
+    def evaluation_completed(
+        self,
+        run_id: str,
+        total_runs: int,
+        elapsed_seconds: float,
+    ) -> None:
         self._log.info(
             "evaluation.completed",
             run_id=run_id,
             total_runs=total_runs,
+            elapsed_seconds=round(elapsed_seconds, 2),
+        )
+
+    def evaluation_progress(
+        self,
+        run_id: str,
+        condition: str,
+        completed: int,
+        total: int,
+    ) -> None:
+        self._log.info(
+            "evaluation.progress",
+            run_id=run_id,
+            condition=condition,
+            completed=completed,
+            total=total,
+            percent=round(100.0 * completed / total, 1) if total else 0.0,
         )
 
     def sample_condition_started(
@@ -39,14 +65,14 @@ class StructlogEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
     ) -> None:
         self._log.info(
             "evaluation.sample_condition.started",
             run_id=run_id,
             sample_idx=sample_idx,
             condition=condition,
-            run_index=run_index,
+            repetition_index=repetition_index,
         )
 
     def sample_condition_completed(
@@ -54,14 +80,14 @@ class StructlogEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
     ) -> None:
         self._log.info(
             "evaluation.sample_condition.completed",
             run_id=run_id,
             sample_idx=sample_idx,
             condition=condition,
-            run_index=run_index,
+            repetition_index=repetition_index,
         )
 
     def sample_condition_failed(
@@ -69,7 +95,7 @@ class StructlogEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
         reason: str,
     ) -> None:
         self._log.error(
@@ -77,7 +103,7 @@ class StructlogEvaluationObserver:
             run_id=run_id,
             sample_idx=sample_idx,
             condition=condition,
-            run_index=run_index,
+            repetition_index=repetition_index,
             reason=reason,
         )
 
@@ -86,7 +112,7 @@ class StructlogEvaluationObserver:
         run_id: str,
         sample_idx: str,
         condition: str,
-        run_index: int,
+        repetition_index: int,
         attempt: int,
         reason: str,
         backoff_seconds: float,
@@ -96,7 +122,7 @@ class StructlogEvaluationObserver:
             run_id=run_id,
             sample_idx=sample_idx,
             condition=condition,
-            run_index=run_index,
+            repetition_index=repetition_index,
             attempt=attempt,
             reason=reason,
             backoff_seconds=backoff_seconds,

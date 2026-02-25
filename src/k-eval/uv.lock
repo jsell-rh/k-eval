@@ -940,6 +940,7 @@ dependencies = [
     { name = "litellm" },
     { name = "pydantic" },
     { name = "pyyaml" },
+    { name = "rich" },
     { name = "structlog" },
     { name = "typer" },
 ]
@@ -968,6 +969,7 @@ requires-dist = [
     { name = "litellm" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "rich", specifier = ">=14.3.3" },
     { name = "structlog", specifier = ">=25.5.0" },
     { name = "typer", specifier = ">=0.24.1" },
 ]
