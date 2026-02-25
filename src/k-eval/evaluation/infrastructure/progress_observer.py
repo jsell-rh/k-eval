@@ -4,16 +4,23 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 from tqdm import tqdm
 
 
-type TqdmFactory = Callable[..., Any]
+class ProgressBar(Protocol):
+    """Structural interface for the subset of tqdm's API that we use."""
+
+    def update(self, n: int = ...) -> bool | None: ...
+    def close(self) -> None: ...
 
 
-def _default_tqdm_factory(**kwargs: Any) -> tqdm[int]:
-    return cast(tqdm[int], tqdm(**kwargs))
+type TqdmFactory = Callable[..., ProgressBar]
+
+
+def _default_tqdm_factory(**kwargs: Any) -> ProgressBar:
+    return cast(ProgressBar, tqdm(**kwargs))
 
 
 class ProgressEvaluationObserver:
@@ -23,15 +30,14 @@ class ProgressEvaluationObserver:
     produce output; all other events are no-ops.
 
     The ``tqdm_factory`` parameter is intended for testing — pass a factory
-    that returns a tqdm instance configured with ``disable=True`` or a spy
-    to assert on calls without terminal output.
+    that returns any object satisfying the ProgressBar protocol (update/close).
 
     Does NOT inherit from EvaluationObserver (structural typing via Protocol).
     """
 
     def __init__(self, tqdm_factory: TqdmFactory = _default_tqdm_factory) -> None:
         self._tqdm_factory = tqdm_factory
-        self._bar: tqdm[int] | None = None
+        self._bar: ProgressBar | None = None
 
     def evaluation_started(
         self,
