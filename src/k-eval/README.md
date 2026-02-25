@@ -10,22 +10,6 @@ k-eval uses [uv](https://docs.astral.sh/uv/) for dependency management. Install 
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-### Install `k-eval`
-
-```bash
-git clone https://github.com/jsell-rh/k-eval.git
-cd k-eval/src/k-eval
-
-# Core dependencies
-uv sync
-
-# With Vertex AI provider support
-uv sync --extra vertex_ai
-
-# All provider dependencies
-uv sync --extra all
-```
-
 ### Run `k-eval`
 
 `k-eval` runs are configured using `yaml` configuration files (see [Configuration](#Configuration)).
@@ -34,8 +18,7 @@ Once an evaluation is defined in a `yaml` file, you can invoke
 `k-eval` like:
 
 ```bash
-cd src/k-eval
-uv run python -m k_eval.cli.main /path/to/config.yaml
+uvx k-eval /path/to/config.yaml
 ```
 
 See [docs/run-configuration.md](docs/run-configuration.md) for authentication setup and all CLI options.
@@ -43,7 +26,7 @@ See [docs/run-configuration.md](docs/run-configuration.md) for authentication se
 #### CLI Options
 
 ```bash
-src/k-eval$ uv run python -m k_eval.cli.main --help
+uvx k-eval --help
                                                                                                                                     
  Usage: python -m cli.main [OPTIONS] CONFIG_PATH                                                                                    
                                                                                                                                     
