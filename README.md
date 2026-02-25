@@ -38,6 +38,26 @@ cd src/k-eval
 uv run python -m cli.main /path/to/config.yaml
 ```
 
+#### CLI Usage
+
+```bash
+src/k-eval$ uv run python -m cli.main --help
+                                                                                                                                    
+ Usage: python -m cli.main [OPTIONS] CONFIG_PATH                                                                                    
+                                                                                                                                    
+ Run a k-eval evaluation from a YAML config file.                                                                                   
+                                                                                                                                    
+╭─ Arguments ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *    config_path      PATH  Path to evaluation config YAML [required]                                                            │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --output-dir  -o      PATH  Directory for output files [default: results]                                                        │
+│ --log-format          TEXT  Log format: 'console' or 'json' [default: console]                                                   │
+│ --quiet       -q            Suppress debug and info logs; show only the progress bar plus warnings/errors.                       │
+│ --help                      Show this message and exit.                                                                          │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+```
+
 ### Understanding the Output
 
 Each run produces two files in `./results/` (or wherever you point `--output-dir`):
@@ -75,6 +95,11 @@ See [evaluation-methodology](docs/evaluation-methodology.md) for more details.
 ### Configuration
 
 A config file defines your dataset, agent, judge, MCP servers, and the conditions you want to compare:
+
+> [!Important]
+>
+> For MCP servers that require authentication,
+> please reference [docs/run-configuration.md](docs/run-configuration.md).
 
 ```yaml
 name: "my-eval"
@@ -127,5 +152,4 @@ execution:
   max_concurrent: 5
 ```
 
-See [docs/run-configuration.md](docs/run-configuration.md) for the full reference including authentication setup.
 
