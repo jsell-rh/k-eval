@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import sys
-from typing import Any
 
-from rich.console import Console
+from rich.console import Console, Group
 from rich.live import Live
 from rich.progress import (
-    BarColumn,
     Progress,
+    ProgressColumn,
+    Task,
     TaskID,
     TextColumn,
     TimeElapsedColumn,
@@ -26,17 +26,22 @@ _CONDITION_COLORS: list[str] = [
 ]
 
 
-class _ThreeSegmentBarColumn(BarColumn):
-    """BarColumn subclass that renders three segments: done, in-flight, remaining."""
+class _ThreeSegmentBarColumn(ProgressColumn):
+    """ProgressColumn that renders three segments: done, in-flight, remaining."""
 
-    def render(self, task: Any) -> Text:  # type: ignore[override]
+    def __init__(self, bar_width: int = 40) -> None:
+        super().__init__()
+        self.bar_width = bar_width
+
+    def render(self, task: Task) -> Text:
         bar_width = self.bar_width or 40
         total = task.total or 0
         if total > 0:
-            done_cells = round(task.completed / total * bar_width)
-            inflight = task.fields.get("inflight", 0)
+            done_cells = int(task.completed / total * bar_width)
+            inflight = int(task.fields.get("inflight", 0))
+            # In-flight fills from where done ends; capped so done+inflight <= bar_width.
             inflight_cells = min(
-                round(inflight / total * bar_width),
+                int(inflight / total * bar_width),
                 bar_width - done_cells,
             )
         else:
@@ -153,23 +158,26 @@ class ProgressEvaluationObserver:
         if self._disabled:
             return
 
-        # Print legend once before starting the live display.
-        print(
-            "  Legend:  \033[92m█\033[0m done"
-            "  \033[33m█\033[0m in-flight"
-            "  \033[2m░\033[0m remaining",
-            file=sys.stderr,
-        )
-
         pad_width = max(
             (len(name) for name in condition_names + ["Overall"]),
             default=len("Overall"),
         )
 
         console = Console(stderr=True)
+
+        legend = Text.assemble(
+            "  Legend:  ",
+            ("█", "bright_green"),
+            " done  ",
+            ("█", "yellow"),
+            " in-flight  ",
+            ("░", "dim white"),
+            " remaining",
+        )
+
         self._progress = Progress(
             TextColumn("{task.description}"),
-            _ThreeSegmentBarColumn(bar_width=None),
+            _ThreeSegmentBarColumn(bar_width=40),
             TextColumn("{task.fields[done]}+{task.fields[inflight]}/{task.total:.0f}"),
             TimeElapsedColumn(),
             TextColumn("{task.fields[rate]}"),
@@ -178,7 +186,17 @@ class ProgressEvaluationObserver:
             transient=False,
         )
 
-        # Create one task per condition, then the Overall task.
+        # Overall bar first, then one task per condition.
+        overall_desc = self._make_desc(name="Overall", index=0, pad_width=pad_width)
+        overall_task_id = self._progress.add_task(
+            description=overall_desc,
+            total=float(overall_total),
+            inflight=0,
+            done=0,
+            rate="-- triple/s",
+        )
+        self._task_ids["Overall"] = overall_task_id
+
         for i, name in enumerate(condition_names):
             desc = self._make_desc(name=name, index=i, pad_width=pad_width)
             task_id = self._progress.add_task(
@@ -190,17 +208,8 @@ class ProgressEvaluationObserver:
             )
             self._task_ids[name] = task_id
 
-        overall_desc = self._make_desc(name="Overall", index=0, pad_width=pad_width)
-        overall_task_id = self._progress.add_task(
-            description=overall_desc,
-            total=float(overall_total),
-            inflight=0,
-            done=0,
-            rate="-- triple/s",
-        )
-        self._task_ids["Overall"] = overall_task_id
-
-        self._live = Live(self._progress, console=console, refresh_per_second=10)
+        renderable = Group(self._progress, Text(""), legend)
+        self._live = Live(renderable, console=console, refresh_per_second=10)
         self._live.start()
 
     def evaluation_completed(
