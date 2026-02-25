@@ -15,6 +15,7 @@ class EvaluationObserver(Protocol):
         total_samples: int,
         total_conditions: int,
         num_samples: int,
+        max_concurrent: int,
     ) -> None: ...
 
     def evaluation_completed(self, run_id: str, total_runs: int) -> None: ...

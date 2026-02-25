@@ -1,5 +1,6 @@
 """Tests for EvaluationRunner application logic."""
 
+import asyncio
 import pytest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -9,10 +10,12 @@ from agent.domain.usage import UsageMetrics
 from agent.infrastructure.errors import AgentInvocationError
 from config.domain.agent import AgentConfig
 from config.domain.condition import ConditionConfig
+from config.domain.condition_mcp_server import ConditionMcpServer
 from config.domain.config import EvalConfig
 from config.domain.dataset import DatasetConfig
 from config.domain.execution import ExecutionConfig, RetryConfig
 from config.domain.judge import JudgeConfig
+from core.errors import KEvalError
 from dataset.domain.sample import Sample
 from evaluation.application.runner import EvaluationRunner
 from evaluation.domain.summary import RunSummary
@@ -273,6 +276,7 @@ class TestEvaluationRunnerObserverEvents:
         assert event.total_samples == 2
         assert event.total_conditions == 2
         assert event.num_samples == 3
+        assert event.max_concurrent == config.execution.max_concurrent
 
     async def test_evaluation_completed_is_emitted_once(self) -> None:
         config = _make_eval_config(
@@ -397,8 +401,9 @@ class TestEvaluationRunnerSampleBinding:
 
         result = await runner.run()
 
-        assert result.runs[0].sample is samples[0]
-        assert result.runs[1].sample is samples[1]
+        run_by_sample = {r.sample.sample_idx: r for r in result.runs}
+        assert run_by_sample[samples[0].sample_idx].sample is samples[0]
+        assert run_by_sample[samples[1].sample_idx].sample is samples[1]
 
     async def test_all_results_carry_correct_condition(self) -> None:
         config = _make_eval_config(
@@ -602,3 +607,194 @@ class TestEvaluationRunnerRetry:
         assert observer.sc_retried[1].backoff_seconds == 6.0
         # attempt 3: backoff = 2 * 3^2 = 18
         assert observer.sc_retried[2].backoff_seconds == 18.0
+
+
+# ---------------------------------------------------------------------------
+# Concurrency tracking helpers
+# ---------------------------------------------------------------------------
+
+
+def _make_default_agent_result() -> AgentResult:
+    return AgentResult(
+        response="The answer is 42.",
+        cost_usd=0.001,
+        duration_ms=500,
+        duration_api_ms=400,
+        num_turns=1,
+        usage=UsageMetrics(input_tokens=50, output_tokens=20),
+    )
+
+
+class ConcurrencyTracker:
+    """Records peak concurrent usage across async tasks."""
+
+    def __init__(self) -> None:
+        self.peak = 0
+        self._active = 0
+
+    async def enter(self) -> None:
+        self._active += 1
+        self.peak = max(self.peak, self._active)
+
+    async def exit(self) -> None:
+        self._active -= 1
+
+
+class ConcurrencyTrackingFakeAgent:
+    """Satisfies the Agent protocol. Tracks concurrent ask() calls via a ConcurrencyTracker."""
+
+    def __init__(self, tracker: ConcurrencyTracker) -> None:
+        self._tracker = tracker
+
+    async def ask(self, question: str) -> AgentResult:
+        await self._tracker.enter()
+        await asyncio.sleep(0.01)  # yield to allow other tasks to start
+        await self._tracker.exit()
+        return _make_default_agent_result()
+
+
+class ConcurrencyTrackingFakeAgentFactory:
+    """Satisfies the AgentFactory protocol. Returns ConcurrencyTrackingFakeAgent instances."""
+
+    def __init__(self, tracker: ConcurrencyTracker) -> None:
+        self._tracker = tracker
+
+    def create(
+        self,
+        condition: str,
+        sample_idx: str,
+        system_prompt: str,
+        mcp_servers: list[ConditionMcpServer],
+    ) -> ConcurrencyTrackingFakeAgent:
+        return ConcurrencyTrackingFakeAgent(tracker=self._tracker)
+
+
+def _make_concurrent_eval_config(
+    num_samples_dataset: int,
+    num_conditions: int,
+    num_samples: int,
+    max_concurrent: int,
+) -> EvalConfig:
+    conditions = _make_conditions([f"cond-{i}" for i in range(num_conditions)])
+    return EvalConfig(
+        name="concurrency-test",
+        version="1.0",
+        dataset=DatasetConfig(
+            path=Path("/dev/null"),
+            question_key="question",
+            answer_key="answer",
+        ),
+        agent=AgentConfig(type="claude", model="claude-3-5-sonnet"),
+        judge=JudgeConfig(model="gpt-4o", temperature=0.0),
+        mcp_servers={},
+        conditions=conditions,
+        execution=ExecutionConfig(
+            num_samples=num_samples,
+            max_concurrent=max_concurrent,
+            retry=RetryConfig(
+                max_attempts=1,
+                initial_backoff_seconds=0,
+                backoff_multiplier=1,
+            ),
+        ),
+    )
+
+
+class TestEvaluationRunnerConcurrency:
+    """Concurrency behaviour: semaphore limits parallelism and all triples complete."""
+
+    async def test_max_concurrent_limits_peak_concurrency(self) -> None:
+        """10 samples × 1 condition × 1 run_index with max_concurrent=3 must never exceed 3 simultaneous agent calls."""
+        tracker = ConcurrencyTracker()
+        config = _make_concurrent_eval_config(
+            num_samples_dataset=10,
+            num_conditions=1,
+            num_samples=1,
+            max_concurrent=3,
+        )
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(10)),
+            agent_factory=ConcurrencyTrackingFakeAgentFactory(tracker=tracker),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        await runner.run()
+
+        assert tracker.peak <= 3
+
+    async def test_all_triples_present_in_results(self) -> None:
+        """3 samples × 2 conditions × 2 run_indices with max_concurrent=4 produces all 12 triples."""
+        config = _make_concurrent_eval_config(
+            num_samples_dataset=3,
+            num_conditions=2,
+            num_samples=2,
+            max_concurrent=4,
+        )
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(3)),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        result = await runner.run()
+
+        assert len(result.runs) == 12  # 3 × 2 × 2
+        triples = {(r.sample.sample_idx, r.condition, r.run_index) for r in result.runs}
+        assert len(triples) == 12
+
+    async def test_results_sorted_deterministically(self) -> None:
+        """Results are sorted by (sample_idx, condition, run_index) after concurrent execution."""
+        config = _make_concurrent_eval_config(
+            num_samples_dataset=3,
+            num_conditions=2,
+            num_samples=2,
+            max_concurrent=4,
+        )
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(3)),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        result = await runner.run()
+
+        sort_keys = [
+            (r.sample.sample_idx, r.condition, r.run_index) for r in result.runs
+        ]
+        assert sort_keys == sorted(sort_keys)
+
+    async def test_non_retriable_error_raises_keval_error_not_exception_group(
+        self,
+    ) -> None:
+        """A non-retriable AgentInvocationError surfaces as KEvalError, not BaseExceptionGroup."""
+        config = _make_concurrent_eval_config(
+            num_samples_dataset=1,
+            num_conditions=1,
+            num_samples=1,
+            max_concurrent=1,
+        )
+        failing_agent = FakeAgent(
+            result=_make_agent_result(),
+            side_effects=[AgentInvocationError(reason="bad config", retriable=False)],
+        )
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(
+                result=_make_agent_result(),
+                agents=[failing_agent],
+            ),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        with pytest.raises(KEvalError) as exc_info:
+            await runner.run()
+
+        assert not isinstance(exc_info.value, BaseExceptionGroup)

@@ -9,6 +9,7 @@ class EvaluationStartedEvent:
     total_samples: int
     total_conditions: int
     num_samples: int
+    max_concurrent: int
 
 
 @dataclass(frozen=True)
@@ -101,6 +102,7 @@ class FakeEvaluationObserver:
         total_samples: int,
         total_conditions: int,
         num_samples: int,
+        max_concurrent: int,
     ) -> None:
         self._started.append(
             EvaluationStartedEvent(
@@ -108,6 +110,7 @@ class FakeEvaluationObserver:
                 total_samples=total_samples,
                 total_conditions=total_conditions,
                 num_samples=num_samples,
+                max_concurrent=max_concurrent,
             )
         )
 

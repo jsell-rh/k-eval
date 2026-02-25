@@ -18,6 +18,7 @@ class StructlogEvaluationObserver:
         total_samples: int,
         total_conditions: int,
         num_samples: int,
+        max_concurrent: int,
     ) -> None:
         self._log.info(
             "evaluation.started",
@@ -25,6 +26,7 @@ class StructlogEvaluationObserver:
             total_samples=total_samples,
             total_conditions=total_conditions,
             num_samples=num_samples,
+            max_concurrent=max_concurrent,
         )
 
     def evaluation_completed(self, run_id: str, total_runs: int) -> None:

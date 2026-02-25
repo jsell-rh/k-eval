@@ -56,14 +56,16 @@ def aggregate(runs: list[EvaluationRun]) -> list[AggregatedResult]:
         sample = samples[key]
         condition = key[1]
 
-        fa_scores = [float(r.judge_result.factual_adherence) for r in group_runs]
-        co_scores = [float(r.judge_result.completeness) for r in group_runs]
-        hc_scores = [float(r.judge_result.helpfulness_and_clarity) for r in group_runs]
+        sorted_runs = sorted(group_runs, key=lambda r: r.run_index)
+
+        fa_scores = [float(r.judge_result.factual_adherence) for r in sorted_runs]
+        co_scores = [float(r.judge_result.completeness) for r in sorted_runs]
+        hc_scores = [float(r.judge_result.helpfulness_and_clarity) for r in sorted_runs]
 
         # Deduplicate unverified claims across all runs.
         seen: set[str] = set()
         deduped_claims: list[str] = []
-        for run in group_runs:
+        for run in sorted_runs:
             for claim in run.judge_result.unverified_claims:
                 if claim not in seen:
                     seen.add(claim)
@@ -73,7 +75,7 @@ def aggregate(runs: list[EvaluationRun]) -> list[AggregatedResult]:
             AggregatedResult(
                 sample=sample,
                 condition=condition,
-                runs=group_runs,
+                runs=sorted_runs,
                 factual_adherence_mean=statistics.mean(fa_scores),
                 factual_adherence_stddev=_stddev(fa_scores),
                 completeness_mean=statistics.mean(co_scores),
