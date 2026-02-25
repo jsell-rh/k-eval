@@ -17,61 +17,81 @@ a rerun:
 ## Config Example
 
 ```yaml
+# A short name for this evaluation run. Used in output file names.
 name: "k-eval-demo"
+# Treat this as a schema version for your own config files — increment it
+# when you make meaningful changes so you can tell configs apart later.
 version: "1"
 
 dataset:
-  path: "./questions.jsonl"
-  question_key: "question"
-  answer_key: "answer"
+  path: "./questions.jsonl"   # JSONL file with your questions and golden answers
+  question_key: "question"    # key in each JSONL object that holds the question
+  answer_key: "answer"        # key that holds the known-correct reference answer
 
 agent:
-  type: "claude_code_sdk"
-  model: "claude-sonnet-4-5"
+  type: "claude_code_sdk"     # currently the only supported type
+  model: "claude-sonnet-4-5"  # any model string accepted by the Claude Code SDK
 
 judge:
-  # A LiteLLM-compatible provider/model string
-  # Note: Credentials should be provided as environment variables.
-  # See: https://docs.litellm.ai/docs/providers
+  # Any LiteLLM-compatible provider/model string. See: https://models.litellm.ai/
+  # The judge scores each agent response against the golden answer on three metrics.
+  # Use a capable model here. Judge quality directly affects result reliability.
+  #
+  # The model must support structured outputs.
   model: "vertex_ai/claude-opus-4-5"
+  # Keep temperature at 0.0 to make judge scores as deterministic as possible.
   temperature: 0.0
 
 mcp_servers:
+  # Define all MCP servers here, then reference them by name in conditions below.
   graph:
-    type: "stdio"
+    # supported: `stdio`, `sse`, `http`
+    type: "stdio" # stdio: the server is a local process
     command: "python"
     args: ["-m", "kartograph.mcp"]
 
   rag:
-    type: "sse"
-    url: "http://localhost:8080/sse"
+    type: "http" # http: the server is a remote http endpoint
+    url: "http://localhost:8080/mcp"
+    # ${ENV_VAR} syntax is supported anywhere in the config. k-eval will
+    # substitute values from your environment at load time.
     headers:
       Authorization: "Bearer ${SEARCH_API_KEY}"
 
 conditions:
+  # Each condition is an experimental variant. k-eval evaluates every question
+  # under every condition, so you can directly compare the effect of each one.
+  # The agent only has access to the MCP servers listed here. All others are
+  # withheld, including Claude's built-in tools (web search, bash, etc.).
   baseline:
-    mcp_servers: []
+    mcp_servers: [] # no MCP servers, agent uses only its own knowledge
     system_prompt: |
       Answer the following question using your own knowledge.
 
   with_graph:
-    mcp_servers: [graph]
+    mcp_servers: [graph] # reference server names defined in mcp_servers above
     system_prompt: |
       You have access to a property graph tool. Use it to answer the question.
 
   with_graph_and_search:
     mcp_servers: [graph, rag]
     system_prompt: |
-      You have access to a property graph tool and a rag tool. 
+      You have access to a property graph tool and a rag tool.
       Use them to answer the question.
-      
+
 execution:
-  num_repetitions: 3
+  # How many times each (question, condition) pair is evaluated. The mean and
+  # standard deviation across repetitions are reported. Use 3 as a minimum;
+  # 5+ gives more reliable variance estimates.
+  num_repetitions: 5
+  # (question, condition, repetition) triples are evaluated concurrently up to
+  # this limit. Higher values reduce wall-clock time but increase API load.
+  # Values up to 50 seem to be well-tolerated on Vertex AI in practice.
   max_concurrent: 5
   retry:
-    max_attempts: 3
+    max_attempts: 3 # total attempts per triple including the first
     initial_backoff_seconds: 1
-    backoff_multiplier: 2
+    backoff_multiplier: 2 # backoff doubles on each retry: 1s, 2s, 4s, ...
 ```
 
 ## Inference Provider Authentication
