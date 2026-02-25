@@ -1,6 +1,8 @@
 """Tests for ProgressEvaluationObserver (Rich-based, disabled=True for state checks)."""
 
-from evaluation.infrastructure.progress_observer import ProgressEvaluationObserver
+from k_eval.evaluation.infrastructure.progress_observer import (
+    ProgressEvaluationObserver,
+)
 
 
 def _make_observer() -> ProgressEvaluationObserver:

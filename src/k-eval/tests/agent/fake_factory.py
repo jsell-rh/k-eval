@@ -1,8 +1,8 @@
 """FakeAgentFactory — in-memory AgentFactory implementation for use in tests."""
 
-from agent.domain.agent import Agent
-from agent.domain.result import AgentResult
-from config.domain.condition_mcp_server import ConditionMcpServer
+from k_eval.agent.domain.agent import Agent
+from k_eval.agent.domain.result import AgentResult
+from k_eval.config.domain.condition_mcp_server import ConditionMcpServer
 from tests.agent.fake_agent import FakeAgent
 
 

@@ -1,6 +1,6 @@
 """FakeJudge — in-memory Judge implementation for use in tests."""
 
-from judge.domain.score import JudgeResult
+from k_eval.judge.domain.score import JudgeResult
 
 _DEFAULT_RESULT = JudgeResult(
     factual_adherence=5,

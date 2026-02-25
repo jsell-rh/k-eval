@@ -3,7 +3,7 @@ name = "k-eval"
 version = "0.2.0"
 description = "Context-aware evaluation framework for AI agents using MCP."
 readme = "README.md"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 requires-python = ">=3.13"
 authors = [
     { name = "jsell-rh" },
@@ -12,7 +12,6 @@ keywords = ["evaluation", "ai", "agents", "mcp", "llm"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -35,7 +34,7 @@ Repository = "https://github.com/jsell-rh/k-eval"
 Issues = "https://github.com/jsell-rh/k-eval/issues"
 
 [project.scripts]
-k-eval = "cli.main:app"
+k-eval = "k_eval.cli.main:app"
 
 [project.optional-dependencies]
 vertex_ai = ["google-cloud-aiplatform>=1.138.0"]
@@ -50,9 +49,14 @@ dev = [
     "types-pyyaml>=6.0.12.20250915",
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["k_eval*"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
 asyncio_mode = "auto"
 
 [tool.ruff]
@@ -62,3 +66,4 @@ target-version = "py313"
 python_version = "3.13"
 strict = true
 mypy_path = "."
+packages = ["k_eval"]

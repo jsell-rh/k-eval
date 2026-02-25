@@ -1,8 +1,8 @@
 """FakeDatasetLoader — in-memory DatasetLoader implementation for use in tests."""
 
-from config.domain.dataset import DatasetConfig
-from dataset.domain.load_result import DatasetLoadResult
-from dataset.domain.sample import Sample
+from k_eval.config.domain.dataset import DatasetConfig
+from k_eval.dataset.domain.load_result import DatasetLoadResult
+from k_eval.dataset.domain.sample import Sample
 
 
 class FakeDatasetLoader:

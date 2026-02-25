@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from judge.domain.score import JudgeResult
+from k_eval.judge.domain.score import JudgeResult
 
 
 class TestJudgeResultConstruction:

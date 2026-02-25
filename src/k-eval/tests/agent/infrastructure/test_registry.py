@@ -2,10 +2,10 @@
 
 import pytest
 
-from agent.infrastructure.errors import AgentTypeNotSupportedError
-from agent.infrastructure.factory import ClaudeAgentSDKAgentFactory
-from agent.infrastructure.registry import create_agent_factory
-from config.domain.agent import AgentConfig
+from k_eval.agent.infrastructure.errors import AgentTypeNotSupportedError
+from k_eval.agent.infrastructure.factory import ClaudeAgentSDKAgentFactory
+from k_eval.agent.infrastructure.registry import create_agent_factory
+from k_eval.config.domain.agent import AgentConfig
 from tests.agent.fake_observer import FakeAgentObserver
 
 
@@ -50,7 +50,7 @@ class TestCreateAgentFactory:
         assert "gpt_computer_use" in str(exc_info.value)
 
     def test_agent_type_not_supported_is_keval_error(self) -> None:
-        from core.errors import KEvalError
+        from k_eval.core.errors import KEvalError
 
         config = _make_config(agent_type="unsupported")
         observer = FakeAgentObserver()

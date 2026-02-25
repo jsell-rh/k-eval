@@ -35,7 +35,7 @@ Once an evaluation is defined in a `yaml` file, you can invoke
 
 ```bash
 cd src/k-eval
-uv run python -m cli.main /path/to/config.yaml
+uv run python -m k_eval.cli.main /path/to/config.yaml
 ```
 
 See [docs/run-configuration.md](docs/run-configuration.md) for authentication setup and all CLI options.
@@ -43,7 +43,7 @@ See [docs/run-configuration.md](docs/run-configuration.md) for authentication se
 #### CLI Options
 
 ```bash
-src/k-eval$ uv run python -m cli.main --help
+src/k-eval$ uv run python -m k_eval.cli.main --help
                                                                                                                                     
  Usage: python -m cli.main [OPTIONS] CONFIG_PATH                                                                                    
                                                                                                                                     
