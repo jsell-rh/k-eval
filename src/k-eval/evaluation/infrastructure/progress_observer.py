@@ -27,6 +27,22 @@ _CONDITION_COLORS: list[str] = [
 ]
 
 
+class _CountsColumn(ProgressColumn):
+    """Renders done+inflight/total with colors matching the bar segments."""
+
+    def render(self, task: Task) -> Text:
+        done = int(task.fields.get("done", 0))
+        inflight = int(task.fields.get("inflight", 0))
+        total = int(task.total or 0)
+        return Text.assemble(
+            (str(done), "bright_green"),
+            ("+", "dim white"),
+            (str(inflight), "grey50"),
+            ("/", "dim white"),
+            (str(total), "default"),
+        )
+
+
 class _ConditionalEtaColumn(ProgressColumn):
     """Shows ETA for condition tasks only — blank for the Overall row.
 
@@ -200,7 +216,7 @@ class ProgressEvaluationObserver:
         self._progress = Progress(
             TextColumn("{task.description}"),
             _ThreeSegmentBarColumn(bar_width=40),
-            TextColumn("{task.fields[done]}+{task.fields[inflight]}/{task.total:.0f}"),
+            _CountsColumn(),
             TimeElapsedColumn(),
             TextColumn("{task.fields[eta_label]}"),
             _ConditionalEtaColumn(),
