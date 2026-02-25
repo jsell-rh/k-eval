@@ -294,4 +294,12 @@ class ProgressEvaluationObserver:
         reason: str,
         backoff_seconds: float,
     ) -> None:
-        pass
+        # Triple is about to sleep during backoff — it is no longer in-flight.
+        if condition in self._inflight:
+            self._inflight[condition] = max(0, self._inflight[condition] - 1)
+        if "Overall" in self._inflight:
+            self._inflight["Overall"] = max(0, self._inflight["Overall"] - 1)
+
+        if not self._disabled:
+            self._update_task(key=condition)
+            self._update_task(key="Overall")

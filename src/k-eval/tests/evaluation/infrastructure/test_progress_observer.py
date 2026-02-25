@@ -252,3 +252,74 @@ class TestProgressEvaluationObserverNoOps:
         )
         # inflight unchanged — only evaluation_progress decrements it
         assert observer._inflight["cond-a"] == 1
+
+
+class TestProgressEvaluationObserverRetry:
+    """Retry edge cases: in-flight must not leak across retry attempts."""
+
+    def _started_observer(self) -> ProgressEvaluationObserver:
+        observer = _make_observer()
+        _start(observer=observer, condition_names=["cond-a"])
+        return observer
+
+    def test_retry_decrements_inflight_during_backoff(self) -> None:
+        observer = self._started_observer()
+        observer.sample_condition_started(
+            run_id="r", sample_idx="s0", condition="cond-a", repetition_index=0
+        )
+        assert observer._inflight["cond-a"] == 1
+
+        # Triple fails and enters backoff — inflight should drop to 0.
+        observer.sample_condition_retry(
+            run_id="r",
+            sample_idx="s0",
+            condition="cond-a",
+            repetition_index=0,
+            attempt=1,
+            reason="timeout",
+            backoff_seconds=1.0,
+        )
+        assert observer._inflight["cond-a"] == 0
+        assert observer._inflight["Overall"] == 0
+
+    def test_retry_then_progress_does_not_go_negative(self) -> None:
+        observer = self._started_observer()
+        observer.sample_condition_started(
+            run_id="r", sample_idx="s0", condition="cond-a", repetition_index=0
+        )
+        observer.sample_condition_retry(
+            run_id="r",
+            sample_idx="s0",
+            condition="cond-a",
+            repetition_index=0,
+            attempt=1,
+            reason="timeout",
+            backoff_seconds=1.0,
+        )
+        # Re-enters sem on attempt 2 (runner does NOT re-emit started).
+        # Then succeeds — evaluation_progress decrements inflight.
+        observer.evaluation_progress(
+            run_id="r", condition="cond-a", completed=1, total=3
+        )
+        assert observer._inflight["cond-a"] == 0
+        assert observer._done["cond-a"] == 1
+
+    def test_multiple_retries_do_not_leak_inflight(self) -> None:
+        observer = self._started_observer()
+        observer.sample_condition_started(
+            run_id="r", sample_idx="s0", condition="cond-a", repetition_index=0
+        )
+        # Two retries — each backoff should decrement inflight.
+        for attempt in range(1, 3):
+            observer.sample_condition_retry(
+                run_id="r",
+                sample_idx="s0",
+                condition="cond-a",
+                repetition_index=0,
+                attempt=attempt,
+                reason="timeout",
+                backoff_seconds=1.0,
+            )
+        # inflight floored at 0, never goes negative.
+        assert observer._inflight["cond-a"] == 0
+        assert observer._inflight["Overall"] == 0
