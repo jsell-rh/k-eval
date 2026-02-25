@@ -13,6 +13,7 @@ from rich.progress import (
     TaskID,
     TextColumn,
     TimeElapsedColumn,
+    TimeRemainingColumn,
 )
 from rich.text import Text
 
@@ -180,6 +181,8 @@ class ProgressEvaluationObserver:
             _ThreeSegmentBarColumn(bar_width=40),
             TextColumn("{task.fields[done]}+{task.fields[inflight]}/{task.total:.0f}"),
             TimeElapsedColumn(),
+            TextColumn("eta"),
+            TimeRemainingColumn(),
             TextColumn("{task.fields[rate]}"),
             console=console,
             refresh_per_second=10,
