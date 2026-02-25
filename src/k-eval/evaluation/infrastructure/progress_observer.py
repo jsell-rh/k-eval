@@ -1,4 +1,4 @@
-"""ProgressEvaluationObserver — writes a live tqdm progress bar to stderr."""
+"""ProgressEvaluationObserver — writes per-condition and overall tqdm bars to stderr."""
 
 from __future__ import annotations
 
@@ -7,6 +7,16 @@ from collections.abc import Callable
 from typing import Any, Protocol, cast
 
 from tqdm import tqdm
+
+# ANSI color cycle for condition bars (reset with \033[0m)
+_CONDITION_COLORS: list[str] = [
+    "\033[36m",  # cyan
+    "\033[32m",  # green
+    "\033[33m",  # yellow
+    "\033[35m",  # magenta
+    "\033[34m",  # blue
+]
+_RESET = "\033[0m"
 
 
 class ProgressBar(Protocol):
@@ -24,7 +34,13 @@ def _default_tqdm_factory(**kwargs: Any) -> ProgressBar:
 
 
 class ProgressEvaluationObserver:
-    """Renders a live tqdm progress bar on stderr during an evaluation run.
+    """Renders per-condition tqdm bars plus an overall bar on stderr.
+
+    One bar is created per condition (at positions 0, 1, 2, …) using the real
+    condition names passed to evaluation_started, and an overall bar is placed
+    at position len(condition_names). All descs are padded to the same width so
+    the bars line up. ANSI colour is applied to condition labels when stderr is
+    a TTY.
 
     Only evaluation_started, evaluation_progress, and evaluation_completed
     produce output; all other events are no-ops.
@@ -37,23 +53,56 @@ class ProgressEvaluationObserver:
 
     def __init__(self, tqdm_factory: TqdmFactory = _default_tqdm_factory) -> None:
         self._tqdm_factory = tqdm_factory
-        self._bar: ProgressBar | None = None
+        self._condition_bars: dict[str, ProgressBar] = {}
+        self._overall_bar: ProgressBar | None = None
 
     def evaluation_started(
         self,
         run_id: str,
         total_samples: int,
         total_conditions: int,
+        condition_names: list[str],
         num_repetitions: int,
         max_concurrent: int,
     ) -> None:
-        total = total_samples * total_conditions * num_repetitions
-        self._bar = self._tqdm_factory(
-            total=total,
-            desc="Evaluating",
+        # Clear any leftover state from a previous run.
+        self._condition_bars = {}
+        self._overall_bar = None
+
+        use_color = sys.stderr.isatty()
+        per_condition_total = total_samples * num_repetitions
+        overall_total = total_samples * total_conditions * num_repetitions
+
+        # Compute the desc width so all bars are aligned.
+        desc_width = max(
+            (len(name) for name in condition_names + ["Overall"]),
+            default=len("Overall"),
+        )
+
+        # Create one bar per condition using the real condition name.
+        for i, name in enumerate(condition_names):
+            color = _CONDITION_COLORS[i % len(_CONDITION_COLORS)] if use_color else ""
+            reset = _RESET if use_color else ""
+            bar = self._tqdm_factory(
+                total=per_condition_total,
+                desc=f"{color}{name:<{desc_width}}{reset}",
+                unit="triple",
+                file=sys.stderr,
+                dynamic_ncols=True,
+                position=i,
+                leave=True,
+            )
+            self._condition_bars[name] = bar
+
+        # Create the overall bar after all condition bars.
+        self._overall_bar = self._tqdm_factory(
+            total=overall_total,
+            desc=f"{'Overall':<{desc_width}}",
             unit="triple",
             file=sys.stderr,
             dynamic_ncols=True,
+            position=len(condition_names),
+            leave=True,
         )
 
     def evaluation_completed(
@@ -62,18 +111,28 @@ class ProgressEvaluationObserver:
         total_runs: int,
         elapsed_seconds: float,
     ) -> None:
-        if self._bar is not None:
-            self._bar.close()
-            self._bar = None
+        for bar in self._condition_bars.values():
+            bar.close()
+        if self._overall_bar is not None:
+            self._overall_bar.close()
+        self._condition_bars = {}
+        self._overall_bar = None
 
     def evaluation_progress(
         self,
         run_id: str,
+        condition: str,
         completed: int,
         total: int,
     ) -> None:
-        if self._bar is not None:
-            self._bar.update(n=1)
+        if not self._condition_bars and self._overall_bar is None:
+            return
+
+        if condition in self._condition_bars:
+            self._condition_bars[condition].update(n=1)
+
+        if self._overall_bar is not None:
+            self._overall_bar.update(n=1)
 
     def sample_condition_started(
         self,

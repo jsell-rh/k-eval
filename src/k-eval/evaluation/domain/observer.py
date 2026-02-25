@@ -14,6 +14,7 @@ class EvaluationObserver(Protocol):
         run_id: str,
         total_samples: int,
         total_conditions: int,
+        condition_names: list[str],
         num_repetitions: int,
         max_concurrent: int,
     ) -> None: ...
@@ -28,6 +29,7 @@ class EvaluationObserver(Protocol):
     def evaluation_progress(
         self,
         run_id: str,
+        condition: str,
         completed: int,
         total: int,
     ) -> None: ...

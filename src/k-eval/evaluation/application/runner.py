@@ -54,6 +54,7 @@ class EvaluationRunner:
             run_id=run_id,
             total_samples=len(samples),
             total_conditions=len(self._config.conditions),
+            condition_names=list(self._config.conditions.keys()),
             num_repetitions=self._config.execution.num_repetitions,
             max_concurrent=self._config.execution.max_concurrent,
         )
@@ -190,6 +191,7 @@ class EvaluationRunner:
                         completed_count[0] += 1
                         self._observer.evaluation_progress(
                             run_id=run_id,
+                            condition=condition_name,
                             completed=completed_count[0],
                             total=total_triples,
                         )
@@ -208,6 +210,7 @@ class EvaluationRunner:
                             completed_count[0] += 1
                             self._observer.evaluation_progress(
                                 run_id=run_id,
+                                condition=condition_name,
                                 completed=completed_count[0],
                                 total=total_triples,
                             )

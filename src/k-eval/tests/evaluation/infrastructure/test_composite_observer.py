@@ -22,6 +22,7 @@ class TestCompositeEvaluationObserverFanOut:
             run_id="run-1",
             total_samples=3,
             total_conditions=2,
+            condition_names=["baseline", "other"],
             num_repetitions=1,
             max_concurrent=4,
         )
@@ -39,6 +40,7 @@ class TestCompositeEvaluationObserverFanOut:
             run_id="run-abc",
             total_samples=5,
             total_conditions=3,
+            condition_names=["baseline", "other", "third"],
             num_repetitions=2,
             max_concurrent=8,
         )
@@ -86,7 +88,9 @@ class TestCompositeEvaluationObserverFanOut:
         obs_b = FakeEvaluationObserver()
         composite = _make_composite(obs_a, obs_b)
 
-        composite.evaluation_progress(run_id="run-1", completed=3, total=10)
+        composite.evaluation_progress(
+            run_id="run-1", condition="baseline", completed=3, total=10
+        )
 
         assert len(obs_a.progress) == 1
         assert len(obs_b.progress) == 1
@@ -97,10 +101,13 @@ class TestCompositeEvaluationObserverFanOut:
         obs = FakeEvaluationObserver()
         composite = _make_composite(obs)
 
-        composite.evaluation_progress(run_id="run-abc", completed=7, total=20)
+        composite.evaluation_progress(
+            run_id="run-abc", condition="baseline", completed=7, total=20
+        )
 
         event = obs.progress[0]
         assert event.run_id == "run-abc"
+        assert event.condition == "baseline"
         assert event.completed == 7
         assert event.total == 20
 
@@ -188,6 +195,7 @@ class TestCompositeEvaluationObserverOrder:
                 run_id: str,
                 total_samples: int,
                 total_conditions: int,
+                condition_names: list[str],
                 num_repetitions: int,
                 max_concurrent: int,
             ) -> None:  # noqa: E501
@@ -199,7 +207,11 @@ class TestCompositeEvaluationObserverOrder:
                 pass
 
             def evaluation_progress(
-                self, run_id: str, completed: int, total: int
+                self,
+                run_id: str,
+                condition: str,
+                completed: int,
+                total: int,
             ) -> None:
                 pass
 
@@ -252,6 +264,7 @@ class TestCompositeEvaluationObserverOrder:
             run_id="r",
             total_samples=1,
             total_conditions=1,
+            condition_names=["baseline"],
             num_repetitions=1,
             max_concurrent=1,
         )
@@ -269,13 +282,16 @@ class TestCompositeEvaluationObserverEmpty:
             run_id="r",
             total_samples=1,
             total_conditions=1,
+            condition_names=["baseline"],
             num_repetitions=1,
             max_concurrent=1,
         )
 
     def test_evaluation_progress_with_no_observers(self) -> None:
         composite = CompositeEvaluationObserver(observers=[])
-        composite.evaluation_progress(run_id="r", completed=1, total=5)
+        composite.evaluation_progress(
+            run_id="r", condition="baseline", completed=1, total=5
+        )
 
     def test_evaluation_completed_with_no_observers(self) -> None:
         composite = CompositeEvaluationObserver(observers=[])
@@ -293,10 +309,11 @@ class TestCompositeEvaluationObserverSingleObserver:
             run_id="r",
             total_samples=2,
             total_conditions=1,
+            condition_names=["c"],
             num_repetitions=1,
             max_concurrent=2,
         )
-        composite.evaluation_progress(run_id="r", completed=1, total=2)
+        composite.evaluation_progress(run_id="r", condition="c", completed=1, total=2)
         composite.sample_condition_started(
             run_id="r", sample_idx="s0", condition="c", repetition_index=0
         )
@@ -319,7 +336,7 @@ class TestCompositeEvaluationObserverSingleObserver:
             repetition_index=0,
             reason="final err",
         )
-        composite.evaluation_progress(run_id="r", completed=2, total=2)
+        composite.evaluation_progress(run_id="r", condition="c", completed=2, total=2)
         composite.evaluation_completed(run_id="r", total_runs=2, elapsed_seconds=0.1)
 
         assert len(obs.started) == 1

@@ -828,6 +828,8 @@ class TestEvaluationRunnerProgress:
 
         # 2 samples × 2 conditions × 2 repetitions = 8 triples → 8 progress events
         assert len(observer.progress) == 8
+        for event in observer.progress:
+            assert event.condition in {"baseline", "with-graph"}
 
     async def test_progress_total_matches_triple_count(self) -> None:
         config = _make_eval_config(
@@ -898,6 +900,7 @@ class TestEvaluationRunnerProgress:
         assert len(observer.progress) == 1
         assert observer.progress[0].completed == 1
         assert observer.progress[0].total == 1
+        assert observer.progress[0].condition in {"cond-0"}
 
     async def test_run_id_consistent_across_progress_events(self) -> None:
         config = _make_eval_config(

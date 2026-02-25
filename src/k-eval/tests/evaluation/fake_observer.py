@@ -8,6 +8,7 @@ class EvaluationStartedEvent:
     run_id: str
     total_samples: int
     total_conditions: int
+    condition_names: list[str]
     num_repetitions: int
     max_concurrent: int
 
@@ -22,6 +23,7 @@ class EvaluationCompletedEvent:
 @dataclass(frozen=True)
 class EvaluationProgressEvent:
     run_id: str
+    condition: str
     completed: int
     total: int
 
@@ -114,6 +116,7 @@ class FakeEvaluationObserver:
         run_id: str,
         total_samples: int,
         total_conditions: int,
+        condition_names: list[str],
         num_repetitions: int,
         max_concurrent: int,
     ) -> None:
@@ -122,6 +125,7 @@ class FakeEvaluationObserver:
                 run_id=run_id,
                 total_samples=total_samples,
                 total_conditions=total_conditions,
+                condition_names=condition_names,
                 num_repetitions=num_repetitions,
                 max_concurrent=max_concurrent,
             )
@@ -144,11 +148,17 @@ class FakeEvaluationObserver:
     def evaluation_progress(
         self,
         run_id: str,
+        condition: str,
         completed: int,
         total: int,
     ) -> None:
         self._progress.append(
-            EvaluationProgressEvent(run_id=run_id, completed=completed, total=total)
+            EvaluationProgressEvent(
+                run_id=run_id,
+                condition=condition,
+                completed=completed,
+                total=total,
+            )
         )
 
     def sample_condition_started(

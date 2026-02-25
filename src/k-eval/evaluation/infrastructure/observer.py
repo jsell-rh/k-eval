@@ -17,6 +17,7 @@ class StructlogEvaluationObserver:
         run_id: str,
         total_samples: int,
         total_conditions: int,
+        condition_names: list[str],
         num_repetitions: int,
         max_concurrent: int,
     ) -> None:
@@ -25,6 +26,7 @@ class StructlogEvaluationObserver:
             run_id=run_id,
             total_samples=total_samples,
             total_conditions=total_conditions,
+            condition_names=condition_names,
             num_repetitions=num_repetitions,
             max_concurrent=max_concurrent,
         )
@@ -45,12 +47,14 @@ class StructlogEvaluationObserver:
     def evaluation_progress(
         self,
         run_id: str,
+        condition: str,
         completed: int,
         total: int,
     ) -> None:
         self._log.info(
             "evaluation.progress",
             run_id=run_id,
+            condition=condition,
             completed=completed,
             total=total,
             percent=round(100.0 * completed / total, 1) if total else 0.0,

@@ -17,6 +17,7 @@ class CompositeEvaluationObserver:
         run_id: str,
         total_samples: int,
         total_conditions: int,
+        condition_names: list[str],
         num_repetitions: int,
         max_concurrent: int,
     ) -> None:
@@ -25,6 +26,7 @@ class CompositeEvaluationObserver:
                 run_id=run_id,
                 total_samples=total_samples,
                 total_conditions=total_conditions,
+                condition_names=condition_names,
                 num_repetitions=num_repetitions,
                 max_concurrent=max_concurrent,
             )
@@ -45,11 +47,17 @@ class CompositeEvaluationObserver:
     def evaluation_progress(
         self,
         run_id: str,
+        condition: str,
         completed: int,
         total: int,
     ) -> None:
         for obs in self._observers:
-            obs.evaluation_progress(run_id=run_id, completed=completed, total=total)
+            obs.evaluation_progress(
+                run_id=run_id,
+                condition=condition,
+                completed=completed,
+                total=total,
+            )
 
     def sample_condition_started(
         self,
