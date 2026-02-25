@@ -9,6 +9,7 @@ from pathlib import Path
 
 import structlog
 import typer
+from tqdm import tqdm
 
 from agent.infrastructure.observer import StructlogAgentObserver
 from agent.infrastructure.registry import create_agent_factory
@@ -33,11 +34,34 @@ from judge.infrastructure.observer import StructlogJudgeObserver
 app = typer.Typer(add_completion=False)
 
 
+class _TqdmPrintLogger:
+    """structlog-compatible logger that routes output through tqdm.write().
+
+    tqdm.write() prints a line above all active bars and then redraws them,
+    preventing log lines from corrupting the progress bar display.
+    """
+
+    def msg(self, message: str) -> None:
+        tqdm.write(message, file=sys.stderr)
+
+    log = debug = info = warning = error = critical = msg
+
+
+class _TqdmLoggerFactory:
+    """structlog LoggerFactory that produces _TqdmPrintLogger instances."""
+
+    def __call__(self, *args: object) -> _TqdmPrintLogger:
+        return _TqdmPrintLogger()
+
+
 def _configure_structlog(log_format: str, quiet: bool = False) -> None:
     """Configure structlog based on the requested format and verbosity.
 
     When quiet=True, debug and info messages are suppressed; only warnings
     and errors are emitted so the tqdm progress bar is the primary output.
+
+    Log lines are routed through tqdm.write() so the progress bars are
+    redrawn cleanly after each log line rather than being interleaved.
     """
     import logging
 
@@ -60,7 +84,7 @@ def _configure_structlog(log_format: str, quiet: bool = False) -> None:
         ],
         wrapper_class=structlog.make_filtering_bound_logger(min_level),
         context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
+        logger_factory=_TqdmLoggerFactory(),
     )
 
 
