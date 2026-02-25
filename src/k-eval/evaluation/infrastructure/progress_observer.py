@@ -132,18 +132,18 @@ class ProgressEvaluationObserver:
         return f"{name:<{pad_width}}"
 
     def _rate_str(self, key: str) -> str:
-        """Compute a rate string like '1.2 triple/s' or '-- triple/s'."""
+        """Compute a rate string like '2.5s/triple' or '--s/triple'."""
         if self._progress is None:
-            return "-- triple/s"
+            return "--s/triple"
         task_id = self._task_ids.get(key)
         if task_id is None:
-            return "-- triple/s"
+            return "--s/triple"
         task = self._progress.tasks[task_id]
         elapsed = task.elapsed
         if elapsed is not None and elapsed > 0 and task.completed > 0:
-            rate = task.completed / elapsed
-            return f"{rate:.1f} triple/s"
-        return "-- triple/s"
+            secs_per_triple = elapsed / task.completed
+            return f"{secs_per_triple:.1f}s/triple"
+        return "--s/triple"
 
     def _update_task(self, key: str) -> None:
         """Push current _done/_inflight state into the Rich task."""
@@ -233,7 +233,7 @@ class ProgressEvaluationObserver:
             total=float(overall_total),
             inflight=0,
             done=0,
-            rate="-- triple/s",
+            rate="--s/triple",
             is_overall=True,
             eta_label="",  # no "eta" label — ETA is suppressed for Overall
         )
@@ -246,7 +246,7 @@ class ProgressEvaluationObserver:
                 total=float(per_condition_total),
                 inflight=0,
                 done=0,
-                rate="-- triple/s",
+                rate="--s/triple",
                 is_overall=False,
                 eta_label="eta",
             )
