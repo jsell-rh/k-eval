@@ -29,11 +29,31 @@ class StructlogEvaluationObserver:
             max_concurrent=max_concurrent,
         )
 
-    def evaluation_completed(self, run_id: str, total_runs: int) -> None:
+    def evaluation_completed(
+        self,
+        run_id: str,
+        total_runs: int,
+        elapsed_seconds: float,
+    ) -> None:
         self._log.info(
             "evaluation.completed",
             run_id=run_id,
             total_runs=total_runs,
+            elapsed_seconds=round(elapsed_seconds, 2),
+        )
+
+    def evaluation_progress(
+        self,
+        run_id: str,
+        completed: int,
+        total: int,
+    ) -> None:
+        self._log.info(
+            "evaluation.progress",
+            run_id=run_id,
+            completed=completed,
+            total=total,
+            percent=round(100.0 * completed / total, 1) if total else 0.0,
         )
 
     def sample_condition_started(

@@ -1,6 +1,7 @@
 """EvaluationRunner — orchestrates the full evaluation loop."""
 
 import asyncio
+import time
 import uuid
 
 from agent.domain.factory import AgentFactory
@@ -56,9 +57,22 @@ class EvaluationRunner:
             num_repetitions=self._config.execution.num_repetitions,
             max_concurrent=self._config.execution.max_concurrent,
         )
+        started_at = time.monotonic()
 
         results: list[EvaluationRun] = []
         sem = asyncio.Semaphore(self._config.execution.max_concurrent)
+        total_triples = (
+            len(samples)
+            * len(self._config.conditions)
+            * self._config.execution.num_repetitions
+        )
+        # Mutable counter shared across concurrent tasks.  The asyncio.Lock
+        # makes the read-increment-emit sequence atomic, which is correct even
+        # though CPython's GIL would protect a bare int increment — using an
+        # explicit lock makes the intent clear and is safe if the runner is
+        # ever adapted to use threads.
+        completed_count: list[int] = [0]
+        progress_lock = asyncio.Lock()
 
         try:
             async with asyncio.TaskGroup() as tg:
@@ -76,6 +90,9 @@ class EvaluationRunner:
                                     condition=condition,
                                     repetition_index=repetition_index,
                                     results=results,
+                                    total_triples=total_triples,
+                                    completed_count=completed_count,
+                                    progress_lock=progress_lock,
                                 )
                             )
         except* KEvalError as eg:
@@ -91,6 +108,7 @@ class EvaluationRunner:
         self._observer.evaluation_completed(
             run_id=run_id,
             total_runs=len(results),
+            elapsed_seconds=time.monotonic() - started_at,
         )
 
         return RunSummary(
@@ -109,6 +127,9 @@ class EvaluationRunner:
         condition: ConditionConfig,
         repetition_index: int,
         results: list[EvaluationRun],
+        total_triples: int,
+        completed_count: list[int],
+        progress_lock: asyncio.Lock,
     ) -> None:
         """Execute one (sample, condition, repetition_index) triple with retry and backoff.
 
@@ -165,6 +186,13 @@ class EvaluationRunner:
                         condition=condition_name,
                         repetition_index=repetition_index,
                     )
+                    async with progress_lock:
+                        completed_count[0] += 1
+                        self._observer.evaluation_progress(
+                            run_id=run_id,
+                            completed=completed_count[0],
+                            total=total_triples,
+                        )
                     return  # success
 
                 except KEvalError as exc:
@@ -176,6 +204,13 @@ class EvaluationRunner:
                             repetition_index=repetition_index,
                             reason=str(exc),
                         )
+                        async with progress_lock:
+                            completed_count[0] += 1
+                            self._observer.evaluation_progress(
+                                run_id=run_id,
+                                completed=completed_count[0],
+                                total=total_triples,
+                            )
                         raise
 
                     self._observer.sample_condition_retry(

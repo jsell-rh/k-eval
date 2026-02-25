@@ -16,6 +16,14 @@ class EvaluationStartedEvent:
 class EvaluationCompletedEvent:
     run_id: str
     total_runs: int
+    elapsed_seconds: float
+
+
+@dataclass(frozen=True)
+class EvaluationProgressEvent:
+    run_id: str
+    completed: int
+    total: int
 
 
 @dataclass(frozen=True)
@@ -67,6 +75,7 @@ class FakeEvaluationObserver:
     def __init__(self) -> None:
         self._started: list[EvaluationStartedEvent] = []
         self._completed: list[EvaluationCompletedEvent] = []
+        self._progress: list[EvaluationProgressEvent] = []
         self._sc_started: list[SampleConditionStartedEvent] = []
         self._sc_completed: list[SampleConditionCompletedEvent] = []
         self._sc_failed: list[SampleConditionFailedEvent] = []
@@ -79,6 +88,10 @@ class FakeEvaluationObserver:
     @property
     def completed(self) -> list[EvaluationCompletedEvent]:
         return self._completed
+
+    @property
+    def progress(self) -> list[EvaluationProgressEvent]:
+        return self._progress
 
     @property
     def sc_started(self) -> list[SampleConditionStartedEvent]:
@@ -114,9 +127,28 @@ class FakeEvaluationObserver:
             )
         )
 
-    def evaluation_completed(self, run_id: str, total_runs: int) -> None:
+    def evaluation_completed(
+        self,
+        run_id: str,
+        total_runs: int,
+        elapsed_seconds: float,
+    ) -> None:
         self._completed.append(
-            EvaluationCompletedEvent(run_id=run_id, total_runs=total_runs)
+            EvaluationCompletedEvent(
+                run_id=run_id,
+                total_runs=total_runs,
+                elapsed_seconds=elapsed_seconds,
+            )
+        )
+
+    def evaluation_progress(
+        self,
+        run_id: str,
+        completed: int,
+        total: int,
+    ) -> None:
+        self._progress.append(
+            EvaluationProgressEvent(run_id=run_id, completed=completed, total=total)
         )
 
     def sample_condition_started(

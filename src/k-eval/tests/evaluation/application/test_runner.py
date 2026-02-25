@@ -800,3 +800,161 @@ class TestEvaluationRunnerConcurrency:
             await runner.run()
 
         assert not isinstance(exc_info.value, BaseExceptionGroup)
+
+
+# ---------------------------------------------------------------------------
+# Progress and elapsed time
+# ---------------------------------------------------------------------------
+
+
+class TestEvaluationRunnerProgress:
+    """evaluation_progress is emitted once per resolved triple with correct counters."""
+
+    async def test_progress_emitted_once_per_triple(self) -> None:
+        config = _make_eval_config(
+            conditions=_make_conditions(["baseline", "with-graph"]),
+            num_repetitions=2,
+        )
+        observer = FakeEvaluationObserver()
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(2)),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=observer,
+        )
+
+        await runner.run()
+
+        # 2 samples × 2 conditions × 2 repetitions = 8 triples → 8 progress events
+        assert len(observer.progress) == 8
+
+    async def test_progress_total_matches_triple_count(self) -> None:
+        config = _make_eval_config(
+            conditions=_make_conditions(["baseline"]),
+            num_repetitions=3,
+        )
+        observer = FakeEvaluationObserver()
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(2)),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=observer,
+        )
+
+        await runner.run()
+
+        # All events should report the same total: 2 × 1 × 3 = 6
+        assert all(e.total == 6 for e in observer.progress)
+
+    async def test_progress_completed_values_are_unique_and_sequential(self) -> None:
+        """Each progress event increments completed by exactly 1."""
+        config = _make_eval_config(
+            conditions=_make_conditions(["baseline"]),
+            num_repetitions=3,
+        )
+        observer = FakeEvaluationObserver()
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=observer,
+        )
+
+        await runner.run()
+
+        completed_values = sorted(e.completed for e in observer.progress)
+        assert completed_values == [1, 2, 3]
+
+    async def test_progress_emitted_on_permanent_failure(self) -> None:
+        """A non-retriable failure still emits a progress event (triple resolved)."""
+        config = _make_concurrent_eval_config(
+            num_dataset_samples=1,
+            num_conditions=1,
+            num_repetitions=1,
+            max_concurrent=1,
+        )
+        failing_agent = FakeAgent(
+            result=_make_agent_result(),
+            side_effects=[AgentInvocationError(reason="bad config", retriable=False)],
+        )
+        observer = FakeEvaluationObserver()
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(
+                result=_make_agent_result(),
+                agents=[failing_agent],
+            ),
+            judge_factory=FakeJudgeFactory(),
+            observer=observer,
+        )
+
+        with pytest.raises(KEvalError):
+            await runner.run()
+
+        assert len(observer.progress) == 1
+        assert observer.progress[0].completed == 1
+        assert observer.progress[0].total == 1
+
+    async def test_run_id_consistent_across_progress_events(self) -> None:
+        config = _make_eval_config(
+            conditions=_make_conditions(["baseline"]),
+            num_repetitions=2,
+        )
+        observer = FakeEvaluationObserver()
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(2)),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=observer,
+        )
+
+        await runner.run()
+
+        run_ids = {e.run_id for e in observer.progress}
+        assert len(run_ids) == 1
+        assert run_ids.pop() == observer.started[0].run_id
+
+
+class TestEvaluationRunnerElapsed:
+    """evaluation_completed carries a positive elapsed_seconds."""
+
+    async def test_elapsed_seconds_is_positive(self) -> None:
+        config = _make_eval_config(
+            conditions=_make_conditions(["baseline"]),
+            num_repetitions=1,
+        )
+        observer = FakeEvaluationObserver()
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=observer,
+        )
+
+        await runner.run()
+
+        assert observer.completed[0].elapsed_seconds >= 0.0
+
+    async def test_elapsed_seconds_is_a_float(self) -> None:
+        config = _make_eval_config(
+            conditions=_make_conditions(["baseline"]),
+            num_repetitions=1,
+        )
+        observer = FakeEvaluationObserver()
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=_make_agent_result()),
+            judge_factory=FakeJudgeFactory(),
+            observer=observer,
+        )
+
+        await runner.run()
+
+        assert isinstance(observer.completed[0].elapsed_seconds, float)

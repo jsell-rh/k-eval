@@ -3,6 +3,7 @@
 import asyncio
 import json
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -22,7 +23,9 @@ from dataset.infrastructure.jsonl_loader import JsonlDatasetLoader
 from dataset.infrastructure.observer import StructlogDatasetObserver
 from evaluation.application.runner import EvaluationRunner
 from evaluation.domain.summary import RunSummary
+from evaluation.infrastructure.composite_observer import CompositeEvaluationObserver
 from evaluation.infrastructure.observer import StructlogEvaluationObserver
+from evaluation.infrastructure.progress_observer import ProgressEvaluationObserver
 from judge.infrastructure.factory import LiteLLMJudgeFactory
 from judge.infrastructure.observer import StructlogJudgeObserver
 
@@ -305,11 +308,20 @@ def _print_comparison_table(
             )
 
 
+def _format_elapsed(elapsed_seconds: float) -> str:
+    """Format elapsed seconds as '1m 23.4s' or '5.2s'."""
+    minutes, seconds = divmod(elapsed_seconds, 60)
+    if minutes >= 1:
+        return f"{int(minutes)}m {seconds:.1f}s"
+    return f"{elapsed_seconds:.1f}s"
+
+
 def _print_summary(
     summary: RunSummary,
     aggregated: list[AggregatedResult],
     json_path: Path,
     jsonl_path: Path,
+    elapsed_seconds: float,
 ) -> None:
     """Print a colorized summary to stdout.
 
@@ -336,6 +348,7 @@ def _print_summary(
         ("Samples", str(total_samples)),
         ("Conditions", ", ".join(conditions)),
         ("Total runs", str(total_runs)),
+        ("Elapsed", _format_elapsed(elapsed_seconds=elapsed_seconds)),
         ("Aggregate JSON", str(json_path)),
         ("Detailed JSONL", str(jsonl_path)),
     ]
@@ -419,7 +432,12 @@ def run(
             config=config.judge,
             observer=StructlogJudgeObserver(),
         )
-        evaluation_observer = StructlogEvaluationObserver()
+        evaluation_observer = CompositeEvaluationObserver(
+            observers=[
+                StructlogEvaluationObserver(),
+                ProgressEvaluationObserver(),
+            ]
+        )
 
         evaluation_runner = EvaluationRunner(
             config=config,
@@ -429,7 +447,9 @@ def run(
             observer=evaluation_observer,
         )
 
+        started_at = time.monotonic()
         summary: RunSummary = asyncio.run(evaluation_runner.run())
+        elapsed_seconds = time.monotonic() - started_at
 
         aggregated = aggregate(runs=summary.runs)
         stem = _output_stem(config_name=summary.config_name, run_id=summary.run_id)
@@ -447,6 +467,7 @@ def run(
             aggregated=aggregated,
             json_path=json_path,
             jsonl_path=jsonl_path,
+            elapsed_seconds=elapsed_seconds,
         )
 
     except KeyboardInterrupt:

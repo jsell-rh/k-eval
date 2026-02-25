@@ -18,7 +18,19 @@ class EvaluationObserver(Protocol):
         max_concurrent: int,
     ) -> None: ...
 
-    def evaluation_completed(self, run_id: str, total_runs: int) -> None: ...
+    def evaluation_completed(
+        self,
+        run_id: str,
+        total_runs: int,
+        elapsed_seconds: float,
+    ) -> None: ...
+
+    def evaluation_progress(
+        self,
+        run_id: str,
+        completed: int,
+        total: int,
+    ) -> None: ...
 
     def sample_condition_started(
         self,
