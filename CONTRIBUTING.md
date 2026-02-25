@@ -15,17 +15,16 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ```bash
 git clone https://github.com/jsell-rh/k-eval.git
-cd k-eval/src/k-eval
-uv sync --group dev
+cd k-eval/src/k_eval
+uv sync --group dev --extra all
 ```
 
 ### Install pre-commit hooks
 
-Two hook stages are used — both must be installed:
+Two hook stages are used, both must be installed:
 
 ```bash
-pre-commit install                        # runs on git commit (ruff, mypy)
-pre-commit install --hook-type pre-push   # runs on git push (pytest, AGENTS.md validation)
+uv run pre-commit install -t pre-commit -t pre-push
 ```
 
 Skipping either install means quality checks won't run locally before your code reaches CI.
@@ -40,13 +39,13 @@ uv run k-eval /path/to/config.yaml
 ### Run the test suite
 
 ```bash
-cd src/k-eval
+cd src/k-eval/
 uv run pytest
 ```
 
 ## Conventions
 
-- Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) — this drives automatic versioning and the changelog via release-please.
+- Commits must follow [Conventional Commits](https://www.conventionalcommits.org/). This drives automatic versioning and the changelog via release-please.
 - All PRs must have a conventional commit-style title (enforced by CI).
 - Do not skip pre-commit hooks (`--no-verify`).
 
