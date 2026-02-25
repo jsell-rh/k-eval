@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/jsell-rh/k-eval/compare/v0.3.0...v0.3.1) (2026-02-25)
+
+
+### Documentation
+
+* add instructions for running directly from pypi ([#16](https://github.com/jsell-rh/k-eval/issues/16)) ([4c48a6f](https://github.com/jsell-rh/k-eval/commit/4c48a6fd611777c406c1ca952b0d8c0dff550cc1))
+
 ## [0.3.0](https://github.com/jsell-rh/k-eval/compare/v0.2.0...v0.3.0) (2026-02-25)
 
 
