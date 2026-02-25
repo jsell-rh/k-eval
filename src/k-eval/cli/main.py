@@ -74,6 +74,11 @@ def _configure_structlog(log_format: str, quiet: bool = False) -> None:
         raise typer.Exit(code=1)
 
     min_level = logging.WARNING if quiet else logging.DEBUG
+    logger_factory: structlog.PrintLoggerFactory | _TqdmLoggerFactory = (
+        _TqdmLoggerFactory()
+        if log_format == "console"
+        else structlog.PrintLoggerFactory()
+    )
 
     structlog.configure(
         processors=[
@@ -84,7 +89,7 @@ def _configure_structlog(log_format: str, quiet: bool = False) -> None:
         ],
         wrapper_class=structlog.make_filtering_bound_logger(min_level),
         context_class=dict,
-        logger_factory=_TqdmLoggerFactory(),
+        logger_factory=logger_factory,
     )
 
 
