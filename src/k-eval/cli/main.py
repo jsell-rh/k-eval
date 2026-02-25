@@ -487,13 +487,13 @@ def run(
         )
 
     except KeyboardInterrupt:
-        typer.echo("Evaluation interrupted.")
+        typer.echo("\nEvaluation interrupted.")
         sys.exit(1)
     except KEvalError as exc:
         typer.echo(str(exc))
         sys.exit(1)
     except Exception as exc:  # noqa: BLE001
-        typer.echo(f"Unexpected error: {exc}\nPlease report this bug.")
+        typer.echo(f"Unexpected error: {repr(exc)}")
         sys.exit(1)
 
 
