@@ -55,9 +55,9 @@ A **condition** is a named experimental configuration specifying which MCP serve
 are available to the agent, and what system prompt is used.
 
 A **run** is the full evaluation of every sample under every condition. For example, a run with
-50 samples and 3 conditions would consist of 150 evaluations. With the default per-sample sampling
-of `N=3` (see [variance management techniques](#variance-management-techniques)), this would result
-in 450 total agent calls and 450 LLM judge calls. (Note that sampled scores are reported as 
+50 samples and 3 conditions would consist of 150 evaluations. With `num_repetitions: 3`
+(see [variance management techniques](#variance-management-techniques)), this would result
+in 450 total agent calls and 450 LLM judge calls. (Note that sampled scores are reported as
 average score & standard deviation. So the final reported scores would be the aggregate of 150 scores.)
 
 Conditions are explicitly defined by the user. `k-eval` does not automatically enumerate combinations.
@@ -279,7 +279,7 @@ sampling. A run configuration file can specify the number of
 responses that should be independently generated for a given
 question in the golden dataset. 
 
-By default, each response is sampled three times to balance
+By default, `num_repetitions` is set to 3 to balance
 statistical confidence with inference cost.
 
 These responses are then independently scored by the LLM judge.

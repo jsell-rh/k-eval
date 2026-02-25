@@ -19,7 +19,7 @@ a rerun:
 ```yaml
 # A short name for this evaluation run. Used in output file names.
 name: "k-eval-demo"
-# Treat this as a schema version for your own config files — increment it
+# Treat this as a schema version for your own config files. Increment it
 # when you make meaningful changes so you can tell configs apart later.
 version: "1"
 
@@ -83,7 +83,7 @@ execution:
   # How many times each (question, condition) pair is evaluated. The mean and
   # standard deviation across repetitions are reported. Use 3 as a minimum;
   # 5+ gives more reliable variance estimates.
-  num_repetitions: 5
+  num_repetitions: 3
   # (question, condition, repetition) triples are evaluated concurrently up to
   # this limit. Higher values reduce wall-clock time but increase API load.
   # Values up to 50 seem to be well-tolerated on Vertex AI in practice.
@@ -94,23 +94,27 @@ execution:
     backoff_multiplier: 2 # backoff doubles on each retry: 1s, 2s, 4s, ...
 ```
 
+## CLI Options
+
+(Must be run from the src/ directory)
+
+```
+uv run python -m cli.main [OPTIONS] CONFIG_PATH
+
+  --output-dir, -o PATH   Directory for output files [default: ./results]
+  --log-format TEXT        Log format: 'console' or 'json' [default: console]
+  --quiet, -q              Suppress debug and info logs; show only the progress bar plus warnings/errors.
+```
+
+Use `--log-format json` when piping output to another tool. The Rich progress bars are suppressed automatically in this mode to keep stdout clean.
+
 ## Inference Provider Authentication
 
-As a general rule, `k-eval` relies on the user's environment
-to provide authentication details required to run the agent and
-llm judge as configured in the evaluation configuration file.
-
-The required environment variables will differ depending on the agent
-used, and are likely to differ slightly between the agent and judge.
-
-For now, we will focus on providing instructions for running Claude Agent SDK
-using Vertex AI, and running judge models hosted on Vertex AI.
-
+`k-eval` reads credentials from your environment. The required variables depend on which agent and judge providers you configure. Below are instructions for the currently supported combination: Claude Code SDK on Vertex AI as the agent, and a Vertex AI model via LiteLLM as the judge.
 
 ### Agent
 
-All [environment variables required to run the Claude Agent SDK](https://code.claude.com/docs/en/google-vertex-ai)
-must be present in the user's environment:
+See the [Claude Code SDK docs](https://code.claude.com/docs/en/google-vertex-ai) for the full reference.
 
 ```bash
 # Enable Vertex AI integration
@@ -127,14 +131,10 @@ export VERTEX_REGION_CLAUDE_3_5_HAIKU=us-east5
 
 ### Judge
 
-All [environment variables required to use Vertex AI models with LiteLLM](https://docs.litellm.ai/docs/providers/vertex#environment-variables)
-must be present in the user's environment. 
-
-Note that LiteLLM's environment variable names may differ slightly compared
-to those used to configure agent authentication.
+See the [LiteLLM Vertex AI docs](https://docs.litellm.ai/docs/providers/vertex#environment-variables) for the full reference.
 
 ```bash
 export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service_account.json"
-export VERTEXAI_LOCATION="us-central1" # can be any vertex location
-export VERTEXAI_PROJECT="my-test-project" # ONLY use if model project is different from service account project
+export VERTEXAI_LOCATION="us-central1"          # can be any Vertex AI region
+export VERTEXAI_PROJECT="my-test-project"        # only needed if different from your service account project
 ```

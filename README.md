@@ -38,7 +38,9 @@ cd src/k-eval
 uv run python -m cli.main /path/to/config.yaml
 ```
 
-#### CLI Usage
+See [docs/run-configuration.md](docs/run-configuration.md) for authentication setup and all CLI options.
+
+#### CLI Options
 
 ```bash
 src/k-eval$ uv run python -m cli.main --help
@@ -152,4 +154,5 @@ execution:
   max_concurrent: 5
 ```
 
+See [docs/run-configuration.md](docs/run-configuration.md) for the full reference including authentication setup.
 

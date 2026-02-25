@@ -28,6 +28,10 @@ The agent will be provided with 0 or more MCP servers that it can use to fetch c
 to answering the question(s). `k-eval` assesses the agent's performance with/without access to additional context,
 enabling measuring the direct impact of a MCP-based context provider on agent performance.
 
+## Getting Started
+
+See the [Quick Start](../README.md#quick-start) in the README.
+
 ## Evaluation Methodology
 
 Please reference [evaluation methodology](./evaluation-methodology.md)
