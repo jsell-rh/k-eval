@@ -38,6 +38,40 @@ cd src/k-eval
 uv run python -m cli.main /path/to/config.yaml
 ```
 
+### Understanding the Output
+
+Each run produces two files in `./results/` (or wherever you point `--output-dir`):
+
+```
+results/
+  my-eval_20260225_a1b2c3d4.json           # aggregate scores per condition
+  my-eval_20260225_a1b2c3d4.detailed.jsonl # one line per (question, condition) pair
+```
+
+**`{name}_{date}_{run_id}.json`** — the summary. One entry per condition with
+mean and standard deviation for each of the three metrics across all questions
+and repetitions. Use this to compare conditions at a glance.
+
+This file is intended to be mostly compliant with the [Every Eval Ever](https://evalevalai.com/projects/every-eval-ever/) schema.
+Notably, `k-eval` does not aggregate the three metrics into a single score.
+Thus, the individual metrics are written to `score_details.details`, and
+`score_details.score` is left `null`. 
+
+**`{name}_{date}_{run_id}.detailed.jsonl`** — the full record. One JSON object per
+`(question, condition)` pair containing the agent's raw responses for every
+repetition, per-repetition judge scores and reasoning, unverified claims, and
+token usage. Use this if you want to dig into why a condition scored the way it did.
+
+The three metrics are scored 1-5 by the judge model:
+
+| Metric | What it measures |
+|---|---|
+| `factual_adherence` | Does the response stick to facts in the golden answer? |
+| `completeness` | Does it cover all the essential points? |
+| `helpfulness_and_clarity` | Is it well-structured and easy to act on? |
+
+See [evaluation-methodology](docs/evaluation-methodology.md) for more details.
+
 ### Configuration
 
 A config file defines your dataset, agent, judge, MCP servers, and the conditions you want to compare:
@@ -94,3 +128,4 @@ execution:
 ```
 
 See [docs/run-configuration.md](docs/run-configuration.md) for the full reference including authentication setup.
+
