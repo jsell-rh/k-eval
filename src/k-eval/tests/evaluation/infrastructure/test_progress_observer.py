@@ -191,7 +191,8 @@ class TestProgressEvaluationObserverCompleted:
         assert observer._inflight == {}
         assert observer._total == {}
         assert observer._task_ids == {}
-        assert observer._progress is None
+        assert observer._overall_progress is None
+        assert observer._condition_progress is None
         assert observer._live is None
 
     def test_completed_before_started_does_not_raise(self) -> None:

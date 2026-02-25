@@ -94,6 +94,22 @@ class _ThreeSegmentBarColumn(ProgressColumn):
         return result
 
 
+def _make_progress(console: Console) -> Progress:
+    """Create a Progress instance with the standard column layout."""
+    return Progress(
+        TextColumn("{task.description}"),
+        _ThreeSegmentBarColumn(bar_width=40),
+        _CountsColumn(),
+        TimeElapsedColumn(),
+        TextColumn("{task.fields[eta_label]}"),
+        _ConditionalEtaColumn(),
+        TextColumn("{task.fields[rate]}"),
+        console=console,
+        refresh_per_second=10,
+        transient=False,
+    )
+
+
 class ProgressEvaluationObserver:
     """Renders per-condition Rich progress bars plus an overall bar on stderr.
 
@@ -114,7 +130,8 @@ class ProgressEvaluationObserver:
         self._inflight: dict[str, int] = {}
         self._total: dict[str, int] = {}
         self._task_ids: dict[str, TaskID] = {}
-        self._progress: Progress | None = None
+        self._overall_progress: Progress | None = None
+        self._condition_progress: Progress | None = None
         self._live: Live | None = None
 
     # ------------------------------------------------------------------
@@ -124,21 +141,28 @@ class ProgressEvaluationObserver:
     def _make_desc(self, name: str, index: int, pad_width: int) -> str:
         """Build a description string for a condition row, with optional color."""
         if name == "Overall":
-            return f"{'Overall':<{pad_width}}"
+            return f"[bold]{'Overall':<{pad_width}}[/bold]"
         use_color = sys.stderr.isatty()
         if use_color:
             color = _CONDITION_COLORS[index % len(_CONDITION_COLORS)]
             return f"[{color}]{name:<{pad_width}}[/{color}]"
         return f"{name:<{pad_width}}"
 
+    def _progress_for(self, key: str) -> Progress | None:
+        """Return the Progress instance responsible for the given key."""
+        if key == "Overall":
+            return self._overall_progress
+        return self._condition_progress
+
     def _rate_str(self, key: str) -> str:
         """Compute a rate string like '2.5s/triple' or '--s/triple'."""
-        if self._progress is None:
+        progress = self._progress_for(key=key)
+        if progress is None:
             return "--s/triple"
         task_id = self._task_ids.get(key)
         if task_id is None:
             return "--s/triple"
-        task = self._progress.tasks[task_id]
+        task = progress.tasks[task_id]
         elapsed = task.elapsed
         if elapsed is not None and elapsed > 0 and task.completed > 0:
             secs_per_triple = elapsed / task.completed
@@ -147,12 +171,13 @@ class ProgressEvaluationObserver:
 
     def _update_task(self, key: str) -> None:
         """Push current _done/_inflight state into the Rich task."""
-        if self._progress is None or key not in self._task_ids:
+        progress = self._progress_for(key=key)
+        if progress is None or key not in self._task_ids:
             return
         done = self._done.get(key, 0)
         inflight = self._inflight.get(key, 0)
         rate = self._rate_str(key=key)
-        self._progress.update(
+        progress.update(
             self._task_ids[key],
             completed=done,
             inflight=inflight,
@@ -178,7 +203,8 @@ class ProgressEvaluationObserver:
         self._inflight = {}
         self._total = {}
         self._task_ids = {}
-        self._progress = None
+        self._overall_progress = None
+        self._condition_progress = None
         self._live = None
 
         per_condition_total = total_samples * num_repetitions
@@ -213,22 +239,12 @@ class ProgressEvaluationObserver:
             " remaining",
         )
 
-        self._progress = Progress(
-            TextColumn("{task.description}"),
-            _ThreeSegmentBarColumn(bar_width=40),
-            _CountsColumn(),
-            TimeElapsedColumn(),
-            TextColumn("{task.fields[eta_label]}"),
-            _ConditionalEtaColumn(),
-            TextColumn("{task.fields[rate]}"),
-            console=console,
-            refresh_per_second=10,
-            transient=False,
-        )
+        self._overall_progress = _make_progress(console=console)
+        self._condition_progress = _make_progress(console=console)
 
-        # Overall bar first, then one task per condition.
+        # Overall bar in its own Progress instance.
         overall_desc = self._make_desc(name="Overall", index=0, pad_width=pad_width)
-        overall_task_id = self._progress.add_task(
+        overall_task_id = self._overall_progress.add_task(
             description=overall_desc,
             total=float(overall_total),
             inflight=0,
@@ -239,9 +255,10 @@ class ProgressEvaluationObserver:
         )
         self._task_ids["Overall"] = overall_task_id
 
+        # One task per condition in the condition Progress instance.
         for i, name in enumerate(condition_names):
             desc = self._make_desc(name=name, index=i, pad_width=pad_width)
-            task_id = self._progress.add_task(
+            task_id = self._condition_progress.add_task(
                 description=desc,
                 total=float(per_condition_total),
                 inflight=0,
@@ -252,7 +269,13 @@ class ProgressEvaluationObserver:
             )
             self._task_ids[name] = task_id
 
-        renderable = Group(self._progress, Text(""), legend)
+        renderable = Group(
+            self._overall_progress,
+            Text(""),
+            self._condition_progress,
+            Text(""),
+            legend,
+        )
         self._live = Live(renderable, console=console, refresh_per_second=10)
         self._live.start()
 
@@ -269,7 +292,8 @@ class ProgressEvaluationObserver:
         self._inflight = {}
         self._total = {}
         self._task_ids = {}
-        self._progress = None
+        self._overall_progress = None
+        self._condition_progress = None
         self._live = None
 
     def evaluation_progress(
