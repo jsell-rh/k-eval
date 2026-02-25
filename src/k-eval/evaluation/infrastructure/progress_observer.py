@@ -51,7 +51,7 @@ class _ThreeSegmentBarColumn(ProgressColumn):
 
         result = Text()
         result.append("█" * done_cells, style="bright_green")
-        result.append("█" * inflight_cells, style="yellow")
+        result.append("▒" * inflight_cells, style="grey50")
         result.append("░" * remaining_cells, style="dim white")
         return result
 
@@ -169,7 +169,7 @@ class ProgressEvaluationObserver:
             "  Legend:  ",
             ("█", "bright_green"),
             " done  ",
-            ("█", "yellow"),
+            ("▒", "grey50"),
             " in-flight  ",
             ("░", "dim white"),
             " remaining",
