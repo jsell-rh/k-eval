@@ -941,6 +941,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "structlog" },
+    { name = "typer" },
 ]
 
 [package.optional-dependencies]
@@ -968,6 +969,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "structlog", specifier = ">=25.5.0" },
+    { name = "typer", specifier = ">=0.24.1" },
 ]
 provides-extras = ["vertex-ai", "all"]
 

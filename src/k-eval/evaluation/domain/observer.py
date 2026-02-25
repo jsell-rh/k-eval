@@ -43,3 +43,14 @@ class EvaluationObserver(Protocol):
         run_index: int,
         reason: str,
     ) -> None: ...
+
+    def sample_condition_retry(
+        self,
+        run_id: str,
+        sample_idx: str,
+        condition: str,
+        run_index: int,
+        attempt: int,
+        reason: str,
+        backoff_seconds: float,
+    ) -> None: ...

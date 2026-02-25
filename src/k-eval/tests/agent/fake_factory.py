@@ -1,16 +1,26 @@
 """FakeAgentFactory — in-memory AgentFactory implementation for use in tests."""
 
 from agent.domain.agent import Agent
+from agent.domain.result import AgentResult
 from config.domain.condition_mcp_server import ConditionMcpServer
 from tests.agent.fake_agent import FakeAgent
-from agent.domain.result import AgentResult
 
 
 class FakeAgentFactory:
-    """Satisfies the AgentFactory protocol. Returns a FakeAgent for every create call."""
+    """Satisfies the AgentFactory protocol. Returns a FakeAgent for every create call.
 
-    def __init__(self, result: AgentResult) -> None:
+    If agents is provided, each successive create() call pops from the front of the
+    list and returns that agent. Once exhausted, a FakeAgent(result=result) is returned
+    for all subsequent calls.
+    """
+
+    def __init__(
+        self,
+        result: AgentResult,
+        agents: list[FakeAgent] | None = None,
+    ) -> None:
         self._result = result
+        self._agents: list[FakeAgent] = list(agents) if agents is not None else []
         self.created: list[dict[str, object]] = []
 
     def create(
@@ -28,4 +38,6 @@ class FakeAgentFactory:
                 "mcp_servers": mcp_servers,
             }
         )
+        if self._agents:
+            return self._agents.pop(0)
         return FakeAgent(result=self._result)

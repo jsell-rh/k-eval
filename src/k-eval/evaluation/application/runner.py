@@ -1,9 +1,11 @@
 """EvaluationRunner — orchestrates the full evaluation loop."""
 
+import asyncio
 import uuid
 
 from agent.domain.factory import AgentFactory
 from config.domain.config import EvalConfig
+from core.errors import KEvalError
 from dataset.domain.loader import DatasetLoader
 from evaluation.domain.observer import EvaluationObserver
 from evaluation.domain.run import EvaluationRun
@@ -62,23 +64,44 @@ class EvaluationRunner:
                         run_index=run_index,
                     )
 
-                    agent = self._agent_factory.create(
-                        condition=condition_name,
-                        sample_idx=sample.sample_idx,
-                        system_prompt=condition.system_prompt,
-                        mcp_servers=condition.mcp_servers,
-                    )
-                    agent_result = await agent.ask(question=sample.question)
+                    retry_cfg = self._config.execution.retry
+                    max_attempts = retry_cfg.max_attempts
+                    backoff = float(retry_cfg.initial_backoff_seconds)
 
-                    judge = self._judge_factory.create(
-                        condition=condition_name,
-                        sample_idx=sample.sample_idx,
-                    )
-                    judge_result = await judge.score(
-                        question=sample.question,
-                        golden_answer=sample.answer,
-                        agent_response=agent_result.response,
-                    )
+                    for attempt in range(1, max_attempts + 1):
+                        try:
+                            agent = self._agent_factory.create(
+                                condition=condition_name,
+                                sample_idx=sample.sample_idx,
+                                system_prompt=condition.system_prompt,
+                                mcp_servers=condition.mcp_servers,
+                            )
+                            agent_result = await agent.ask(question=sample.question)
+
+                            judge = self._judge_factory.create(
+                                condition=condition_name,
+                                sample_idx=sample.sample_idx,
+                            )
+                            judge_result = await judge.score(
+                                question=sample.question,
+                                golden_answer=sample.answer,
+                                agent_response=agent_result.response,
+                            )
+                            break  # success — exit retry loop
+                        except KEvalError as exc:
+                            if not exc.retriable or attempt == max_attempts:
+                                raise
+                            self._observer.sample_condition_retry(
+                                run_id=run_id,
+                                sample_idx=sample.sample_idx,
+                                condition=condition_name,
+                                run_index=run_index,
+                                attempt=attempt,
+                                reason=str(exc),
+                                backoff_seconds=backoff,
+                            )
+                            await asyncio.sleep(backoff)
+                            backoff *= retry_cfg.backoff_multiplier
 
                     results.append(
                         EvaluationRun(

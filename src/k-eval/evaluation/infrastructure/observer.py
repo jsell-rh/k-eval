@@ -80,3 +80,24 @@ class StructlogEvaluationObserver:
             run_index=run_index,
             reason=reason,
         )
+
+    def sample_condition_retry(
+        self,
+        run_id: str,
+        sample_idx: str,
+        condition: str,
+        run_index: int,
+        attempt: int,
+        reason: str,
+        backoff_seconds: float,
+    ) -> None:
+        self._log.warning(
+            "evaluation.sample_condition.retry",
+            run_id=run_id,
+            sample_idx=sample_idx,
+            condition=condition,
+            run_index=run_index,
+            attempt=attempt,
+            reason=reason,
+            backoff_seconds=backoff_seconds,
+        )

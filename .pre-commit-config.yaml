@@ -49,6 +49,7 @@ repos:
           - "pytest"
           - "structlog"
           - "types-PyYAML"
+          - "typer>=0.24.1"
         files: ^src/k-eval/
 
   - repo: local
