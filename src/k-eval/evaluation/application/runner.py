@@ -142,15 +142,14 @@ class EvaluationRunner:
         max_attempts = retry_cfg.max_attempts
         backoff = float(retry_cfg.initial_backoff_seconds)
 
-        self._observer.sample_condition_started(
-            run_id=run_id,
-            sample_idx=sample.sample_idx,
-            condition=condition_name,
-            repetition_index=repetition_index,
-        )
-
         for attempt in range(1, max_attempts + 1):
             async with sem:
+                self._observer.sample_condition_started(
+                    run_id=run_id,
+                    sample_idx=sample.sample_idx,
+                    condition=condition_name,
+                    repetition_index=repetition_index,
+                )
                 try:
                     agent = self._agent_factory.create(
                         condition=condition_name,
