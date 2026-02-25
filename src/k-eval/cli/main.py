@@ -33,8 +33,14 @@ from judge.infrastructure.observer import StructlogJudgeObserver
 app = typer.Typer(add_completion=False)
 
 
-def _configure_structlog(log_format: str) -> None:
-    """Configure structlog based on the requested format."""
+def _configure_structlog(log_format: str, quiet: bool = False) -> None:
+    """Configure structlog based on the requested format and verbosity.
+
+    When quiet=True, debug and info messages are suppressed; only warnings
+    and errors are emitted so the tqdm progress bar is the primary output.
+    """
+    import logging
+
     if log_format == "console":
         renderer: structlog.types.Processor = structlog.dev.ConsoleRenderer()
     elif log_format == "json":
@@ -43,6 +49,8 @@ def _configure_structlog(log_format: str) -> None:
         typer.echo(f"Invalid log format: {log_format!r}. Must be 'console' or 'json'.")
         raise typer.Exit(code=1)
 
+    min_level = logging.WARNING if quiet else logging.DEBUG
+
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,
@@ -50,7 +58,7 @@ def _configure_structlog(log_format: str) -> None:
             structlog.processors.TimeStamper(fmt="iso"),
             renderer,
         ],
-        wrapper_class=structlog.make_filtering_bound_logger(0),
+        wrapper_class=structlog.make_filtering_bound_logger(min_level),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
     )
@@ -409,10 +417,16 @@ def run(
         "--log-format",
         help="Log format: 'console' or 'json'",
     ),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        "-q",
+        help="Suppress debug and info logs; show only the progress bar plus warnings/errors.",
+    ),
 ) -> None:
     """Run a k-eval evaluation from a YAML config file."""
     try:
-        _configure_structlog(log_format=log_format)
+        _configure_structlog(log_format=log_format, quiet=quiet)
 
         config_observer = StructlogConfigObserver()
         loader = YamlConfigLoader(observer=config_observer)
