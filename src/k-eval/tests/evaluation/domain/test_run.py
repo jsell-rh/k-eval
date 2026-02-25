@@ -5,11 +5,11 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from agent.domain.result import AgentResult
-from agent.domain.usage import UsageMetrics
-from dataset.domain.sample import Sample
-from evaluation.domain.run import EvaluationRun
-from judge.domain.score import JudgeResult
+from k_eval.agent.domain.result import AgentResult
+from k_eval.agent.domain.usage import UsageMetrics
+from k_eval.dataset.domain.sample import Sample
+from k_eval.evaluation.domain.run import EvaluationRun
+from k_eval.judge.domain.score import JudgeResult
 
 
 def _make_sample() -> Sample:

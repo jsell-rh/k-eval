@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from config.domain.dataset import DatasetConfig
-from dataset.infrastructure.errors import DatasetLoadError
-from dataset.infrastructure.jsonl_loader import JsonlDatasetLoader
+from k_eval.config.domain.dataset import DatasetConfig
+from k_eval.dataset.infrastructure.errors import DatasetLoadError
+from k_eval.dataset.infrastructure.jsonl_loader import JsonlDatasetLoader
 from tests.dataset.fake_observer import FakeDatasetObserver
 
 # Fixtures directory — absolute so tests are location-independent

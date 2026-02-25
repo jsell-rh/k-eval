@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import openai
 import pytest
 
-from config.domain.judge import JudgeConfig
-from judge.infrastructure.errors import JudgeInvocationError
-from judge.infrastructure.litellm import LiteLLMJudge
+from k_eval.config.domain.judge import JudgeConfig
+from k_eval.judge.infrastructure.errors import JudgeInvocationError
+from k_eval.judge.infrastructure.litellm import LiteLLMJudge
 from tests.judge.fake_observer import FakeJudgeObserver
 
 
@@ -133,7 +133,7 @@ class TestScoreSuccess:
         judge, _ = _make_judge()
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(return_value=mock_response),
         ):
             result = await judge.score(
@@ -152,7 +152,7 @@ class TestScoreSuccess:
         judge, observer = _make_judge(condition="with-graph", sample_idx="7")
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(return_value=mock_response),
         ):
             await judge.score(
@@ -172,7 +172,7 @@ class TestScoreSuccess:
         judge, observer = _make_judge(condition="baseline", sample_idx="1")
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(return_value=mock_response),
         ):
             await judge.score(
@@ -192,7 +192,7 @@ class TestScoreSuccess:
         judge, observer = _make_judge()
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(return_value=mock_response),
         ):
             await judge.score(
@@ -211,7 +211,7 @@ class TestScoreSuccess:
         judge, _ = _make_judge()
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(return_value=mock_response),
         ):
             result = await judge.score(
@@ -235,7 +235,7 @@ class TestScoreLiteLLMFailure:
         judge, _ = _make_judge()
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(side_effect=openai.APIConnectionError(request=MagicMock())),
         ):
             with pytest.raises(JudgeInvocationError):
@@ -249,7 +249,7 @@ class TestScoreLiteLLMFailure:
         judge, _ = _make_judge()
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(side_effect=openai.APIConnectionError(request=MagicMock())),
         ):
             with pytest.raises(JudgeInvocationError) as exc_info:
@@ -265,7 +265,7 @@ class TestScoreLiteLLMFailure:
         judge, observer = _make_judge(condition="with-graph", sample_idx="5")
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(side_effect=openai.APITimeoutError(request=MagicMock())),
         ):
             with pytest.raises(JudgeInvocationError):
@@ -283,7 +283,7 @@ class TestScoreLiteLLMFailure:
         judge, observer = _make_judge()
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(side_effect=openai.APITimeoutError(request=MagicMock())),
         ):
             with pytest.raises(JudgeInvocationError):
@@ -309,7 +309,7 @@ class TestScoreParseFailure:
         judge, _ = _make_judge()
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(return_value=mock_response),
         ):
             with pytest.raises(JudgeInvocationError):
@@ -324,7 +324,7 @@ class TestScoreParseFailure:
         judge, _ = _make_judge()
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(return_value=mock_response),
         ):
             with pytest.raises(JudgeInvocationError) as exc_info:
@@ -341,7 +341,7 @@ class TestScoreParseFailure:
         judge, observer = _make_judge(condition="baseline", sample_idx="2")
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(return_value=mock_response),
         ):
             with pytest.raises(JudgeInvocationError):
@@ -360,7 +360,7 @@ class TestScoreParseFailure:
         judge, observer = _make_judge()
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(return_value=mock_response),
         ):
             with pytest.raises(JudgeInvocationError):
@@ -391,7 +391,7 @@ class TestScoreParseFailure:
         judge, _ = _make_judge()
 
         with patch(
-            "judge.infrastructure.litellm.litellm.acompletion",
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
             new=AsyncMock(return_value=mock_response),
         ):
             with pytest.raises(JudgeInvocationError):

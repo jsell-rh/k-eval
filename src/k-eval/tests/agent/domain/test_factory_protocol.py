@@ -2,11 +2,11 @@
 
 import inspect
 
-from agent.domain.factory import AgentFactory
-from agent.infrastructure.factory import ClaudeAgentSDKAgentFactory
+from k_eval.agent.domain.factory import AgentFactory
+from k_eval.agent.infrastructure.factory import ClaudeAgentSDKAgentFactory
 from tests.agent.fake_factory import FakeAgentFactory
-from agent.domain.result import AgentResult
-from agent.domain.usage import UsageMetrics
+from k_eval.agent.domain.result import AgentResult
+from k_eval.agent.domain.usage import UsageMetrics
 
 
 def _make_result() -> AgentResult:

@@ -2,8 +2,8 @@
 
 import inspect
 
-from judge.domain.factory import JudgeFactory
-from judge.infrastructure.factory import LiteLLMJudgeFactory
+from k_eval.judge.domain.factory import JudgeFactory
+from k_eval.judge.infrastructure.factory import LiteLLMJudgeFactory
 from tests.judge.fake_factory import FakeJudgeFactory
 
 

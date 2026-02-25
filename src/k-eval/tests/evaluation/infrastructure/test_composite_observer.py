@@ -1,6 +1,8 @@
 """Tests for CompositeEvaluationObserver."""
 
-from evaluation.infrastructure.composite_observer import CompositeEvaluationObserver
+from k_eval.evaluation.infrastructure.composite_observer import (
+    CompositeEvaluationObserver,
+)
 from tests.evaluation.fake_observer import FakeEvaluationObserver
 
 

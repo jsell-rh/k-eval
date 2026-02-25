@@ -4,15 +4,15 @@ from pathlib import Path
 
 import pytest
 
-from config.domain.condition_mcp_server import ConditionMcpServer
-from config.domain.mcp_server import HttpMcpServer, SseMcpServer, StdioMcpServer
-from config.infrastructure.errors import (
+from k_eval.config.domain.condition_mcp_server import ConditionMcpServer
+from k_eval.config.domain.mcp_server import HttpMcpServer, SseMcpServer, StdioMcpServer
+from k_eval.config.infrastructure.errors import (
     ConfigLoadError,
     ConfigParseError,
     ConfigValidationError,
     MissingEnvVarsError,
 )
-from config.infrastructure.yaml_loader import YamlConfigLoader
+from k_eval.config.infrastructure.yaml_loader import YamlConfigLoader
 from tests.config.fake_observer import FakeConfigObserver
 
 # Fixtures directory — absolute so tests are location-independent
@@ -396,7 +396,7 @@ class TestInvalidYamlFile:
         assert str(exc_info.value).startswith("Failed to ")
 
     def test_invalid_yaml_is_keval_error(self) -> None:
-        from core.errors import KEvalError
+        from k_eval.core.errors import KEvalError
 
         observer = FakeConfigObserver()
         with pytest.raises(KEvalError):

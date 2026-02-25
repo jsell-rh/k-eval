@@ -1,6 +1,6 @@
 """FakeAgent — in-memory Agent implementation for use in tests."""
 
-from agent.domain.result import AgentResult
+from k_eval.agent.domain.result import AgentResult
 
 
 class FakeAgent:

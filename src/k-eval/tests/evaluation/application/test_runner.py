@@ -5,20 +5,20 @@ import pytest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-from agent.domain.result import AgentResult
-from agent.domain.usage import UsageMetrics
-from agent.infrastructure.errors import AgentInvocationError
-from config.domain.agent import AgentConfig
-from config.domain.condition import ConditionConfig
-from config.domain.condition_mcp_server import ConditionMcpServer
-from config.domain.config import EvalConfig
-from config.domain.dataset import DatasetConfig
-from config.domain.execution import ExecutionConfig, RetryConfig
-from config.domain.judge import JudgeConfig
-from core.errors import KEvalError
-from dataset.domain.sample import Sample
-from evaluation.application.runner import EvaluationRunner
-from evaluation.domain.summary import RunSummary
+from k_eval.agent.domain.result import AgentResult
+from k_eval.agent.domain.usage import UsageMetrics
+from k_eval.agent.infrastructure.errors import AgentInvocationError
+from k_eval.config.domain.agent import AgentConfig
+from k_eval.config.domain.condition import ConditionConfig
+from k_eval.config.domain.condition_mcp_server import ConditionMcpServer
+from k_eval.config.domain.config import EvalConfig
+from k_eval.config.domain.dataset import DatasetConfig
+from k_eval.config.domain.execution import ExecutionConfig, RetryConfig
+from k_eval.config.domain.judge import JudgeConfig
+from k_eval.core.errors import KEvalError
+from k_eval.dataset.domain.sample import Sample
+from k_eval.evaluation.application.runner import EvaluationRunner
+from k_eval.evaluation.domain.summary import RunSummary
 from tests.agent.fake_agent import FakeAgent
 from tests.agent.fake_factory import FakeAgentFactory
 from tests.evaluation.fake_dataset_loader import FakeDatasetLoader
@@ -460,7 +460,7 @@ def _make_retry_eval_config(execution: ExecutionConfig) -> EvalConfig:
 class TestEvaluationRunnerRetry:
     """Runner retry behaviour: backoff, retry events, and abort after max_attempts."""
 
-    @patch("evaluation.application.runner.asyncio.sleep", new_callable=AsyncMock)
+    @patch("k_eval.evaluation.application.runner.asyncio.sleep", new_callable=AsyncMock)
     async def test_retries_on_retriable_agent_error(
         self, mock_sleep: AsyncMock
     ) -> None:
@@ -493,7 +493,7 @@ class TestEvaluationRunnerRetry:
         assert len(observer.sc_retried) == 1
         assert observer.sc_retried[0].attempt == 1
 
-    @patch("evaluation.application.runner.asyncio.sleep", new_callable=AsyncMock)
+    @patch("k_eval.evaluation.application.runner.asyncio.sleep", new_callable=AsyncMock)
     async def test_does_not_retry_on_non_retriable_error(
         self, mock_sleep: AsyncMock
     ) -> None:
@@ -525,7 +525,7 @@ class TestEvaluationRunnerRetry:
         assert len(observer.sc_retried) == 0
         mock_sleep.assert_not_called()
 
-    @patch("evaluation.application.runner.asyncio.sleep", new_callable=AsyncMock)
+    @patch("k_eval.evaluation.application.runner.asyncio.sleep", new_callable=AsyncMock)
     async def test_aborts_after_max_attempts(self, mock_sleep: AsyncMock) -> None:
         """Runner raises after exhausting all max_attempts. Observer sees max_attempts-1 retries."""
         max_attempts = 3
@@ -565,7 +565,7 @@ class TestEvaluationRunnerRetry:
         assert observer.sc_retried[0].attempt == 1
         assert observer.sc_retried[1].attempt == 2
 
-    @patch("evaluation.application.runner.asyncio.sleep", new_callable=AsyncMock)
+    @patch("k_eval.evaluation.application.runner.asyncio.sleep", new_callable=AsyncMock)
     async def test_retry_emits_correct_backoff(self, mock_sleep: AsyncMock) -> None:
         """Backoff values in retry events follow initial_backoff * multiplier^n."""
         config = _make_retry_eval_config(
