@@ -22,6 +22,7 @@ from core.errors import KEvalError
 from dataset.infrastructure.jsonl_loader import JsonlDatasetLoader
 from dataset.infrastructure.observer import StructlogDatasetObserver
 from evaluation.application.runner import EvaluationRunner
+from evaluation.domain.observer import EvaluationObserver
 from evaluation.domain.summary import RunSummary
 from evaluation.infrastructure.composite_observer import CompositeEvaluationObserver
 from evaluation.infrastructure.observer import StructlogEvaluationObserver
@@ -432,12 +433,10 @@ def run(
             config=config.judge,
             observer=StructlogJudgeObserver(),
         )
-        evaluation_observer = CompositeEvaluationObserver(
-            observers=[
-                StructlogEvaluationObserver(),
-                ProgressEvaluationObserver(),
-            ]
-        )
+        observers: list[EvaluationObserver] = [StructlogEvaluationObserver()]
+        if log_format != "json":
+            observers.append(ProgressEvaluationObserver())
+        evaluation_observer = CompositeEvaluationObserver(observers=observers)
 
         evaluation_runner = EvaluationRunner(
             config=config,

@@ -1,18 +1,37 @@
-"""ProgressEvaluationObserver — writes a live progress bar to stderr."""
+"""ProgressEvaluationObserver — writes a live tqdm progress bar to stderr."""
+
+from __future__ import annotations
 
 import sys
+from collections.abc import Callable
+from typing import Any, cast
+
+from tqdm import tqdm
+
+
+type TqdmFactory = Callable[..., Any]
+
+
+def _default_tqdm_factory(**kwargs: Any) -> tqdm[int]:
+    return cast(tqdm[int], tqdm(**kwargs))
 
 
 class ProgressEvaluationObserver:
-    """Renders a live progress bar on stderr during an evaluation run.
+    """Renders a live tqdm progress bar on stderr during an evaluation run.
 
-    All other events are no-ops; only evaluation_progress and
-    evaluation_completed are rendered.
+    Only evaluation_started, evaluation_progress, and evaluation_completed
+    produce output; all other events are no-ops.
+
+    The ``tqdm_factory`` parameter is intended for testing — pass a factory
+    that returns a tqdm instance configured with ``disable=True`` or a spy
+    to assert on calls without terminal output.
 
     Does NOT inherit from EvaluationObserver (structural typing via Protocol).
     """
 
-    _BAR_WIDTH = 30
+    def __init__(self, tqdm_factory: TqdmFactory = _default_tqdm_factory) -> None:
+        self._tqdm_factory = tqdm_factory
+        self._bar: tqdm[int] | None = None
 
     def evaluation_started(
         self,
@@ -22,7 +41,14 @@ class ProgressEvaluationObserver:
         num_repetitions: int,
         max_concurrent: int,
     ) -> None:
-        pass
+        total = total_samples * total_conditions * num_repetitions
+        self._bar = self._tqdm_factory(
+            total=total,
+            desc="Evaluating",
+            unit="triple",
+            file=sys.stderr,
+            dynamic_ncols=True,
+        )
 
     def evaluation_completed(
         self,
@@ -30,14 +56,9 @@ class ProgressEvaluationObserver:
         total_runs: int,
         elapsed_seconds: float,
     ) -> None:
-        # Overwrite the progress line with a clean completion message.
-        minutes, seconds = divmod(elapsed_seconds, 60)
-        if minutes >= 1:
-            time_str = f"{int(minutes)}m {seconds:.1f}s"
-        else:
-            time_str = f"{elapsed_seconds:.1f}s"
-        sys.stderr.write(f"\r\033[K✓ {total_runs} triples completed in {time_str}\n")
-        sys.stderr.flush()
+        if self._bar is not None:
+            self._bar.close()
+            self._bar = None
 
     def evaluation_progress(
         self,
@@ -45,13 +66,8 @@ class ProgressEvaluationObserver:
         completed: int,
         total: int,
     ) -> None:
-        fraction = completed / total if total else 0.0
-        filled = round(fraction * self._BAR_WIDTH)
-        bar = "█" * filled + "░" * (self._BAR_WIDTH - filled)
-        percent = fraction * 100.0
-        # \r returns to line start; \033[K clears to end of line.
-        sys.stderr.write(f"\r\033[K  [{bar}] {completed}/{total}  {percent:.0f}%")
-        sys.stderr.flush()
+        if self._bar is not None:
+            self._bar.update(n=1)
 
     def sample_condition_started(
         self,

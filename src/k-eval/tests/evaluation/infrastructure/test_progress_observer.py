@@ -1,215 +1,183 @@
 """Tests for ProgressEvaluationObserver."""
 
-import pytest
+from typing import Any
 
 from evaluation.infrastructure.progress_observer import ProgressEvaluationObserver
 
 
-def _make_observer() -> ProgressEvaluationObserver:
-    return ProgressEvaluationObserver()
+class SpyBar:
+    """In-memory stand-in for a tqdm bar that records calls."""
+
+    def __init__(self) -> None:
+        self.update_calls: list[int] = []
+        self.closed = False
+
+    def update(self, n: int = 1) -> None:
+        self.update_calls.append(n)
+
+    def close(self) -> None:
+        self.closed = True
 
 
-class TestProgressEvaluationObserverProgressBar:
-    """evaluation_progress writes a progress bar to stderr."""
+class SpyTqdmFactory:
+    """Factory that produces SpyBar instances and remembers the kwargs used."""
 
-    def test_progress_writes_to_stderr(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_progress(run_id="r", completed=1, total=10)
-        captured = capsys.readouterr()
-        assert len(captured.err) > 0
+    def __init__(self) -> None:
+        self.bar = SpyBar()
+        self.kwargs: dict[str, Any] = {}
 
-    def test_progress_contains_completed_and_total(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_progress(run_id="r", completed=3, total=10)
-        captured = capsys.readouterr()
-        assert "3/10" in captured.err
+    def __call__(self, **kwargs: Any) -> SpyBar:
+        self.kwargs = kwargs
+        return self.bar
 
-    def test_progress_contains_percentage(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_progress(run_id="r", completed=5, total=10)
-        captured = capsys.readouterr()
-        assert "50%" in captured.err
 
-    def test_progress_uses_carriage_return(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
+def _make_observer() -> tuple[ProgressEvaluationObserver, SpyTqdmFactory]:
+    factory = SpyTqdmFactory()
+    observer = ProgressEvaluationObserver(tqdm_factory=factory)
+    return observer, factory
+
+
+class TestProgressEvaluationObserverStarted:
+    """evaluation_started creates a tqdm bar with the correct total."""
+
+    def test_bar_created_on_evaluation_started(self) -> None:
+        observer, factory = _make_observer()
+        observer.evaluation_started(
+            run_id="r",
+            total_samples=3,
+            total_conditions=2,
+            num_repetitions=2,
+            max_concurrent=4,
+        )
+        # total = 3 * 2 * 2 = 12
+        assert factory.kwargs["total"] == 12
+
+    def test_bar_unit_is_triple(self) -> None:
+        observer, factory = _make_observer()
+        observer.evaluation_started(
+            run_id="r",
+            total_samples=1,
+            total_conditions=1,
+            num_repetitions=1,
+            max_concurrent=1,
+        )
+        assert factory.kwargs["unit"] == "triple"
+
+    def test_bar_not_created_before_evaluation_started(self) -> None:
+        observer, factory = _make_observer()
+        # No evaluation_started call — factory should never have been called.
+        assert factory.kwargs == {}
+
+
+class TestProgressEvaluationObserverProgress:
+    """evaluation_progress increments the bar by 1 each call."""
+
+    def test_single_progress_event_increments_bar_once(self) -> None:
+        observer, factory = _make_observer()
+        observer.evaluation_started(
+            run_id="r",
+            total_samples=5,
+            total_conditions=1,
+            num_repetitions=1,
+            max_concurrent=1,
+        )
         observer.evaluation_progress(run_id="r", completed=1, total=5)
-        captured = capsys.readouterr()
-        assert "\r" in captured.err
+        assert factory.bar.update_calls == [1]
 
-    def test_progress_uses_erase_line_escape(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
+    def test_multiple_progress_events_each_increment_by_one(self) -> None:
+        observer, factory = _make_observer()
+        observer.evaluation_started(
+            run_id="r",
+            total_samples=3,
+            total_conditions=1,
+            num_repetitions=1,
+            max_concurrent=1,
+        )
+        for i in range(1, 4):
+            observer.evaluation_progress(run_id="r", completed=i, total=3)
+        assert factory.bar.update_calls == [1, 1, 1]
+
+    def test_progress_before_started_does_not_raise(self) -> None:
+        observer, factory = _make_observer()
+        # No evaluation_started — _bar is None; should be a safe no-op.
         observer.evaluation_progress(run_id="r", completed=1, total=5)
-        captured = capsys.readouterr()
-        assert "\033[K" in captured.err
-
-    def test_progress_bar_contains_filled_blocks(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_progress(run_id="r", completed=10, total=10)
-        captured = capsys.readouterr()
-        assert "█" in captured.err
-
-    def test_progress_bar_contains_empty_blocks_when_partial(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_progress(run_id="r", completed=0, total=10)
-        captured = capsys.readouterr()
-        assert "░" in captured.err
-
-    def test_progress_at_zero_of_total_shows_zero_percent(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_progress(run_id="r", completed=0, total=10)
-        captured = capsys.readouterr()
-        assert "0%" in captured.err
-
-    def test_progress_at_100_percent_shows_100(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_progress(run_id="r", completed=10, total=10)
-        captured = capsys.readouterr()
-        assert "100%" in captured.err
-
-    def test_progress_zero_total_does_not_raise(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        # Should not raise ZeroDivisionError.
-        observer.evaluation_progress(run_id="r", completed=0, total=0)
-
-    def test_progress_nothing_written_to_stdout(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_progress(run_id="r", completed=2, total=5)
-        captured = capsys.readouterr()
-        assert captured.out == ""
+        assert factory.bar.update_calls == []
 
 
 class TestProgressEvaluationObserverCompleted:
-    """evaluation_completed overwrites the bar with a summary line."""
+    """evaluation_completed closes the bar."""
 
-    def test_completed_writes_to_stderr(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_completed(run_id="r", total_runs=6, elapsed_seconds=5.0)
-        captured = capsys.readouterr()
-        assert len(captured.err) > 0
-
-    def test_completed_contains_total_runs(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_completed(run_id="r", total_runs=9, elapsed_seconds=3.0)
-        captured = capsys.readouterr()
-        assert "9" in captured.err
-
-    def test_completed_ends_with_newline(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_completed(run_id="r", total_runs=4, elapsed_seconds=2.0)
-        captured = capsys.readouterr()
-        assert captured.err.endswith("\n")
-
-    def test_completed_uses_seconds_only_for_short_runs(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_completed(run_id="r", total_runs=1, elapsed_seconds=45.3)
-        captured = capsys.readouterr()
-        assert "45.3s" in captured.err
-        # Minutes format looks like "1m 30.0s" — no digit-followed-by-m pattern for sub-minute runs.
-        import re
-
-        assert not re.search(r"\d+m", captured.err)
-
-    def test_completed_uses_minutes_and_seconds_for_long_runs(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        # 90 seconds = 1m 30.0s
-        observer.evaluation_completed(run_id="r", total_runs=1, elapsed_seconds=90.0)
-        captured = capsys.readouterr()
-        assert "1m" in captured.err
-        assert "30.0s" in captured.err
-
-    def test_completed_uses_carriage_return(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_completed(run_id="r", total_runs=2, elapsed_seconds=1.0)
-        captured = capsys.readouterr()
-        assert "\r" in captured.err
-
-    def test_completed_nothing_written_to_stdout(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        observer.evaluation_completed(run_id="r", total_runs=2, elapsed_seconds=1.0)
-        captured = capsys.readouterr()
-        assert captured.out == ""
-
-
-class TestProgressEvaluationObserverNoOps:
-    """All other observer methods are no-ops — they produce no output."""
-
-    def test_evaluation_started_is_noop(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
+    def test_bar_closed_on_evaluation_completed(self) -> None:
+        observer, factory = _make_observer()
         observer.evaluation_started(
             run_id="r",
             total_samples=2,
             total_conditions=1,
             num_repetitions=1,
-            max_concurrent=4,
+            max_concurrent=1,
         )
-        captured = capsys.readouterr()
-        assert captured.out == ""
-        assert captured.err == ""
+        observer.evaluation_completed(run_id="r", total_runs=2, elapsed_seconds=1.5)
+        assert factory.bar.closed is True
 
-    def test_sample_condition_started_is_noop(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
+    def test_bar_reference_cleared_after_completed(self) -> None:
+        observer, factory = _make_observer()
+        observer.evaluation_started(
+            run_id="r",
+            total_samples=1,
+            total_conditions=1,
+            num_repetitions=1,
+            max_concurrent=1,
+        )
+        observer.evaluation_completed(run_id="r", total_runs=1, elapsed_seconds=0.5)
+        # Internal reference should be cleared.
+        assert observer._bar is None
+
+    def test_completed_before_started_does_not_raise(self) -> None:
+        observer, _ = _make_observer()
+        # _bar is None; should be a safe no-op.
+        observer.evaluation_completed(run_id="r", total_runs=0, elapsed_seconds=0.0)
+
+
+class TestProgressEvaluationObserverNoOps:
+    """All other observer methods are no-ops — they do not touch the bar."""
+
+    def test_sample_condition_started_does_not_update_bar(self) -> None:
+        observer, factory = _make_observer()
+        observer.evaluation_started(
+            run_id="r",
+            total_samples=1,
+            total_conditions=1,
+            num_repetitions=1,
+            max_concurrent=1,
+        )
         observer.sample_condition_started(
             run_id="r", sample_idx="s0", condition="c", repetition_index=0
         )
-        captured = capsys.readouterr()
-        assert captured.out == ""
-        assert captured.err == ""
+        assert factory.bar.update_calls == []
 
-    def test_sample_condition_completed_is_noop(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
+    def test_sample_condition_completed_does_not_update_bar(self) -> None:
+        observer, factory = _make_observer()
+        observer.evaluation_started(
+            run_id="r",
+            total_samples=1,
+            total_conditions=1,
+            num_repetitions=1,
+            max_concurrent=1,
+        )
         observer.sample_condition_completed(
             run_id="r", sample_idx="s0", condition="c", repetition_index=0
         )
-        captured = capsys.readouterr()
-        assert captured.out == ""
-        assert captured.err == ""
+        assert factory.bar.update_calls == []
 
-    def test_sample_condition_failed_is_noop(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
+    def test_sample_condition_failed_does_not_update_bar(self) -> None:
+        observer, factory = _make_observer()
+        observer.evaluation_started(
+            run_id="r",
+            total_samples=1,
+            total_conditions=1,
+            num_repetitions=1,
+            max_concurrent=1,
+        )
         observer.sample_condition_failed(
             run_id="r",
             sample_idx="s0",
@@ -217,14 +185,17 @@ class TestProgressEvaluationObserverNoOps:
             repetition_index=0,
             reason="bad",
         )
-        captured = capsys.readouterr()
-        assert captured.out == ""
-        assert captured.err == ""
+        assert factory.bar.update_calls == []
 
-    def test_sample_condition_retry_is_noop(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
+    def test_sample_condition_retry_does_not_update_bar(self) -> None:
+        observer, factory = _make_observer()
+        observer.evaluation_started(
+            run_id="r",
+            total_samples=1,
+            total_conditions=1,
+            num_repetitions=1,
+            max_concurrent=1,
+        )
         observer.sample_condition_retry(
             run_id="r",
             sample_idx="s0",
@@ -234,26 +205,4 @@ class TestProgressEvaluationObserverNoOps:
             reason="timeout",
             backoff_seconds=1.0,
         )
-        captured = capsys.readouterr()
-        assert captured.out == ""
-        assert captured.err == ""
-
-
-class TestProgressEvaluationObserverBarWidth:
-    """The bar always has the expected fixed width of filled + empty blocks."""
-
-    def test_bar_total_width_is_constant(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        observer = _make_observer()
-        bar_width = observer._BAR_WIDTH
-
-        # Test at several completion levels.
-        for completed in [0, 3, 7, 10]:
-            observer.evaluation_progress(run_id="r", completed=completed, total=10)
-            captured = capsys.readouterr()
-            filled = captured.err.count("█")
-            empty = captured.err.count("░")
-            assert filled + empty == bar_width, (
-                f"completed={completed}: expected bar width {bar_width}, got {filled + empty}"
-            )
+        assert factory.bar.update_calls == []
