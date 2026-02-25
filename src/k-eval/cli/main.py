@@ -114,8 +114,6 @@ _WHITE = "\033[97m"
 _MAX_COND_LEN = 12
 # Width of a single condition data cell: "X.XX±X.XX" = 9 chars, padded to 11.
 _CELL_W = 11
-# Width of the Δ column including its label.
-_DELTA_W = 8
 
 
 def _score_color(score: float) -> str:
@@ -174,14 +172,6 @@ def _cell(mean: float, std: float, *, is_winner: bool, multi_condition: bool) ->
         return f"{color}{cell_text:>{_CELL_W - 1}}{_RESET} "
 
 
-def _delta_cell(values: list[float]) -> str:
-    """Return a formatted Δ cell showing spread (max - min) across conditions."""
-    spread = max(values) - min(values)
-    if spread < 0.005:
-        return f"  {_DIM}{'—':>{_DELTA_W - 2}}{_RESET}"
-    return f"  {_DIM}Δ{spread:>5.2f}{_RESET}"
-
-
 def _print_single_condition(
     condition: str,
     results: list[AggregatedResult],
@@ -233,11 +223,10 @@ def _print_comparison_table(
     for cond in conditions:
         label = truncated[cond]
         header += f"  {_CYAN}{_BOLD}{label:>{_CELL_W}}{_RESET}"
-    header += f"  {_DIM}{'Δ':>{_DELTA_W - 2}}{_RESET}"
     typer.echo(header)
 
     # Separator.
-    sep_len = metric_w + len(conditions) * (_CELL_W + 2) + _DELTA_W + 2
+    sep_len = metric_w + len(conditions) * (_CELL_W + 2)
     typer.echo(f"  {'─' * sep_len}")
 
     # One row per metric.
@@ -262,7 +251,6 @@ def _print_comparison_table(
                 is_winner=is_winner,
                 multi_condition=True,
             )
-        row += _delta_cell(values=list(means.values()))
         typer.echo(row)
 
     # Overall summary row.
@@ -281,7 +269,6 @@ def _print_comparison_table(
         winner_marker = f"{_BOLD}▲{_RESET}" if is_winner else " "
         cell_text = f"{overall[cond]:.2f}"
         overall_row += f"  {color}{cell_text:>{_CELL_W - 1}}{_RESET}{winner_marker}"
-    overall_row += _delta_cell(values=list(overall.values()))
     typer.echo(overall_row)
 
     # Winner callout — only when there is a clear winner.
