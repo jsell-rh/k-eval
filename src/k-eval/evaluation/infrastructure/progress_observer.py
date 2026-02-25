@@ -27,6 +27,27 @@ _CONDITION_COLORS: list[str] = [
 ]
 
 
+class _ConditionalEtaColumn(ProgressColumn):
+    """Shows ETA for condition tasks only — blank for the Overall row.
+
+    The Overall rate is the sum of all condition rates, making its naive
+    ETA shorter than the slowest condition. The true wall-clock ETA is
+    max(condition ETAs), so we suppress it for Overall to avoid confusion.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._remaining = TimeRemainingColumn()
+
+    def render(self, task: Task) -> Text:
+        if task.fields.get("is_overall", False):
+            return Text("")
+        result = self._remaining.render(task)
+        if isinstance(result, Text):
+            return result
+        return Text(str(result))
+
+
 class _ThreeSegmentBarColumn(ProgressColumn):
     """ProgressColumn that renders three segments: done, in-flight, remaining."""
 
@@ -181,8 +202,8 @@ class ProgressEvaluationObserver:
             _ThreeSegmentBarColumn(bar_width=40),
             TextColumn("{task.fields[done]}+{task.fields[inflight]}/{task.total:.0f}"),
             TimeElapsedColumn(),
-            TextColumn("eta"),
-            TimeRemainingColumn(),
+            TextColumn("{task.fields[eta_label]}"),
+            _ConditionalEtaColumn(),
             TextColumn("{task.fields[rate]}"),
             console=console,
             refresh_per_second=10,
@@ -197,6 +218,8 @@ class ProgressEvaluationObserver:
             inflight=0,
             done=0,
             rate="-- triple/s",
+            is_overall=True,
+            eta_label="",  # no "eta" label — ETA is suppressed for Overall
         )
         self._task_ids["Overall"] = overall_task_id
 
@@ -208,6 +231,8 @@ class ProgressEvaluationObserver:
                 inflight=0,
                 done=0,
                 rate="-- triple/s",
+                is_overall=False,
+                eta_label="eta",
             )
             self._task_ids[name] = task_id
 
