@@ -1282,12 +1282,12 @@ select:focus:not(:focus-visible),
     {{ sampleIds.length }} samples &nbsp;·&nbsp;
     <span class="tt tt-down">
       <span class="term-tip">{{ conditions.length }} conditions<span class="term-tip-icon">?</span></span>
-      <span class="tt-body">A <strong>condition</strong> is a distinct agent configuration (e.g. different prompt, model, or tool setup) being compared in this evaluation.</span>
+      <span class="tt-body">A condition is a distinct agent configuration (e.g. different prompt, model, or tool setup) being compared in this evaluation.</span>
     </span>
     &nbsp;·&nbsp;
     <span class="tt tt-down">
       <span class="term-tip">{{ repCount }} runs each<span class="term-tip-icon">?</span></span>
-      <span class="tt-body">Each condition was run <strong>{{ repCount }}×</strong> independently on every sample to account for model non-determinism. Scores are averaged across runs.</span>
+      <span class="tt-body">Each condition was run {{ repCount }}× independently on every sample to account for model non-determinism. Scores are averaged across runs.</span>
     </span>
     &nbsp;·&nbsp;
     <span class="tt tt-down">
@@ -1307,7 +1307,7 @@ select:focus:not(:focus-visible),
       Condition Ranking
       <span class="tt tt-down" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:var(--text-m)">
         <span class="term-tip">composite score (1–5)<span class="term-tip-icon">?</span></span>
-        <span class="tt-body">The <strong>composite score</strong> is the average of three judge metrics: Factual Adherence, Completeness, and Helpfulness &amp; Clarity. Scored 1–5 per sample per run, then averaged across all samples and runs.</span>
+        <span class="tt-body">The composite score is the average of three judge metrics: Factual Adherence, Completeness, and Helpfulness &amp; Clarity. Scored 1–5 per sample per run, then averaged across all samples and runs.</span>
       </span>
     </div>
 
@@ -1334,7 +1334,7 @@ select:focus:not(:focus-visible),
         <span style="width:200px;flex-shrink:0"></span>
         <span class="rank-hdr-spacer"></span>
         <span class="rank-hdr-score tt tt-down">Score<span class="tt-body">Composite score: average of Factual, Completeness, and Helpfulness across all samples and runs.</span></span>
-        <span class="rank-hdr-cost tt tt-down">Agent cost<span class="tt-body">Agent LLM API cost for this condition across all samples and runs. Does not include judge LLM costs.</span></span>
+        <span class="rank-hdr-cost tt tt-down tt-right">Agent cost<span class="tt-body">Agent LLM API cost for this condition across all samples and runs. Does not include judge LLM costs.</span></span>
       </div>
       <div class="rank-row" v-for="(r,i) in condRanking" :key="r.cond">
         <span class="rank-pos" :aria-label="'Rank ' + (i+1)">{{ i+1 }}.</span>
@@ -1346,9 +1346,9 @@ select:focus:not(:focus-visible),
           <div class="rank-fill" :style="{width: bp(r.mean)+'%', background: cc(r.cond)}"></div>
         </div>
         <span class="rank-val">{{ r.mean.toFixed(2) }}</span>
-        <span class="rank-cost tt tt-down tt-right">
+        <span class="rank-cost tt tt-right">
           {{ fmtCost(costByCond[r.cond]) }}
-          <span class="tt-body">Total agent cost for {{ r.cond }}: {{ fmtCost(costByCond[r.cond]) }}<br>{{ pctOfTotal(r.cond) }}% of total spend.</span>
+          <span class="tt-body">Total agent cost for {{ r.cond }}: {{ fmtCost(costByCond[r.cond]) }}. {{ pctOfTotal(r.cond) }}% of total spend.</span>
         </span>
       </div>
     </div>
@@ -1378,22 +1378,22 @@ select:focus:not(:focus-visible),
         <div class="mc-title mc-title-cost tt tt-down">Agent Cost &amp; Efficiency<span class="tt-body">Agent LLM API costs only. Does not include judge LLM costs.</span></div>
         <div class="mc-rows">
           <div class="mc-row" v-for="r in condRanking" :key="r.cond">
-            <span class="mc-name tt" :style="{color: cc(r.cond)}" :title="r.cond">{{ r.cond }}
-              <span class="tt-body">{{ fmtCost(costByCond[r.cond]) }} · {{ pctOfTotal(r.cond) }}% of total spend</span>
+            <span class="mc-name tt tt-down" :style="{color: cc(r.cond)}" :title="r.cond">{{ r.cond }}
+              <span class="tt-body">{{ fmtCost(costByCond[r.cond]) }}, {{ pctOfTotal(r.cond) }}% of total spend.</span>
             </span>
             <div class="mc-track">
               <div class="mc-fill" :style="{width: costPct(r.cond)+'%', background: isBestValue(r.cond) ? 'var(--green)' : 'var(--accent)', opacity: isBestValue(r.cond) ? 1 : 0.6}"></div>
             </div>
-            <span class="mc-val tt tt-down" style="color:var(--amber);width:52px">
+            <span class="mc-val tt tt-down tt-right" style="color:var(--amber);width:52px">
               {{ fmtCost(costByCond[r.cond]) }}
-              <span class="tt-body">{{ pctOfTotal(r.cond) }}% of total spend</span>
+              <span class="tt-body">{{ pctOfTotal(r.cond) }}% of total spend.</span>
             </span>
             <span class="mc-val tt tt-down tt-right"
                   :class="isBestValue(r.cond) ? 'rank-eff-best' : 'rank-eff-val'"
                   style="width:52px;font-size:.78rem">
               {{ efficiencyScore(r.cond) }}<span style="font-size:.7em;margin-left:1px">/$</span>
               <span v-if="isBestValue(r.cond)" style="margin-left:2px;font-size:.75em" aria-label="Best value condition">★</span>
-              <span class="tt-body">{{ efficiencyScore(r.cond) }} pts per dollar<br>{{ isBestValue(r.cond) ? '★ Best value condition' : 'Best: '+bestEffCond+' ('+bestEffScore+')' }}</span>
+              <span class="tt-body">{{ efficiencyScore(r.cond) }} pts per dollar. {{ isBestValue(r.cond) ? '★ Best value condition.' : 'Best: '+bestEffCond+' ('+bestEffScore+' pts/$).' }}</span>
             </span>
           </div>
         </div>
@@ -1415,7 +1415,7 @@ select:focus:not(:focus-visible),
         <th style="width:88px;text-align:right">
           <span class="tt tt-down">
             Score gap
-            <span class="tt-body"><strong>Score gap</strong>: best condition score minus worst condition score on this sample. A larger gap means conditions behaved very differently — good to investigate.</span>
+            <span class="tt-body">Score gap: best condition score minus worst condition score on this sample. A larger gap means conditions disagreed significantly — good samples to investigate.</span>
           </span>
         </th>
         <th style="width:28px"></th>
@@ -1482,11 +1482,11 @@ select:focus:not(:focus-visible),
         :aria-selected="selIdx===s.idx"
         :aria-label="'Sample ' + s.idx + ': ' + s.q + ', score gap ' + s.delta.toFixed(2)"
       >
-        <span class="smp-bullet tt"
+        <span class="smp-bullet tt tt-left"
               :style="{background: bulletColor(s.best)}"
               aria-hidden="true"
               >
-          <span class="tt-body">Best condition score: {{ s.best.toFixed(2) }} / 5<br>Green ≥4.0 · Yellow ≥3.0 · Red &lt;3.0</span>
+          <span class="tt-body">Best condition score: {{ s.best.toFixed(2) }} / 5. Green ≥4.0, yellow ≥3.0, red &lt;3.0.</span>
         </span>
         <span class="smp-idx">#{{ s.idx }}</span>
         <span class="smp-q">{{ s.q }}</span>
@@ -1554,10 +1554,7 @@ select:focus:not(:focus-visible),
             <div class="sc-comp" :class="sc(compScore(cond))">
               <span class="tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
                 {{ compScore(cond).toFixed(1) }}
-                <span class="tt-body">
-                  Composite: {{ compScore(cond).toFixed(3) }}<br>
-                  Avg of factual ({{ mv(cond,'factual_adherence').toFixed(2) }}), completeness ({{ mv(cond,'completeness').toFixed(2) }}), helpfulness ({{ mv(cond,'helpfulness_and_clarity').toFixed(2) }})
-                </span>
+                <span class="tt-body">Composite: {{ compScore(cond).toFixed(3) }}. Avg of factual ({{ mv(cond,'factual_adherence').toFixed(2) }}), completeness ({{ mv(cond,'completeness').toFixed(2) }}), helpfulness ({{ mv(cond,'helpfulness_and_clarity').toFixed(2) }}).</span>
               </span>
             </div>
             <div class="sc-metrics">
@@ -1569,7 +1566,7 @@ select:focus:not(:focus-visible),
                 <div class="sc-m-track"><div class="sc-m-fill" :style="{width: bp(mv(cond,m.key))+'%', background: cc(cond)}"></div></div>
                 <span class="sc-m-val tt" :class="[sc(mv(cond,m.key)), ci >= conditions.length - 1 ? 'tt-right' : '']">
                   {{ mv(cond,m.key).toFixed(2) }}
-                  <span class="tt-body">Mean: {{ mv(cond,m.key).toFixed(3) }} across {{ repCount }} runs<br>± {{ sd(cond,m.key).toFixed(3) }} std dev (run-to-run variance)</span>
+                  <span class="tt-body">Mean: {{ mv(cond,m.key).toFixed(3) }} across {{ repCount }} runs. ±{{ sd(cond,m.key).toFixed(3) }} std dev (run-to-run variance).</span>
                 </span>
               </div>
               <div class="sc-m-row sc-cost-row" v-if="sampleCondCost(selIdx, cond) != null">
@@ -1611,7 +1608,7 @@ select:focus:not(:focus-visible),
             @keydown.enter.space.prevent="selCond=cond"
           >
             {{ cond }}
-            <span class="tt-body">View <strong>{{ cond }}</strong> agent response and judge reasoning.<br>{{ repCount }} independent run{{ repCount!==1?'s':'' }} for this condition.</span>
+            <span class="tt-body">View <strong>{{ cond }}</strong> agent response and judge reasoning. {{ repCount }} independent run{{ repCount!==1?'s':'' }} for this condition.</span>
           </div>
         </div>
 
@@ -1627,7 +1624,7 @@ select:focus:not(:focus-visible),
           <span class="rep-lbl" aria-hidden="true">Run:</span>
           <div
             class="rep-tab tt"
-            :class="{on: selRep===i}"
+            :class="{on: selRep===i, 'tt-right': i === repCount-1}"
             v-for="(_,i) in repCount"
             :key="i"
             @click="selRep=i"
@@ -1638,7 +1635,7 @@ select:focus:not(:focus-visible),
             @keydown.enter.space.prevent="selRep=i"
           >
             {{ i+1 }}
-            <span class="tt-body">Run {{ i+1 }} of {{ repCount }}<br>Each run is an independent execution of the agent on this sample — useful for checking consistency.</span>
+            <span class="tt-body">Run {{ i+1 }} of {{ repCount }}. Each run is an independent execution of the agent on this sample — useful for checking consistency.</span>
           </div>
         </div>
 
@@ -1652,7 +1649,7 @@ select:focus:not(:focus-visible),
                 <span class="resp-lbl">Agent Response</span>
                 <div style="display:flex;align-items:center;gap:8px">
                   <button class="md-toggle" :class="{on: mdResp}" @click="mdResp=!mdResp" :title="mdResp ? 'Switch to plain text view' : 'Render as Markdown (formatted)'" :aria-pressed="mdResp" aria-label="Toggle markdown rendering for agent response">
-                    <span class="tt">{{ mdResp ? 'Rendered' : 'Plain' }}<span class="tt-body">{{ mdResp ? 'Showing formatted Markdown. Click to view raw text.' : 'Showing raw text. Click to render as Markdown.' }}</span></span>
+                    <span class="tt">{{ mdResp ? 'Rendered' : 'Plain' }}<span class="tt-body">{{ mdResp ? 'Showing formatted Markdown. Switch to plain text.' : 'Showing raw text. Switch to rendered Markdown.' }}</span></span>
                   </button>
                   <span class="resp-rep-lbl">Run {{ selRep+1 }}</span>
                 </div>
@@ -1686,22 +1683,22 @@ select:focus:not(:focus-visible),
 
           <!-- Right: Judge metrics -->
           <div class="flow-right">
-            <div class="judge-panel-hdr tt tt-down">
+            <div class="judge-panel-hdr tt">
               Judge's Reasoning — Run {{ selRep+1 }}
-              <span class="tt-body">The judge LLM scored the agent's response on each metric and wrote a brief justification. The score shown (e.g. 3.50) is the <strong>mean across all {{ repCount }} runs</strong>; the reasoning shown is for the currently selected run.</span>
+              <span class="tt-body">The judge LLM scored the agent's response on each metric and wrote a brief justification. The score shown is the mean across all {{ repCount }} runs; the reasoning shown is for the currently selected run.</span>
             </div>
             <div class="metric-block" v-for="m in METRICS" :key="m.key">
               <div class="mb-hdr">
-                <span class="mb-name tt">
+                <span class="mb-name tt tt-right">
                   {{ m.label }}
                   <span class="tt-body">{{ m.def }}</span>
                 </span>
                 <div class="mb-track"><div class="mb-fill" :style="{width: bp(mv(selCond,m.key))+'%', background: cc(selCond)}"></div></div>
-                <span class="mb-mean tt" :class="sc(mv(selCond,m.key))">
+                <span class="mb-mean tt tt-right" :class="sc(mv(selCond,m.key))">
                   {{ mv(selCond,m.key).toFixed(2) }}
                   <span class="tt-body">Mean across {{ repCount }} runs. Score range: 1 (poor) – 5 (excellent).</span>
                 </span>
-                <span class="mb-std tt" v-if="sd(selCond,m.key)>0">
+                <span class="mb-std tt tt-right" v-if="sd(selCond,m.key)>0">
                   ±{{ sd(selCond,m.key).toFixed(2) }}
                   <span class="tt-body">Run-to-run variation (std dev across {{ repCount }} runs). A higher value means the agent gave inconsistent responses.</span>
                 </span>
@@ -1717,10 +1714,7 @@ select:focus:not(:focus-visible),
       <div class="sec-claims" v-if="anyClaimsForSample" role="region" aria-label="Unverified claims">
         <div class="sec-hdr">
           Potentially Unverified Claims
-          <span class="tt tt-down" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:var(--text-m)">
-            <span class="term-tip">flagged by judge<span class="term-tip-icon">?</span></span>
-            <span class="tt-body">The judge flagged these statements in the agent's response as claims that could not be verified against the reference answer. They may be hallucinations or out-of-scope information.</span>
-          </span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:var(--text-m)">flagged by judge</span>
         </div>
         <p class="claims-note">Statements in the agent's response that the judge could not verify against the reference answer. These may be hallucinations or out-of-scope claims — inspect the agent response above for context.</p>
         <div class="claims-grid" :style="{gridTemplateColumns: 'repeat('+conditions.length+', 1fr)'}">
