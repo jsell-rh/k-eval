@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "k-eval"
-version = "0.3.2"
+version = "1.0.0"
 description = "Context-aware evaluation framework for AI agents using MCP."
 readme = "README.md"
 license = "Apache-2.0"
