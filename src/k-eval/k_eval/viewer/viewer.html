@@ -127,7 +127,7 @@ select:focus:not(:focus-visible),
 .tt-left  .tt-body { left: 0;    transform: none; }
 
 /* ── App shell ─────────────────────────────────────────────────────────── */
-#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+#app { display: flex; flex-direction: column; height: 100vh; overflow-x: clip; overflow-y: hidden; }
 
 /* ── Header ────────────────────────────────────────────────────────────── */
 #hdr {
@@ -1040,9 +1040,7 @@ select:focus:not(:focus-visible),
   transition: color .12s, border-color .12s, background .12s;
   white-space: nowrap;
   flex-shrink: 0;
-  min-width: max-content;
   font-weight: 500;
-  overflow: visible;
 }
 .hdr-load-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(0,102,204,.08); }
 
