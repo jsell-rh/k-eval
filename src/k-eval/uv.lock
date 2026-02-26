@@ -934,7 +934,7 @@ wheels = [
 [[package]]
 name = "k-eval"
 version = "0.3.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "claude-agent-sdk" },
     { name = "litellm" },
