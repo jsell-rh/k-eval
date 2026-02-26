@@ -10,36 +10,56 @@
 /* ── Reset ─────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── Tokens ────────────────────────────────────────────────────────────── */
+/* ── Tokens — Red Hat brand palette ───────────────────────────────────── */
 :root {
-  /* Page backgrounds — spread further apart so cards read as distinct */
-  --bg:        #07080f;
-  --s1:        #0e1120;   /* cards / panels — noticeably lighter than page */
-  --s2:        #141828;   /* resp-block / claims-cell — one more step up */
-  --s3:        #1a1f35;   /* judge section band */
+  /* ── Page backgrounds — Red Hat gray scale ── */
+  --bg:        #151515;   /* Gray-95 / UX black — page background */
+  --s1:        #1f1f1f;   /* Gray-90 — panel backgrounds */
+  --s2:        #292929;   /* Gray-80 — card / elevated surfaces */
+  --s3:        #383838;   /* Gray-70 — judge section band */
 
-  /* Borders — more visible */
-  --border:    #252a40;
-  --border-l:  #363d5c;
+  /* ── Borders ── */
+  --border:    #383838;   /* Gray-70 — primary borders */
+  --border-l:  #4d4d4d;   /* Gray-60 — lighter/elevated borders */
 
-  /* Text — lifted for WCAG AA compliance */
-  --text:      #eceef6;   /* primary */
-  --text-2:    #a8b2cc;   /* secondary body — up from #8892b0 */
-  --text-m:    #6b7899;   /* muted labels — up from #4a5070 */
+  /* ── Text ── */
+  --text:      #ffffff;   /* White — primary text */
+  --text-2:    #c7c7c7;   /* Gray-30 — secondary body */
+  --text-m:    #a3a3a3;   /* Gray-40 — muted labels */
 
-  --accent:    #5b7cf6;
-  --amber:     #f59e0b;
-  --green:     #34d399;
-  --yellow:    #fbbf24;
-  --red:       #f87171;
+  /* ── Brand & interactive ── */
+  --rh-red:    #ee0000;   /* Red Hat Red — brand mark only */
+  --accent:    #0066cc;   /* Interaction Blue-50 — primary interactive/accent */
+  --accent-h:  #4394e5;   /* Interaction Blue-40 — hover states */
 
-  /* condition palette — first 8 cover typical use */
-  --c0: #6b7280; --c1: #5b7cf6; --c2: #8b5cf6; --c3: #10b981;
-  --c4: #f59e0b; --c5: #ec4899; --c6: #ef4444; --c7: #06b6d4;
+  /* ── Score & status colors ── */
+  --green:     #63993d;   /* Success Green-50 — positive scores (≥4.0) */
+  --yellow:    #ffcc17;   /* Yellow-30 — warning/medium scores (≥3.0) */
+  --red:       #f0561d;   /* Danger Orange-50 — low scores (<3.0) */
 
-  --radius: 5px;
-  --font: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  /* ── Semantic accents ── */
+  --amber:     #f5921b;   /* Orange-40 — cost/efficiency highlights */
+  --teal:      #37a3a3;   /* Teal-50 — informational accents */
+
+  /* ── Condition palette — brand-adjacent colors ── */
+  --c0: #707070;   /* Gray-50  — neutral */
+  --c1: #0066cc;   /* Blue-50  — interaction blue */
+  --c2: #5e40be;   /* Purple-50 */
+  --c3: #63993d;   /* Green-50 */
+  --c4: #f5921b;   /* Orange-40 */
+  --c5: #37a3a3;   /* Teal-50 */
+  --c6: #f0561d;   /* Danger orange */
+  --c7: #4394e5;   /* Blue-40 */
+
+  /* ── Code/pre surfaces — derived from brand grays ── */
+  --code-bg:   #292929;
+  --code-bdr:  #4d4d4d;
+  --pre-bg:    #1f1f1f;
+  --pre-bdr:   #383838;
+
+  --radius: 4px;
+  --font: "Red Hat Text", "Red Hat Display", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Red Hat Mono", "JetBrains Mono", "Fira Code", ui-monospace, monospace;
   --hh: 48px;
 }
 
@@ -55,6 +75,16 @@ body {
   overflow: hidden;
 }
 
+/* ── Focus-visible — keyboard accessibility ───────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Suppress focus ring for mouse users on interactive elements */
+button:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+[tabindex]:focus:not(:focus-visible) { outline: none; }
+
 /* ── Scrollbar ─────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -67,7 +97,7 @@ body {
   bottom: calc(100% + 7px);
   left: 50%;
   transform: translateX(-50%);
-  background: #060810;
+  background: #111111;
   border: 1px solid var(--border-l);
   border-radius: var(--radius);
   padding: 6px 10px;
@@ -81,14 +111,14 @@ body {
   opacity: 0;
   transition: opacity .12s ease;
   z-index: 9000;
-  box-shadow: 0 4px 16px rgba(0,0,0,.5);
+  box-shadow: 0 4px 16px rgba(0,0,0,.6);
   text-align: left;
 }
 /* Only show the DIRECTLY hovered .tt's tooltip, not ancestors */
 .tt:hover > .tt-body { opacity: 1; }
 /* flip down near viewport top */
 .tt-down .tt-body { bottom: auto; top: calc(100% + 7px); }
-/* horizontal edge anchoring — pin to left or right of trigger instead of centering */
+/* horizontal edge anchoring */
 .tt-right .tt-body { left: auto; right: 0; transform: none; }
 .tt-left  .tt-body { left: 0;    transform: none; }
 
@@ -108,10 +138,13 @@ body {
   z-index: 100;
 }
 
-/* Brand — interactive when data is loaded */
+/* Brand mark — Red Hat Red wordmark, interactive when data is loaded */
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: .95rem;
   background: none;
   border: none;
   color: var(--text);
@@ -120,45 +153,64 @@ body {
   border-radius: var(--radius);
   transition: color .12s, background .12s;
   line-height: 1;
+  letter-spacing: -.01em;
 }
-.brand.clickable {
-  cursor: pointer;
+/* Red Hat shadowman logo */
+.brand-hat {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
 }
-.brand.clickable:hover {
-  color: var(--accent);
-  background: rgba(91,124,246,.1);
-}
-.brand.static {
-  cursor: default;
-}
+/* "k-eval" product name in white; "Red Hat" implied by the hat mark */
+.brand-name { color: var(--text); }
+.brand-sub  { color: var(--text-m); font-weight: 400; font-size: .8rem; letter-spacing: 0; }
+
+.brand.clickable { cursor: pointer; }
+.brand.clickable:hover .brand-name { color: var(--accent-h); }
+.brand.clickable:hover { background: rgba(0,102,204,.1); }
+.brand.static { cursor: default; }
 
 .hdr-divider { width: 1px; height: 20px; background: var(--border-l); flex-shrink: 0; }
-.eval-n { font-size: .9rem; color: var(--text-2); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 280px; }
+.eval-n {
+  font-size: .85rem;
+  color: var(--text-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 280px;
+  font-weight: 500;
+}
 .hdr-sp { flex: 1; }
 
-/* Primary nav — moved left, next to brand */
+/* Primary nav segmented control */
 .seg {
   display: flex;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 3px;
   gap: 2px;
 }
 .seg-btn {
-  padding: 6px 18px;
+  padding: 5px 16px;
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   background: transparent;
   color: var(--text-m);
-  font-size: .875rem;
+  font-size: .82rem;
   font-weight: 500;
   cursor: pointer;
   font-family: var(--font);
   transition: background .12s, color .12s;
+  letter-spacing: .01em;
 }
-.seg-btn:hover { color: var(--text); }
-.seg-btn.on    { background: var(--border); color: var(--text); }
+.seg-btn:hover { color: var(--text); background: var(--s2); }
+.seg-btn.on    {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
 
 /* Header breadcrumb — shown when a sample is selected in Samples view */
 .hdr-crumb {
@@ -201,52 +253,108 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-}
-#v-load.drag-over { outline: 2px inset var(--accent); }
-.load-shelf {
-  display: flex;
-  align-items: center;
   gap: 16px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px 22px;
-  width: 440px;
+  /* Subtle drag target affordance on the full viewport */
+  transition: background .15s;
 }
-.load-icon { font-size: 1.8rem; flex-shrink: 0; }
-.load-copy  { flex: 1; }
-.load-copy h2 { font-size: .95rem; font-weight: 600; }
-.load-copy p  { font-size: .8rem; color: var(--text-2); margin-top: 2px; }
+#v-load.drag-over {
+  background: rgba(0,102,204,.06);
+  outline: 2px dashed var(--accent);
+  outline-offset: -12px;
+}
+
+/* Drop zone card */
+.load-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  background: var(--s1);
+  border: 2px dashed var(--border-l);
+  border-radius: 8px;
+  padding: 40px 52px;
+  width: 460px;
+  text-align: center;
+  transition: border-color .15s, background .15s;
+}
+#v-load.drag-over .load-zone {
+  border-color: var(--accent);
+  background: rgba(0,102,204,.08);
+}
+
+.load-icon { font-size: 2.2rem; line-height: 1; }
+.load-copy h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; }
+.load-copy p  { font-size: .85rem; color: var(--text-2); line-height: 1.55; }
+.load-copy code {
+  font-family: var(--mono);
+  font-size: .8em;
+  background: var(--s2);
+  border: 1px solid var(--border-l);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
 .load-btn {
-  padding: 9px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 24px;
   background: var(--accent);
   color: #fff;
   border: none;
   border-radius: var(--radius);
-  font-size: .82rem;
+  font-size: .875rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   font-family: var(--font);
-  flex-shrink: 0;
+  transition: background .12s;
+  letter-spacing: .01em;
 }
-.load-btn:hover { opacity: .87; }
-.load-err { color: var(--red); font-size: .82rem; }
-.load-msg { color: var(--text-m); font-size: .82rem; }
+.load-btn:hover { background: var(--accent-h); }
+
+.load-hint { font-size: .78rem; color: var(--text-m); }
+.load-err  { color: var(--red); font-size: .85rem; font-weight: 500; }
+.load-msg  { color: var(--text-m); font-size: .82rem; }
 
 /* ── Overview view ─────────────────────────────────────────────────────── */
 #v-ov { flex-direction: column; overflow-y: auto; padding: 28px 36px; gap: 28px; }
-.ov-meta { font-size: .875rem; color: var(--text-m); display: flex; flex-wrap: wrap; align-items: center; gap: 0; }
+
+/* Meta bar */
+.ov-meta {
+  font-size: .875rem;
+  color: var(--text-m);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+}
 .ov-cost-chip strong { color: var(--amber); }
 
 .sec-hdr {
-  font-size: .75rem;
+  font-size: .72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .1em;
-  color: var(--text-2);   /* lifted from --text-m for legibility */
+  color: var(--text-m);
   margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Thin accent bar beside section headers */
+.sec-hdr::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
 /* Ranking */
@@ -258,8 +366,8 @@ body {
 .rank-row  { display: flex; align-items: center; gap: 12px; }
 .rank-pos  { font-family: var(--mono); font-size: .8rem; color: var(--text-m); width: 18px; text-align: right; flex-shrink: 0; }
 .rank-name { width: 200px; font-size: .9rem; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex-shrink: 0; }
-.rank-track { flex: 1; height: 10px; background: var(--border); border-radius: 2px; overflow: hidden; }
-.rank-fill  { height: 100%; border-radius: 2px; }
+.rank-track { flex: 1; height: 8px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.rank-fill  { height: 100%; border-radius: 2px; transition: width .3s ease; }
 .rank-val   { font-family: var(--mono); font-size: .875rem; color: var(--text-2); width: 40px; text-align: right; flex-shrink: 0; }
 .rank-cost  { font-family: var(--mono); font-size: .875rem; color: var(--amber); width: 72px; text-align: right; flex-shrink: 0; }
 .rank-eff-val  { color: var(--text-2); }
@@ -268,33 +376,65 @@ body {
 /* Metric grid — 4 columns when cost card present */
 .metric-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
 .metric-grid.with-cost { grid-template-columns: repeat(3,1fr) 1.1fr; }
+@media (max-width: 900px) {
+  .metric-grid.with-cost { grid-template-columns: repeat(2,1fr); }
+  .metric-grid           { grid-template-columns: repeat(2,1fr); }
+}
 .metric-card {
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px 16px;
 }
-.mc-title { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-m); margin-bottom: 12px; }
+.mc-title { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-m); margin-bottom: 12px; }
 .mc-rows  { display: flex; flex-direction: column; gap: 8px; }
 .mc-row   { display: flex; align-items: center; gap: 8px; }
 .mc-name  { font-size: .85rem; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.mc-track { width: 80px; height: 6px; background: var(--border); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+.mc-track { width: 80px; height: 5px; background: var(--border); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
 .mc-fill  { height: 100%; border-radius: 2px; }
 .mc-val   { font-family: var(--mono); font-size: .85rem; width: 32px; text-align: right; }
 
+/* Cost card — subtle amber tint border */
+.metric-card-cost { border-color: rgba(245,146,27,.3); }
+.mc-title-cost    { color: var(--amber); }
+
 /* Top samples table */
 .inv-tbl  { width: 100%; border-collapse: collapse; }
-.inv-tbl th { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-m); padding: 7px 12px; border-bottom: 1px solid var(--border); text-align: left; }
-.inv-tbl td { padding: 12px 12px; border-bottom: 1px solid var(--border); font-size: .9rem; }
-.inv-tbl tr:hover td { background: var(--s1); cursor: pointer; }
-.inv-idx   { font-family: var(--mono); color: var(--text-m); }
-.inv-q     { color: var(--text-2); max-width: 500px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.inv-delta { font-family: var(--mono); color: var(--amber); text-align: right; }
-.ov-all-link {
-  background: none; border: none; color: var(--text-m); font-size: .875rem; cursor: pointer;
-  margin-top: 12px; font-family: var(--font); padding: 0;
+.inv-tbl th {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-m);
+  padding: 7px 12px; border-bottom: 1px solid var(--border); text-align: left;
 }
-.ov-all-link:hover { color: var(--text); }
+.inv-tbl td { padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: .88rem; }
+.inv-tbl tbody tr { transition: background .1s; cursor: pointer; }
+.inv-tbl tbody tr:hover td { background: var(--s1); }
+.inv-idx   { font-family: var(--mono); color: var(--text-m); width: 56px; }
+.inv-q     { color: var(--text-2); max-width: 500px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.inv-delta { font-family: var(--mono); color: var(--amber); text-align: right; width: 64px; }
+.inv-arrow { color: var(--accent); width: 24px; text-align: center; }
+
+/* "View all samples" CTA — more prominent */
+.ov-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 7px 14px;
+  background: none;
+  border: 1px solid var(--border-l);
+  border-radius: var(--radius);
+  color: var(--text-2);
+  font-size: .85rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: color .12s, border-color .12s, background .12s;
+}
+.ov-all-link:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: rgba(0,102,204,.08);
+}
 
 /* ── Samples view ──────────────────────────────────────────────────────── */
 #v-smp { flex-direction: row; min-height: 0; }
@@ -317,7 +457,7 @@ body {
   min-width: 32px;
 }
 
-/* Collapse toggle button — always visible at top of panel */
+/* Collapse toggle button */
 .lst-collapse-btn {
   position: absolute;
   top: 8px;
@@ -335,12 +475,12 @@ body {
   cursor: pointer;
   z-index: 10;
   flex-shrink: 0;
-  transition: color .12s, background .12s;
+  transition: color .12s, background .12s, border-color .12s;
   font-family: var(--font);
   line-height: 1;
   padding: 0;
 }
-.lst-collapse-btn:hover { color: var(--text); background: var(--border); }
+.lst-collapse-btn:hover { color: var(--text); background: var(--s2); border-color: var(--accent); }
 
 /* Vertical label shown when collapsed */
 .lst-collapsed-label {
@@ -363,7 +503,7 @@ body {
 
 .lst-toolbar {
   padding: 8px 12px;
-  padding-right: 32px; /* space for collapse btn */
+  padding-right: 32px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -381,9 +521,26 @@ body {
   font-size: .85rem;
   font-family: var(--font);
   cursor: pointer;
+  transition: border-color .12s;
 }
-.lst-count { padding: 5px 12px; font-size: .78rem; color: var(--text-m); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.lst-sel:hover { border-color: var(--border-l); }
+
+.lst-count {
+  padding: 5px 12px;
+  font-size: .75rem;
+  color: var(--text-m);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* Keyboard hint badge inline with count */
+.lst-count .kbd-hint { font-size: .65rem; padding: 0 4px; }
+
 #smp-list { flex: 1; overflow-y: auto; }
+/* Give keyboard focus a visible ring on the list container */
+#smp-list:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 .smp-row {
   display: flex;
@@ -396,17 +553,16 @@ body {
   transition: background .1s;
   user-select: none;
 }
-.smp-row:hover    { background: #141828; }
-/* Selected row: strong left accent bar + noticeably different background */
+.smp-row:hover    { background: var(--s1); }
+/* Selected row: strong left accent bar + lifted background */
 .smp-row.on       {
-  background: #1c2340;
+  background: rgba(0,102,204,.14);
   border-left: 3px solid var(--accent);
   padding-left: 9px;
-  box-shadow: inset 0 0 0 1px rgba(91,124,246,.18);
 }
-.smp-row.on .smp-q   { color: var(--text); }     /* selected question fully bright */
-.smp-row.on .smp-idx { color: var(--text-2); }   /* selected index slightly lifted */
-/* Bullet — slightly larger for better visibility */
+.smp-row.on .smp-q   { color: var(--text); }
+.smp-row.on .smp-idx { color: var(--text-2); }
+/* Bullet — score health indicator */
 .smp-bullet       { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .smp-idx          { font-family: var(--mono); font-size: .82rem; color: var(--text-m); width: 30px; flex-shrink: 0; }
 .smp-q            { flex: 1; font-size: .85rem; color: var(--text-2); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -423,10 +579,17 @@ body {
 .det-empty {
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   color: var(--text-m);
   font-size: .9rem;
+}
+.det-empty-hint {
+  font-size: .8rem;
+  color: var(--text-m);
+  opacity: .7;
 }
 
 /* Back-to-overview link in detail panel */
@@ -447,64 +610,76 @@ body {
 .det-back:hover { color: var(--accent); }
 
 /* ── Section A: Question + Reference ──────────────────────────────────── */
-.sec-qa { padding-bottom: 20px; border-bottom: 2px solid var(--border-l); margin-bottom: 22px; }
-.qa-lbl { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-m); margin-bottom: 6px; }
+.sec-qa { padding-bottom: 20px; border-bottom: 2px solid var(--border); margin-bottom: 22px; }
+.qa-lbl { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-m); margin-bottom: 8px; }
 .qa-q   { font-size: 1.05rem; font-weight: 600; color: var(--text); line-height: 1.55; }
-.qa-ref { margin-top: 10px; }
+.qa-ref { margin-top: 12px; }
 .qa-ref-text {
-  font-size: .85rem;
+  font-size: .875rem;
   color: var(--text-2);
-  font-style: italic;
   line-height: 1.65;
   background: var(--s2);
   border: 1px solid var(--border-l);
+  border-left: 3px solid var(--border-l);
   border-radius: var(--radius);
   padding: 10px 14px;
-  margin-top: 5px;
+  margin-top: 6px;
 }
 .ref-toggle {
-  font-size: .78rem; color: var(--text-m); background: none; border: none;
-  cursor: pointer; font-family: var(--font); padding: 0;
+  font-size: .78rem;
+  color: var(--text-m);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+  padding: 0;
+  transition: color .12s;
 }
-.ref-toggle:hover { color: var(--text); }
+.ref-toggle:hover { color: var(--accent-h); }
 
 /* ── Section B: Aggregate score grid ──────────────────────────────────── */
-.sec-scores { margin-bottom: 8px; }  /* judge-section provides 24px top margin */
-.score-grid { display: grid; gap: 10px; }
+.sec-scores { margin-bottom: 8px; }
+.score-grid { display: grid; gap: 8px; }
 .score-col {
-  border-top: 4px solid var(--border-l);   /* thicker top bar */
+  border-top: 3px solid var(--border);
   background: var(--s1);
   border-radius: 0 0 var(--radius) var(--radius);
-  padding: 12px 14px;
+  padding: 12px 12px;
   cursor: pointer;
-  transition: background .12s;
+  transition: background .12s, box-shadow .12s;
 }
-.score-col:hover { background: #13172a; }
-/* Selected column: visible background lift + 2px accent outline */
+.score-col:hover { background: var(--s2); }
+/* Selected column: visible lift + accent outline */
 .score-col.on    {
-  background: #1a2040;
+  background: rgba(0,102,204,.12);
   outline: 2px solid var(--accent);
   outline-offset: -1px;
-  border-top-width: 4px;
 }
 .sc-name {
-  font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
   margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
-.sc-star { color: var(--amber); }
+.sc-star { color: var(--yellow); }
 .sc-comp { font-size: 1.8rem; font-weight: 700; font-family: var(--mono); line-height: 1; margin-bottom: 10px; }
 .sc-metrics { display: flex; flex-direction: column; gap: 4px; }
 .sc-m-row { display: flex; align-items: center; gap: 6px; }
-.sc-m-lbl { font-size: .8rem; color: var(--text-2); width: 58px; flex-shrink: 0; }
+.sc-m-lbl { font-size: .78rem; color: var(--text-2); width: 58px; flex-shrink: 0; }
 .sc-m-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
 .sc-m-fill  { height: 100%; border-radius: 2px; }
-.sc-m-val   { font-family: var(--mono); font-size: .8rem; min-width: 42px; text-align: right; flex-shrink: 0; }
+.sc-m-val   { font-family: var(--mono); font-size: .78rem; min-width: 42px; text-align: right; flex-shrink: 0; }
+.sc-cost-row { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); }
+.sc-cost-lbl { color: var(--text-m); font-size: .75rem; }
+.sc-cost-val { color: var(--text-m); font-family: var(--mono); font-size: .78rem; }
 
 .spread-line {
-  margin-top: 10px; margin-bottom: 4px;
-  font-size: .78rem; color: var(--text-2);  /* slightly brighter */
-  display: flex; align-items: center; gap: 6px;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  font-size: .78rem;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .spread-val { font-family: var(--mono); color: var(--text); }
 
@@ -530,7 +705,7 @@ body {
 .cond-tab:hover { color: var(--text-2); }
 .cond-tab.on    { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
 
-/* Rep tabs — span the full width of the section above the split */
+/* Rep tabs */
 .rep-tabs {
   display: flex;
   gap: 4px;
@@ -545,28 +720,28 @@ body {
   cursor: pointer;
   border-radius: 3px;
   border: 1px solid transparent;
-  transition: background .1s, color .1s;
+  transition: background .1s, color .1s, border-color .1s;
   user-select: none;
   font-family: var(--font);
 }
-.rep-tab:hover { color: var(--text-2); border-color: var(--border); }
-.rep-tab.on    { color: var(--text); background: var(--border); border-color: var(--border-l); }
-.rep-lbl { font-size: .7rem; color: var(--text-m); margin-right: 4px; }
+.rep-tab:hover { color: var(--text-2); border-color: var(--border); background: var(--s2); }
+.rep-tab.on    { color: var(--text); background: var(--s2); border-color: var(--accent); font-weight: 600; }
+.rep-lbl { font-size: .7rem; color: var(--text-m); margin-right: 4px; text-transform: uppercase; letter-spacing: .06em; }
 
 /* ── Judge section wrapper ─────────────────────────────────────────────── */
 .judge-section {
-  background: var(--s3);
-  border: 1px solid var(--border-l);
+  background: var(--s2);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   margin-top: 24px;
   overflow: hidden;
 }
 .judge-section .cond-tabs {
-  background: var(--s3);
-  border-bottom-color: var(--border-l);
+  background: var(--s2);
+  border-bottom-color: var(--border);
 }
 .judge-section .rep-tabs {
-  background: var(--s3);
+  background: var(--s2);
 }
 
 /* ── Section D: Side-by-side split layout ─────────────────────────────── */
@@ -580,7 +755,7 @@ body {
 /* Left column — agent response */
 .flow-left {
   padding: 14px;
-  border-right: 1px solid var(--border-l);
+  border-right: 1px solid var(--border);
   background: var(--bg);
   display: flex;
   flex-direction: column;
@@ -599,8 +774,8 @@ body {
 
 /* Response block */
 .resp-block {
-  background: var(--s2);
-  border: 1px solid var(--border-l);
+  background: var(--s1);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px 16px;
   display: flex;
@@ -612,11 +787,11 @@ body {
   display: flex; justify-content: space-between; align-items: center;
   padding-bottom: 10px;
   margin-bottom: 12px;
-  border-bottom: 1px solid var(--border-l);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 .resp-lbl {
-  font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--text-m);
+  font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--text-m);
   display: flex; align-items: center; gap: 8px;
 }
 .resp-lbl::before {
@@ -627,7 +802,7 @@ body {
   border-radius: 2px;
   flex-shrink: 0;
 }
-.resp-rep-lbl { font-size: .8rem; color: var(--text-m); font-family: var(--mono); }
+.resp-rep-lbl { font-size: .78rem; color: var(--text-m); font-family: var(--mono); }
 .resp-body {
   font-size: 13px;
   color: var(--text-2);
@@ -644,8 +819,9 @@ body {
   font-size: .75rem; color: var(--text-m); background: none; border: none;
   cursor: pointer; font-family: var(--font); padding: 0;
   flex-shrink: 0;
+  transition: color .12s;
 }
-.resp-expand-btn:hover { color: var(--text); }
+.resp-expand-btn:hover { color: var(--accent-h); }
 .resp-footer {
   margin-top: 8px;
   padding-top: 8px;
@@ -656,12 +832,12 @@ body {
 }
 .resp-footer span { white-space: nowrap; }
 
-/* Judge panel header — compact label row above metric blocks */
+/* Judge panel header — consistent with resp-lbl style */
 .judge-panel-hdr {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: .7rem;
+  font-size: .68rem;
   font-weight: 700;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -681,25 +857,25 @@ body {
 
 /* Metric reasoning blocks */
 .metric-block {
-  border: 1px solid var(--border-l);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 10px 14px;
-  background: var(--s2);
+  background: var(--s1);
   flex-shrink: 0;
 }
 .mb-hdr {
   display: flex; align-items: center; gap: 8px;
-  margin-bottom: 4px;   /* tight — hdr and text are one visual unit */
+  margin-bottom: 4px;
 }
 .mb-name  {
-  font-size: .75rem;
+  font-size: .72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .08em;
   color: var(--text-2);
   flex: 1;
 }
-.mb-track { width: 64px; height: 5px; background: var(--border); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+.mb-track { width: 64px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
 .mb-fill  { height: 100%; border-radius: 2px; }
 .mb-mean  { font-family: var(--mono); font-size: .82rem; }
 .mb-std   { font-family: var(--mono); font-size: .75rem; color: var(--text-m); }
@@ -707,12 +883,42 @@ body {
 
 /* ── Section E: Unverified claims ──────────────────────────────────────── */
 .sec-claims { margin-top: 28px; }
-.claims-grid { display: grid; gap: 1px; background: var(--border-l); border: 1px solid var(--border-l); border-radius: var(--radius); overflow: hidden; }
-.claims-cell { background: var(--s2); padding: 12px; }
-.claims-cond { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
-.claim-item  { border-left: 3px solid var(--amber); padding: 4px 8px; font-size: .82rem; color: var(--text-2); line-height: 1.5; margin-bottom: 4px; }
+.claims-grid {
+  display: grid;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.claims-cell { background: var(--s1); padding: 12px; }
+.claims-cond {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: 8px;
+}
+.claim-item  {
+  border-left: 3px solid var(--amber);
+  padding: 4px 8px;
+  font-size: .82rem;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 4px;
+  background: rgba(245,146,27,.06);
+  border-radius: 0 2px 2px 0;
+}
 .claim-item:last-child { margin-bottom: 0; }
-.claims-none { font-size: .82rem; color: var(--text-m); }
+/* "None" treatment — use a check mark with green tint for clarity */
+.claims-none {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .82rem;
+  color: var(--green);
+}
+.claims-none::before { content: '✓'; font-weight: 700; }
 
 /* ── Score color utils ─────────────────────────────────────────────────── */
 .s-g { color: var(--green); }
@@ -723,17 +929,17 @@ body {
 .md-toggle {
   font-size: .7rem;
   color: var(--text-m);
-  background: var(--s1);
+  background: var(--s2);
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 2px 7px;
   cursor: pointer;
   font-family: var(--mono);
-  transition: color .12s, border-color .12s;
+  transition: color .12s, border-color .12s, background .12s;
   flex-shrink: 0;
 }
-.md-toggle:hover { color: var(--text-2); border-color: var(--border-l); }
-.md-toggle.on    { color: var(--accent); border-color: var(--accent); }
+.md-toggle:hover { color: var(--text-2); border-color: var(--border-l); background: var(--s3); }
+.md-toggle.on    { color: var(--accent-h); border-color: var(--accent); background: rgba(0,102,204,.1); }
 
 /* ── Markdown prose (scoped under .md-body) ────────────────────────────── */
 .md-body {
@@ -741,12 +947,10 @@ body {
   color: var(--text-2);
   line-height: 1.8;
   min-width: 0;
-  /* BFC: prevents margin collapse swallowing heading top margins */
   display: flow-root;
 }
 .md-body p               { margin: 0 0 1em; }
 .md-body p:last-child    { margin-bottom: 0; }
-/* Use lobotomised owl for heading spacing — guarantees gap regardless of collapse */
 .md-body * + h1, .md-body * + h2, .md-body * + h3,
 .md-body * + h4, .md-body * + h5, .md-body * + h6 { margin-top: 1.6em; }
 .md-body h1, .md-body h2, .md-body h3,
@@ -765,15 +969,15 @@ body {
 .md-body code {
   font-family: var(--mono);
   font-size: .875em;
-  background: #1e2540;
-  border: 1px solid #2e3558;
+  background: var(--code-bg);
+  border: 1px solid var(--code-bdr);
   border-radius: 3px;
   padding: 2px 6px;
-  color: #c9d1e8;
+  color: var(--text-2);
 }
 .md-body pre {
-  background: #111827;
-  border: 1px solid #252d42;
+  background: var(--pre-bg);
+  border: 1px solid var(--pre-bdr);
   border-left: 3px solid var(--accent);
   border-radius: 0 var(--radius) var(--radius) 0;
   padding: 12px 16px;
@@ -786,7 +990,7 @@ body {
   border: none;
   padding: 0;
   font-size: .875em;
-  color: #b0bdd6;
+  color: var(--text-2);
   border-radius: 0;
 }
 .md-body blockquote {
@@ -795,14 +999,14 @@ body {
   color: var(--text-m);
   margin: .5em 0;
 }
-.md-body a       { color: var(--accent); text-decoration: none; }
+.md-body a       { color: var(--accent-h); text-decoration: none; }
 .md-body a:hover { text-decoration: underline; }
 .md-body strong  { color: var(--text); font-weight: 600; }
 .md-body em      { color: var(--text-2); }
 .md-body hr      { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
 .md-body table   { border-collapse: collapse; width: 100%; margin-bottom: .75em; font-size: .9em; }
 .md-body th, .md-body td { border: 1px solid var(--border); padding: 5px 10px; text-align: left; }
-.md-body th      { background: var(--s1); color: var(--text); font-weight: 600; }
+.md-body th      { background: var(--s2); color: var(--text); font-weight: 600; }
 
 /* When md-body is inside resp-body (scrollable container), size to content */
 .resp-body.md-mode { white-space: normal; font-family: var(--font); flex: none; }
@@ -814,14 +1018,194 @@ body {
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 4px 10px;
+  padding: 5px 12px;
   cursor: pointer;
   font-family: var(--font);
-  transition: color .12s, border-color .12s;
+  transition: color .12s, border-color .12s, background .12s;
   white-space: nowrap;
   flex-shrink: 0;
+  font-weight: 500;
 }
-.hdr-load-btn:hover { color: var(--text); border-color: var(--border-l); }
+.hdr-load-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(0,102,204,.08); }
+
+/* ── Winner callout banner ─────────────────────────────────────────────── */
+.winner-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(99,153,61,.12);
+  border: 1px solid rgba(99,153,61,.35);
+  border-left: 3px solid var(--green);
+  border-radius: var(--radius);
+  font-size: .88rem;
+}
+.winner-banner-label {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--green);
+  flex-shrink: 0;
+}
+.winner-banner-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+}
+.winner-banner-score {
+  font-family: var(--mono);
+  font-size: .92rem;
+  color: var(--text-2);
+}
+.winner-banner-margin {
+  font-family: var(--mono);
+  font-size: .8rem;
+  color: var(--text-m);
+  margin-left: auto;
+}
+.winner-banner-margin strong { color: var(--text-2); }
+
+/* ── Domain term inline glossary label ─────────────────────────────────── */
+.term-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: help;
+  border-bottom: 1px dotted var(--border-l);
+}
+.term-tip-icon {
+  font-size: .7em;
+  color: var(--text-m);
+  vertical-align: super;
+  line-height: 1;
+}
+
+/* ── Clickable row hint ─────────────────────────────────────────────────── */
+.inv-tbl tbody tr td.inv-arrow {
+  opacity: .45;
+  transition: opacity .1s;
+}
+.inv-tbl tbody tr:hover td.inv-arrow { opacity: 1; color: var(--accent); }
+
+/* ── Condition definition note ─────────────────────────────────────────── */
+.ov-glossary {
+  font-size: .78rem;
+  color: var(--text-m);
+  padding: 7px 14px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  line-height: 1.55;
+}
+.ov-glossary strong { color: var(--text-2); font-weight: 600; }
+
+/* ── Run tabs (was: Rep tabs) — clearer labeling ─────────────────────── */
+.run-count-badge {
+  font-size: .68rem;
+  color: var(--text-m);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: var(--mono);
+  margin-left: 2px;
+}
+
+/* ── Score grid click hint ──────────────────────────────────────────────── */
+.score-grid-hint {
+  font-size: .73rem;
+  color: var(--text-m);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.score-grid-hint::before {
+  content: '↓';
+  color: var(--accent);
+  font-size: .8rem;
+}
+
+/* ── Spread row — rename to Score Range ─────────────────────────────────── */
+.spread-line .spread-interpretation {
+  font-size: .74rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--s2);
+}
+
+/* ── MD toggle — clearer label ──────────────────────────────────────────── */
+.md-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── Sample list sort hint ──────────────────────────────────────────────── */
+.lst-sort-hint {
+  padding: 4px 12px 6px;
+  font-size: .73rem;
+  color: var(--text-m);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  font-style: italic;
+}
+
+/* ── Unverified claims section note ────────────────────────────────────── */
+.claims-note {
+  font-size: .78rem;
+  color: var(--text-m);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+/* ── Empty state improvements ───────────────────────────────────────────── */
+.det-empty-icon {
+  font-size: 2rem;
+  margin-bottom: 4px;
+}
+.det-empty h3 {
+  font-size: .95rem;
+  color: var(--text-2);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.det-empty p {
+  font-size: .82rem;
+  color: var(--text-m);
+  text-align: center;
+  max-width: 240px;
+  line-height: 1.6;
+}
+
+/* ── Variance summary chip in overview ─────────────────────────────────── */
+.ov-variance-note {
+  font-size: .78rem;
+  color: var(--text-m);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+/* ── Judge section condition indicator ─────────────────────────────────── */
+.judge-cond-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  font-size: .73rem;
+  color: var(--text-m);
+  border-bottom: 1px solid var(--border);
+  background: var(--s2);
+  flex-shrink: 0;
+}
+.judge-cond-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.judge-cond-indicator strong { color: var(--text-2); }
 </style>
 </head>
 <body>
@@ -829,101 +1213,142 @@ body {
 
 <!-- ── Header ────────────────────────────────────────────────────────── -->
 <header id="hdr">
-  <!-- Brand: clickable when loaded (navigates to Overview), static otherwise -->
+  <!-- Brand mark: Red Hat SVG hat + product name -->
   <button
     class="brand"
     :class="loaded ? 'clickable' : 'static'"
     @click="loaded && (view = 'ov')"
     :title="loaded ? 'Back to Overview' : 'k-eval'"
     :aria-label="loaded ? 'k-eval — back to Overview' : 'k-eval'"
-  >k-eval</button>
+  >
+    <!-- Red Hat shadowman logo (hat only, cropped viewBox) -->
+    <svg class="brand-hat" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 145" aria-hidden="true" focusable="false">
+      <path d="M127.47 83.49c12.51 0 30.61-2.58 30.61-17.46a14 14 0 0 0-.31-3.42l-7.45-32.36c-1.72-7.12-3.23-10.35-15.73-16.6C124.89 8.69 103.76.5 97.51.5 91.69.5 90 8 83.06 8c-6.68 0-11.64-5.6-17.89-5.6-6 0-9.91 4.09-12.93 12.5 0 0-8.41 23.72-9.49 27.16a6.43 6.43 0 0 0-.22 1.94c0 9.22 36.3 39.45 84.94 39.45M160 72.07c1.73 8.19 1.73 9.05 1.73 10.13 0 14-15.74 21.77-36.43 21.77-46.76.03-87.72-27.37-87.72-45.48a18.45 18.45 0 0 1 1.51-7.33C22.27 52 .5 55 .5 74.22c0 31.48 74.59 70.28 133.65 70.28 45.28 0 56.7-20.48 56.7-36.65 0-12.72-11-27.16-30.83-35.78" fill="#ee0000"/>
+      <path d="M160 72.07c1.73 8.19 1.73 9.05 1.73 10.13 0 14-15.74 21.77-36.43 21.77-46.76.03-87.72-27.37-87.72-45.48a18.45 18.45 0 0 1 1.51-7.33l3.66-9.06a6.43 6.43 0 0 0-.22 1.9c0 9.22 36.3 39.45 84.94 39.45 12.51 0 30.61-2.58 30.61-17.46a14 14 0 0 0-.31-3.42Z"/>
+    </svg>
+    <span class="brand-name">k-eval</span>
+  </button>
 
   <!-- Primary nav — anchored left, next to brand -->
-  <div class="seg" v-if="loaded">
-    <button class="seg-btn" :class="{on: view==='ov'}"  @click="view='ov'">Overview</button>
-    <button class="seg-btn" :class="{on: view==='smp'}" @click="view='smp'">Samples</button>
+  <div class="seg" v-if="loaded" role="tablist" aria-label="Main navigation">
+    <button class="seg-btn" :class="{on: view==='ov'}"  @click="view='ov'"  role="tab" :aria-selected="view==='ov'">Overview</button>
+    <button class="seg-btn" :class="{on: view==='smp'}" @click="view='smp'" role="tab" :aria-selected="view==='smp'">Samples</button>
   </div>
 
   <!-- Eval name + optional sample breadcrumb -->
   <template v-if="loaded">
-    <div class="hdr-divider"></div>
-    <span class="eval-n">{{ evalName }}</span>
+    <div class="hdr-divider" aria-hidden="true"></div>
+    <span class="eval-n" :title="evalName">{{ evalName }}</span>
     <template v-if="view === 'smp' && selIdx">
-      <span class="hdr-crumb-sep">›</span>
-      <span class="hdr-crumb-q">#{{ selIdx }} · {{ selQ }}</span>
+      <span class="hdr-crumb-sep" aria-hidden="true">›</span>
+      <span class="hdr-crumb-q" :title="selQ">#{{ selIdx }} · {{ selQ }}</span>
     </template>
   </template>
 
   <div class="hdr-sp"></div>
 
-
-
   <!-- Load another file — always accessible once data is loaded -->
   <template v-if="loaded">
-    <button class="hdr-load-btn" @click="$refs.fiHdr.click()" title="Load a different .detailed.jsonl file">Open file…</button>
+    <button class="hdr-load-btn" @click="$refs.fiHdr.click()" title="Load a different .detailed.jsonl evaluation file" aria-label="Load a different evaluation file">Load eval…</button>
     <input ref="fiHdr" type="file" accept=".jsonl,.json" style="display:none" @change="onFile">
   </template>
 </header>
 
 <!-- ── Load view ──────────────────────────────────────────────────────── -->
 <div id="v-load" class="view" :class="{on: !loaded, 'drag-over': dragging}"
+     role="main" aria-label="Load evaluation file"
      @dragover.prevent="dragging=true" @dragleave="dragging=false" @drop.prevent="onDrop">
-  <div class="load-shelf">
-    <div class="load-icon">📊</div>
+  <div class="load-zone" :class="{'drag-over': dragging}">
+    <div class="load-icon" aria-hidden="true">📊</div>
     <div class="load-copy">
       <h2>k-eval Viewer</h2>
-      <p>Drop a <code>.detailed.jsonl</code> anywhere, or browse.</p>
+      <p>Load a k-eval results file to compare how different agent configurations performed across a benchmark dataset.</p>
+      <p style="margin-top:8px">Drop a <code>.detailed.jsonl</code> file anywhere on this page, or click the button below.</p>
     </div>
-    <button class="load-btn" @click="$refs.fi.click()">Choose file</button>
+    <button class="load-btn" @click="$refs.fi.click()" aria-label="Browse your filesystem to choose an evaluation results file">
+      Choose results file…
+    </button>
+    <p class="load-hint">Accepts <code>.jsonl</code> or <code>.json</code> — produced by <code>k-eval run</code></p>
     <input ref="fi" type="file" accept=".jsonl,.json" style="display:none" @change="onFile">
   </div>
-  <p class="load-err" v-if="loadErr">{{ loadErr }}</p>
-  <p class="load-msg" v-if="loadMsg">{{ loadMsg }}</p>
+  <p class="load-err" v-if="loadErr" role="alert">{{ loadErr }} Check that the file was produced by <code>k-eval run</code> and is not empty.</p>
+  <p class="load-msg" v-if="loadMsg" role="status">{{ loadMsg }}</p>
 </div>
 
 <!-- ── Overview ───────────────────────────────────────────────────────── -->
-<div id="v-ov" class="view" :class="{on: loaded && view==='ov'}">
+<div id="v-ov" class="view" :class="{on: loaded && view==='ov'}" role="main">
 
   <p class="ov-meta">
     {{ sampleIds.length }} samples &nbsp;·&nbsp;
-    {{ conditions.length }} conditions &nbsp;·&nbsp;
-    {{ repCount }} reps each &nbsp;·&nbsp;
+    <span class="tt tt-down">
+      <span class="term-tip">{{ conditions.length }} conditions<span class="term-tip-icon">?</span></span>
+      <span class="tt-body">A <strong>condition</strong> is a distinct agent configuration (e.g. different prompt, model, or tool setup) being compared in this evaluation.</span>
+    </span>
+    &nbsp;·&nbsp;
+    <span class="tt tt-down">
+      <span class="term-tip">{{ repCount }} runs each<span class="term-tip-icon">?</span></span>
+      <span class="tt-body">Each condition was run <strong>{{ repCount }}×</strong> independently on every sample to account for model non-determinism. Scores are averaged across runs.</span>
+    </span>
+    &nbsp;·&nbsp;
     <span class="tt tt-down">
       agent: {{ modelId }}
-      <span class="tt-body">LLM model used by the agent across all conditions and repetitions.</span>
+      <span class="tt-body">LLM model used by the agent across all conditions and runs.</span>
     </span>
     &nbsp;·&nbsp;
     <span class="tt tt-down ov-cost-chip">
       agent cost:&nbsp;<strong>{{ fmtCost(totalCost) }}</strong>
-      <span class="tt-body">Agent LLM API costs across all samples, conditions, and repetitions. Does not include judge LLM costs.</span>
+      <span class="tt-body">Agent LLM API costs across all samples, conditions, and runs. Does not include judge LLM costs.</span>
     </span>
   </p>
 
   <!-- Ranking -->
   <div>
-    <div class="sec-hdr">Condition Ranking &nbsp;·&nbsp; composite mean (1–5)</div>
+    <div class="sec-hdr">
+      Condition Ranking
+      <span class="tt tt-down" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:var(--text-m)">
+        <span class="term-tip">composite score (1–5)<span class="term-tip-icon">?</span></span>
+        <span class="tt-body">The <strong>composite score</strong> is the average of three judge metrics: Factual Adherence, Completeness, and Helpfulness &amp; Clarity. Scored 1–5 per sample per run, then averaged across all samples and runs.</span>
+      </span>
+    </div>
+
+    <!-- Winner callout — immediate answer to "which condition won?" -->
+    <div class="winner-banner" v-if="condRanking.length >= 2" role="status" :aria-label="'Best condition: ' + condRanking[0].cond">
+      <span class="winner-banner-label">Best condition</span>
+      <span class="winner-banner-name" :style="{color: cc(condRanking[0].cond)}">{{ condRanking[0].cond }}</span>
+      <span class="winner-banner-score">{{ condRanking[0].mean.toFixed(2) }} / 5</span>
+      <span class="winner-banner-margin">
+        +{{ (condRanking[0].mean - condRanking[1].mean).toFixed(2) }} pts ahead of
+        <strong>{{ condRanking[1].cond }}</strong>
+      </span>
+    </div>
+    <div class="winner-banner" v-else-if="condRanking.length === 1" role="status">
+      <span class="winner-banner-label">Only condition</span>
+      <span class="winner-banner-name" :style="{color: cc(condRanking[0].cond)}">{{ condRanking[0].cond }}</span>
+      <span class="winner-banner-score">{{ condRanking[0].mean.toFixed(2) }} / 5</span>
+    </div>
+
     <div class="rank-list">
       <!-- Column headers -->
-      <div class="rank-hdr">
+      <div class="rank-hdr" aria-hidden="true">
         <span style="width:18px;flex-shrink:0"></span>
         <span style="width:200px;flex-shrink:0"></span>
         <span class="rank-hdr-spacer"></span>
-        <span class="rank-hdr-score">Score</span>
-        <span class="rank-hdr-cost tt tt-down">Agent cost<span class="tt-body">Agent LLM API cost for this condition. Does not include judge LLM costs.</span></span>
+        <span class="rank-hdr-score tt tt-down">Score<span class="tt-body">Composite score: average of Factual, Completeness, and Helpfulness across all samples and runs.</span></span>
+        <span class="rank-hdr-cost tt tt-down">Agent cost<span class="tt-body">Agent LLM API cost for this condition across all samples and runs. Does not include judge LLM costs.</span></span>
       </div>
       <div class="rank-row" v-for="(r,i) in condRanking" :key="r.cond">
-        <span class="rank-pos">{{ i+1 }}.</span>
+        <span class="rank-pos" :aria-label="'Rank ' + (i+1)">{{ i+1 }}.</span>
         <span class="rank-name tt" :style="{color: cc(r.cond)}">
           {{ r.cond }}
-          <span class="tt-body">{{ r.cond }}: {{ r.mean.toFixed(3) }} composite mean across {{ sampleIds.length }} samples × {{ repCount }} reps.</span>
+          <span class="tt-body">{{ r.cond }}: {{ r.mean.toFixed(3) }} composite mean across {{ sampleIds.length }} samples × {{ repCount }} runs.</span>
         </span>
-        <div class="rank-track">
+        <div class="rank-track" role="progressbar" :aria-valuenow="r.mean.toFixed(2)" aria-valuemin="0" aria-valuemax="5" :aria-label="r.cond + ' score'">
           <div class="rank-fill" :style="{width: bp(r.mean)+'%', background: cc(r.cond)}"></div>
         </div>
         <span class="rank-val">{{ r.mean.toFixed(2) }}</span>
         <span class="rank-cost tt tt-down tt-right">
           {{ fmtCost(costByCond[r.cond]) }}
-          <span class="tt-body">Total cost for {{ r.cond }}: {{ fmtCost(costByCond[r.cond]) }}<br>{{ pctOfTotal(r.cond) }}% of total spend.</span>
+          <span class="tt-body">Total agent cost for {{ r.cond }}: {{ fmtCost(costByCond[r.cond]) }}<br>{{ pctOfTotal(r.cond) }}% of total spend.</span>
         </span>
       </div>
     </div>
@@ -931,7 +1356,7 @@ body {
 
   <!-- Metric breakdown -->
   <div>
-    <div class="sec-hdr">Per-Metric Breakdown</div>
+    <div class="sec-hdr">Score Breakdown by Metric</div>
     <div class="metric-grid with-cost">
       <div class="metric-card" v-for="m in METRICS" :key="m.key">
         <div class="mc-title tt tt-down">
@@ -949,8 +1374,8 @@ body {
         </div>
       </div>
       <!-- Cost & Efficiency card -->
-      <div class="metric-card" style="border-color: rgba(245,158,11,.25);">
-        <div class="mc-title tt tt-down" style="color:var(--amber)">Agent Cost &amp; Efficiency<span class="tt-body">Agent LLM API costs only. Does not include judge LLM costs.</span></div>
+      <div class="metric-card metric-card-cost">
+        <div class="mc-title mc-title-cost tt tt-down">Agent Cost &amp; Efficiency<span class="tt-body">Agent LLM API costs only. Does not include judge LLM costs.</span></div>
         <div class="mc-rows">
           <div class="mc-row" v-for="r in condRanking" :key="r.cond">
             <span class="mc-name tt" :style="{color: cc(r.cond)}" :title="r.cond">{{ r.cond }}
@@ -967,7 +1392,7 @@ body {
                   :class="isBestValue(r.cond) ? 'rank-eff-best' : 'rank-eff-val'"
                   style="width:52px;font-size:.78rem">
               {{ efficiencyScore(r.cond) }}<span style="font-size:.7em;margin-left:1px">/$</span>
-              <span v-if="isBestValue(r.cond)" style="margin-left:2px;font-size:.75em">★</span>
+              <span v-if="isBestValue(r.cond)" style="margin-left:2px;font-size:.75em" aria-label="Best value condition">★</span>
               <span class="tt-body">{{ efficiencyScore(r.cond) }} pts per dollar<br>{{ isBestValue(r.cond) ? '★ Best value condition' : 'Best: '+bestEffCond+' ('+bestEffScore+')' }}</span>
             </span>
           </div>
@@ -978,88 +1403,111 @@ body {
 
   <!-- Top samples -->
   <div>
-    <div class="sec-hdr">Top Samples to Investigate &nbsp;·&nbsp; highest score variance across conditions</div>
-    <table class="inv-tbl">
+    <div class="sec-hdr">
+      Most Interesting Samples to Investigate
+      <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:var(--text-m)">· conditions disagree most here</span>
+    </div>
+    <p class="ov-variance-note">These samples show the largest gap between conditions — the best place to understand <em>why</em> one condition outperforms another. Click any row to inspect.</p>
+    <table class="inv-tbl" aria-label="Samples with highest score variance across conditions">
       <thead><tr>
         <th style="width:56px">#</th>
         <th>Question</th>
-        <th style="width:64px;text-align:right">
-          <span class="tt tt-down">Spread <span class="tt-body">Max composite − min composite across conditions. Higher = conditions disagree more.</span></span>
+        <th style="width:88px;text-align:right">
+          <span class="tt tt-down">
+            Score gap
+            <span class="tt-body"><strong>Score gap</strong>: best condition score minus worst condition score on this sample. A larger gap means conditions behaved very differently — good to investigate.</span>
+          </span>
         </th>
-        <th style="width:24px"></th>
+        <th style="width:28px"></th>
       </tr></thead>
       <tbody>
-        <tr v-for="s in topVariance" :key="s.idx" @click="goSample(s.idx)">
+        <tr v-for="s in topVariance" :key="s.idx" @click="goSample(s.idx)" :aria-label="'Sample ' + s.idx + ': ' + s.q + ', score gap ' + s.delta.toFixed(2)">
           <td class="inv-idx">#{{ s.idx }}</td>
           <td class="inv-q" :title="s.q">{{ s.q }}</td>
-          <td class="inv-delta">Δ{{ s.delta.toFixed(2) }}</td>
-          <td style="color:var(--text-m)">→</td>
+          <td class="inv-delta">{{ s.delta.toFixed(2) }}</td>
+          <td class="inv-arrow" aria-hidden="true">→</td>
         </tr>
       </tbody>
     </table>
-    <button class="ov-all-link" @click="view='smp'">View all {{ sampleIds.length }} samples →</button>
+    <button class="ov-all-link" @click="view='smp'" aria-label="View all samples in the Samples view">
+      View all {{ sampleIds.length }} samples →
+    </button>
   </div>
 
 </div>
 
 <!-- ── Samples view ────────────────────────────────────────────────────── -->
-<div id="v-smp" class="view" :class="{on: loaded && view==='smp'}">
+<div id="v-smp" class="view" :class="{on: loaded && view==='smp'}" role="main">
 
   <!-- List panel -->
-  <div id="lst-panel" :class="{collapsed: sidebarCollapsed}">
+  <div id="lst-panel" :class="{collapsed: sidebarCollapsed}" role="navigation" aria-label="Sample list">
     <!-- Collapse toggle — always visible -->
     <button
       class="lst-collapse-btn"
       @click="sidebarCollapsed = !sidebarCollapsed"
-      :title="sidebarCollapsed ? 'Expand sidebar  [' : 'Collapse sidebar  ['"
+      :title="sidebarCollapsed ? 'Expand sample list  [ (keyboard shortcut)' : 'Collapse sample list  [ (keyboard shortcut)'"
       :aria-label="sidebarCollapsed ? 'Expand sample list' : 'Collapse sample list'"
+      :aria-expanded="!sidebarCollapsed"
     >{{ sidebarCollapsed ? '›' : '‹' }}</button>
 
     <!-- Vertical label shown when collapsed -->
-    <span class="lst-collapsed-label">Samples</span>
+    <span class="lst-collapsed-label" aria-hidden="true">Samples</span>
 
     <div class="lst-toolbar">
-      <span class="lst-lbl">Sort:</span>
-      <select class="lst-sel" v-model="sortMode">
-        <option value="variance">Score variance</option>
-        <option value="lowest">Lowest score</option>
-        <option value="highest">Highest score</option>
+      <label class="lst-lbl" for="sort-select">Sort:</label>
+      <select class="lst-sel" id="sort-select" v-model="sortMode" aria-label="Sort samples by">
+        <option value="variance">Biggest condition gap</option>
+        <option value="lowest">Worst score first</option>
+        <option value="highest">Best score first</option>
         <option value="idx">Sample index</option>
       </select>
     </div>
-    <div class="lst-count">{{ sortedIds.length }} samples · ↑↓ to navigate</div>
-    <div id="smp-list" ref="listEl" tabindex="0" @keydown="onKey">
+    <div class="lst-count">
+      {{ sortedIds.length }} samples
+      <span class="kbd-hint" title="Use arrow keys to navigate when the list is focused" aria-hidden="true">↑↓</span>
+    </div>
+    <div class="lst-sort-hint" v-if="sortMode==='variance'">Sorted by how much conditions disagreed — best for finding failures</div>
+    <div class="lst-sort-hint" v-else-if="sortMode==='lowest'">Sorted by worst score — best for finding hard failures</div>
+    <div class="lst-sort-hint" v-else-if="sortMode==='highest'">Sorted by best score first</div>
+    <div id="smp-list" ref="listEl" tabindex="0" @keydown="onKey" role="listbox" :aria-label="'Sample list, ' + sortedIds.length + ' items'" :aria-activedescendant="selIdx ? 'smp-row-' + selIdx : undefined">
       <div
         class="smp-row"
         :class="{on: selIdx===s.idx}"
         v-for="s in sortedIds"
         :key="s.idx"
+        :id="'smp-row-' + s.idx"
         :data-idx="s.idx"
         @click="sel(s.idx)"
+        role="option"
+        :aria-selected="selIdx===s.idx"
+        :aria-label="'Sample ' + s.idx + ': ' + s.q + ', score gap ' + s.delta.toFixed(2)"
       >
         <span class="smp-bullet tt"
               :style="{background: bulletColor(s.best)}"
+              aria-hidden="true"
               >
-          <span class="tt-body">Best condition score: {{ s.best.toFixed(2) }}<br>● ≥4.0 green · ≥3.0 yellow · &lt;3.0 red</span>
+          <span class="tt-body">Best condition score: {{ s.best.toFixed(2) }} / 5<br>Green ≥4.0 · Yellow ≥3.0 · Red &lt;3.0</span>
         </span>
         <span class="smp-idx">#{{ s.idx }}</span>
         <span class="smp-q">{{ s.q }}</span>
-        <span class="smp-delta tt tt-right">
-          Δ{{ s.delta.toFixed(2) }}
-          <span class="tt-body">Score spread: {{ s.delta.toFixed(2) }} pts<br>Max − min composite across conditions.</span>
+        <span class="smp-delta tt tt-right" aria-label="Score gap between best and worst condition">
+          ±{{ s.delta.toFixed(2) }}
+          <span class="tt-body">Score gap: {{ s.delta.toFixed(2) }} pts between best and worst condition on this sample.</span>
         </span>
       </div>
     </div>
   </div>
 
   <!-- Detail panel -->
-  <div id="det-panel" ref="detEl">
-    <div class="det-empty" v-if="!selIdx">← Select a sample</div>
+  <div id="det-panel" ref="detEl" role="region" aria-label="Sample detail">
+    <div class="det-empty" v-if="!selIdx">
+      <div class="det-empty-icon" aria-hidden="true">📋</div>
+      <h3>Select a sample to inspect</h3>
+      <p>Choose a sample from the list on the left. Each sample shows the agent's response and the judge's scoring for every condition.</p>
+      <span class="det-empty-hint">Tip: use ↑↓ arrow keys when the list is focused</span>
+    </div>
 
     <template v-if="selIdx">
-
-      <!-- Back link to Overview -->
-      <button class="det-back" @click="view = 'ov'" title="Back to Overview">← Overview</button>
 
       <!-- A: Question + Reference -->
       <div class="sec-qa">
@@ -1067,19 +1515,22 @@ body {
         <div class="qa-q">{{ selQ }}</div>
         <div class="qa-ref">
           <div style="display:flex;align-items:center;gap:10px">
-            <button class="ref-toggle" @click="showRef=!showRef">
+            <button class="ref-toggle" @click="showRef=!showRef" :aria-expanded="showRef" aria-controls="ref-answer-block">
               {{ showRef ? '▴ Hide reference answer' : '▾ Show reference answer' }}
             </button>
-            <button v-if="showRef" class="md-toggle" :class="{on: mdRef}" @click="mdRef=!mdRef" title="Toggle markdown rendering">MD</button>
+            <button v-if="showRef" class="md-toggle" :class="{on: mdRef}" @click="mdRef=!mdRef" :title="mdRef ? 'Switch to plain text view' : 'Render as Markdown (formatted)'" :aria-pressed="mdRef" aria-label="Toggle markdown rendering for reference answer">{{ mdRef ? 'Rendered' : 'Plain' }}</button>
           </div>
-          <div class="qa-ref-text md-body" v-if="showRef && mdRef" v-html="md(selRef)"></div>
-          <div class="qa-ref-text" v-if="showRef && !mdRef">{{ selRef }}</div>
+          <div id="ref-answer-block">
+            <div class="qa-ref-text md-body" v-if="showRef && mdRef" v-html="md(selRef)"></div>
+            <div class="qa-ref-text" v-if="showRef && !mdRef">{{ selRef }}</div>
+          </div>
         </div>
       </div>
 
       <!-- B: Aggregate score grid -->
       <div class="sec-scores">
-        <div class="sec-hdr">Scores by Condition &nbsp;·&nbsp; click to inspect</div>
+        <div class="sec-hdr">Scores by Condition</div>
+        <p class="score-grid-hint">Click a condition card to view its agent response and judge reasoning below</p>
         <div class="score-grid" :style="{gridTemplateColumns: 'repeat('+conditions.length+', 1fr)'}">
           <div
             class="score-col"
@@ -1088,11 +1539,16 @@ body {
             v-for="(cond, ci) in conditions"
             :key="cond"
             @click="selCond=cond"
+            role="button"
+            :aria-pressed="selCond===cond"
+            :aria-label="cond + ': composite score ' + compScore(cond).toFixed(1)"
+            tabindex="0"
+            @keydown.enter.space.prevent="selCond=cond"
           >
             <div class="sc-name" :style="{color: cc(cond)}">
               {{ cond }}
               <span class="sc-star" v-if="isWinner(cond)">
-                <span class="tt">★<span class="tt-body">Highest composite score for this sample.</span></span>
+                <span class="tt" aria-label="Highest scoring condition for this sample">★<span class="tt-body">Highest composite score for this sample.</span></span>
               </span>
             </div>
             <div class="sc-comp" :class="sc(compScore(cond))">
@@ -1113,16 +1569,16 @@ body {
                 <div class="sc-m-track"><div class="sc-m-fill" :style="{width: bp(mv(cond,m.key))+'%', background: cc(cond)}"></div></div>
                 <span class="sc-m-val tt" :class="[sc(mv(cond,m.key)), ci >= conditions.length - 1 ? 'tt-right' : '']">
                   {{ mv(cond,m.key).toFixed(2) }}
-                  <span class="tt-body">Mean: {{ mv(cond,m.key).toFixed(3) }} across {{ repCount }} reps<br>± {{ sd(cond,m.key).toFixed(3) }} std dev</span>
+                  <span class="tt-body">Mean: {{ mv(cond,m.key).toFixed(3) }} across {{ repCount }} runs<br>± {{ sd(cond,m.key).toFixed(3) }} std dev (run-to-run variance)</span>
                 </span>
               </div>
-              <div class="sc-m-row" style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border)" v-if="sampleCondCost(selIdx, cond) != null">
-                <span class="sc-m-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''" style="color:var(--text-m)">
+              <div class="sc-m-row sc-cost-row" v-if="sampleCondCost(selIdx, cond) != null">
+                <span class="sc-m-lbl sc-cost-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
                   cost
-                  <span class="tt-body">Total agent API cost for this sample × {{ repCount }} reps in {{ cond }}.</span>
+                  <span class="tt-body">Total agent API cost for this sample across {{ repCount }} runs in {{ cond }}.</span>
                 </span>
                 <div class="sc-m-track"></div>
-                <span class="sc-m-val" style="color:var(--text-m);font-family:var(--mono);font-size:.8rem">
+                <span class="sc-m-val sc-cost-val">
                   {{ fmtCost(sampleCondCost(selIdx, cond)) }}
                 </span>
               </div>
@@ -1130,18 +1586,18 @@ body {
           </div>
         </div>
         <div class="spread-line" v-if="spreadDetail">
-          Spread: <span class="spread-val tt">{{ spreadDetail.spread.toFixed(2) }} pts
-            <span class="tt-body">{{ spreadDetail.max.cond }} ({{ spreadDetail.max.score.toFixed(2) }}) − {{ spreadDetail.min.cond }} ({{ spreadDetail.min.score.toFixed(2) }})</span>
+          Score range: <span class="spread-val tt">{{ spreadDetail.spread.toFixed(2) }} pts
+            <span class="tt-body">Best: {{ spreadDetail.max.cond }} ({{ spreadDetail.max.score.toFixed(2) }}) · Worst: {{ spreadDetail.min.cond }} ({{ spreadDetail.min.score.toFixed(2) }})</span>
           </span>
-          &nbsp;·&nbsp; {{ spreadLabel }}
+          &nbsp;·&nbsp; <span class="spread-interpretation">{{ spreadLabel }}</span>
         </div>
       </div>
 
       <!-- C + D: Condition & rep nav + split layout — judge section -->
-      <div class="judge-section">
+      <div class="judge-section" role="region" aria-label="Judge evaluation detail">
 
         <!-- Condition tabs -->
-        <div class="cond-tabs">
+        <div class="cond-tabs" role="tablist" aria-label="Select condition to inspect">
           <div
             class="cond-tab tt"
             :class="{on: selCond===cond}"
@@ -1149,24 +1605,40 @@ body {
             :key="cond"
             @click="selCond=cond"
             :style="selCond===cond ? {color: cc(cond), borderBottomColor: cc(cond)} : {}"
+            role="tab"
+            :aria-selected="selCond===cond"
+            tabindex="0"
+            @keydown.enter.space.prevent="selCond=cond"
           >
             {{ cond }}
-            <span class="tt-body">{{ cond }} · {{ repCount }} repetition{{ repCount!==1?'s':'' }}</span>
+            <span class="tt-body">View <strong>{{ cond }}</strong> agent response and judge reasoning.<br>{{ repCount }} independent run{{ repCount!==1?'s':'' }} for this condition.</span>
           </div>
         </div>
 
-        <!-- Rep tabs — span full width above the split -->
-        <div class="rep-tabs">
-          <span class="rep-lbl">Rep:</span>
+        <!-- Context strip: what you're looking at -->
+        <div class="judge-cond-indicator" aria-live="polite">
+          <span class="judge-cond-dot" :style="{background: cc(selCond)}"></span>
+          Showing <strong>{{ selCond }}</strong>
+          <span style="margin-left:auto;font-size:.7rem">Run {{ selRep+1 }} of {{ repCount }}</span>
+        </div>
+
+        <!-- Run tabs — span full width above the split -->
+        <div class="rep-tabs" role="tablist" :aria-label="'Select which of the ' + repCount + ' independent runs to view'">
+          <span class="rep-lbl" aria-hidden="true">Run:</span>
           <div
             class="rep-tab tt"
             :class="{on: selRep===i}"
             v-for="(_,i) in repCount"
             :key="i"
             @click="selRep=i"
+            role="tab"
+            :aria-selected="selRep===i"
+            :aria-label="'Run ' + (i+1) + ' of ' + repCount"
+            tabindex="0"
+            @keydown.enter.space.prevent="selRep=i"
           >
             {{ i+1 }}
-            <span class="tt-body">Repetition {{ i+1 }} of {{ repCount }}<br>One independent agent run.</span>
+            <span class="tt-body">Run {{ i+1 }} of {{ repCount }}<br>Each run is an independent execution of the agent on this sample — useful for checking consistency.</span>
           </div>
         </div>
 
@@ -1179,8 +1651,10 @@ body {
               <div class="resp-hdr">
                 <span class="resp-lbl">Agent Response</span>
                 <div style="display:flex;align-items:center;gap:8px">
-                  <button class="md-toggle" :class="{on: mdResp}" @click="mdResp=!mdResp" title="Toggle markdown rendering">MD</button>
-                  <span class="resp-rep-lbl">Rep {{ selRep+1 }}</span>
+                  <button class="md-toggle" :class="{on: mdResp}" @click="mdResp=!mdResp" :title="mdResp ? 'Switch to plain text view' : 'Render as Markdown (formatted)'" :aria-pressed="mdResp" aria-label="Toggle markdown rendering for agent response">
+                    <span class="tt">{{ mdResp ? 'Rendered' : 'Plain' }}<span class="tt-body">{{ mdResp ? 'Showing formatted Markdown. Click to view raw text.' : 'Showing raw text. Click to render as Markdown.' }}</span></span>
+                  </button>
+                  <span class="resp-rep-lbl">Run {{ selRep+1 }}</span>
                 </div>
               </div>
               <!-- Markdown rendered view -->
@@ -1193,8 +1667,8 @@ body {
               <div v-else
                    class="resp-body"
                    :class="{expanded: respExpanded}">{{ selRecord.run_details[selRep]?.agent_response ?? '—' }}</div>
-              <button class="resp-expand-btn" @click="respExpanded=!respExpanded">
-                {{ respExpanded ? '▴ Collapse' : '▾ Show full response' }}
+              <button class="resp-expand-btn" @click="respExpanded=!respExpanded" :aria-expanded="respExpanded">
+                {{ respExpanded ? '▴ Collapse response' : '▾ Show full response' }}
               </button>
               <div class="resp-footer">
                 <span class="tt" v-if="selRecord.run_details[selRep]?.cost_usd != null">
@@ -1212,7 +1686,10 @@ body {
 
           <!-- Right: Judge metrics -->
           <div class="flow-right">
-            <div class="judge-panel-hdr">Judge's Evaluation</div>
+            <div class="judge-panel-hdr tt tt-down">
+              Judge's Reasoning — Run {{ selRep+1 }}
+              <span class="tt-body">The judge LLM scored the agent's response on each metric and wrote a brief justification. The score shown (e.g. 3.50) is the <strong>mean across all {{ repCount }} runs</strong>; the reasoning shown is for the currently selected run.</span>
+            </div>
             <div class="metric-block" v-for="m in METRICS" :key="m.key">
               <div class="mb-hdr">
                 <span class="mb-name tt">
@@ -1222,11 +1699,11 @@ body {
                 <div class="mb-track"><div class="mb-fill" :style="{width: bp(mv(selCond,m.key))+'%', background: cc(selCond)}"></div></div>
                 <span class="mb-mean tt" :class="sc(mv(selCond,m.key))">
                   {{ mv(selCond,m.key).toFixed(2) }}
-                  <span class="tt-body">Mean score across {{ repCount }} repetitions. Score range: 1–5.</span>
+                  <span class="tt-body">Mean across {{ repCount }} runs. Score range: 1 (poor) – 5 (excellent).</span>
                 </span>
                 <span class="mb-std tt" v-if="sd(selCond,m.key)>0">
                   ±{{ sd(selCond,m.key).toFixed(2) }}
-                  <span class="tt-body">Std dev across {{ repCount }} reps. Higher = agent responses varied more between runs.</span>
+                  <span class="tt-body">Run-to-run variation (std dev across {{ repCount }} runs). A higher value means the agent gave inconsistent responses.</span>
                 </span>
               </div>
               <div class="mb-text">{{ getReasonings(m.key)[selRep] ?? '—' }}</div>
@@ -1237,12 +1714,19 @@ body {
       </div><!-- /.judge-section -->
 
       <!-- E: Unverified claims (all conditions) -->
-      <div class="sec-claims" v-if="anyClaimsForSample">
-        <div class="sec-hdr">Unverified Claims &nbsp;·&nbsp; all conditions</div>
+      <div class="sec-claims" v-if="anyClaimsForSample" role="region" aria-label="Unverified claims">
+        <div class="sec-hdr">
+          Potentially Unverified Claims
+          <span class="tt tt-down" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:var(--text-m)">
+            <span class="term-tip">flagged by judge<span class="term-tip-icon">?</span></span>
+            <span class="tt-body">The judge flagged these statements in the agent's response as claims that could not be verified against the reference answer. They may be hallucinations or out-of-scope information.</span>
+          </span>
+        </div>
+        <p class="claims-note">Statements in the agent's response that the judge could not verify against the reference answer. These may be hallucinations or out-of-scope claims — inspect the agent response above for context.</p>
         <div class="claims-grid" :style="{gridTemplateColumns: 'repeat('+conditions.length+', 1fr)'}">
           <div class="claims-cell" v-for="cond in conditions" :key="cond">
             <div class="claims-cond" :style="{color: cc(cond)}">{{ cond }}</div>
-            <div v-if="claimsFor(cond).length===0" class="claims-none">✓ none</div>
+            <div v-if="claimsFor(cond).length===0" class="claims-none">No unverified claims flagged</div>
             <div v-else>
               <div class="claim-item" v-for="(c,i) in claimsFor(cond)" :key="i">{{ c }}</div>
             </div>
@@ -1262,7 +1746,8 @@ window.__KEVAL_DATA__ = null;
 
 const { createApp, ref, computed, watch, onMounted, onUnmounted } = Vue;
 
-const CPAL = ['#6b7280','#5b7cf6','#8b5cf6','#10b981','#f59e0b','#ec4899','#ef4444','#06b6d4'];
+// Brand-adjacent condition color palette — Red Hat colors
+const CPAL = ['#707070','#0066cc','#5e40be','#63993d','#f5921b','#37a3a3','#f0561d','#4394e5'];
 
 const METRICS = [
   { key: 'factual_adherence',       label: 'Factual Adherence',    short: 'Factual',   def: 'Does the response contain only claims supported by the reference answer?' },
@@ -1401,7 +1886,7 @@ createApp({
       return m;
     });
 
-    // Cost for the currently selected sample across all reps for a condition
+    // Cost for the currently selected sample across all runs for a condition
     function sampleCondCost(idx, cond) {
       const rec = getRec(idx, cond);
       if (!rec) return null;
