@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 import sys
 import time
 from datetime import datetime
@@ -18,6 +19,7 @@ from k_eval.config.domain.agent import AgentConfig
 from k_eval.config.domain.judge import JudgeConfig
 from k_eval.config.infrastructure.observer import StructlogConfigObserver
 from k_eval.config.infrastructure.yaml_loader import YamlConfigLoader
+from k_eval.cli.view.command import open_viewer
 from k_eval.core.errors import KEvalError
 from k_eval.dataset.infrastructure.jsonl_loader import JsonlDatasetLoader
 from k_eval.dataset.infrastructure.observer import StructlogDatasetObserver
@@ -85,6 +87,7 @@ def _write_outputs(
     aggregated: list[AggregatedResult],
     agent_config: AgentConfig,
     judge_config: JudgeConfig,
+    elapsed_seconds: float,
 ) -> tuple[Path, Path]:
     """Write EEE JSON and JSONL output files. Returns (json_path, jsonl_path)."""
     json_path = output_dir / f"{stem}.json"
@@ -107,6 +110,8 @@ def _write_outputs(
         summary=summary,
         aggregated=aggregated,
         agent_config=agent_config,
+        evaluation_timestamp=int(aggregate_data["retrieved_timestamp"]),
+        elapsed_seconds=elapsed_seconds,
     )
     jsonl_path.write_text(
         "\n".join(json.dumps(line) for line in instance_lines) + "\n",
@@ -405,6 +410,9 @@ def _print_summary(
             metric_w=metric_w,
         )
 
+    cmd = os.path.basename(sys.argv[0])
+    typer.echo("")
+    typer.echo(f"  {_DIM}View results{_RESET}  {_CYAN}{cmd} view {jsonl_path}{_RESET}")
     typer.echo("")
     _rule(color=_CYAN)
     typer.echo("")
@@ -480,6 +488,7 @@ def run(
             aggregated=aggregated,
             agent_config=config.agent,
             judge_config=config.judge,
+            elapsed_seconds=elapsed_seconds,
         )
 
         _print_summary(
@@ -499,6 +508,25 @@ def run(
     except Exception as exc:  # noqa: BLE001
         typer.echo(f"Unexpected error: {repr(exc)}")
         sys.exit(1)
+
+
+@app.command()
+def view(
+    jsonl_path: Path = typer.Argument(
+        ...,
+        help="Path to a .detailed.jsonl results file",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+) -> None:
+    """Open a k-eval results file in the interactive browser viewer."""
+    try:
+        open_viewer(jsonl_path=jsonl_path)
+    except FileNotFoundError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
 
 
 if __name__ == "__main__":

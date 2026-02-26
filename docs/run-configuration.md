@@ -96,10 +96,9 @@ execution:
 
 ## CLI Options
 
-(Must be run from the src/ directory)
-
+### Starting an Evaluation 
 ```
-uv run python -m cli.main [OPTIONS] CONFIG_PATH
+uv run k-eval run [OPTIONS] CONFIG_PATH
 
   --output-dir, -o PATH   Directory for output files [default: ./results]
   --log-format TEXT        Log format: 'console' or 'json' [default: console]
@@ -107,6 +106,13 @@ uv run python -m cli.main [OPTIONS] CONFIG_PATH
 ```
 
 Use `--log-format json` when piping output to another tool. The Rich progress bars are suppressed automatically in this mode to keep stdout clean.
+
+### Interactive Results Viewer
+```
+uv run k-eval view JSONL_PATH
+
+  JSONL_PATH           Path to a *.detailed.jsonl results file [required]
+```
 
 ## Inference Provider Authentication
 
