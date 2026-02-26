@@ -679,10 +679,10 @@ select:focus:not(:focus-visible),
 .sc-m-fill  { height: 100%; border-radius: 2px; }
 .sc-m-val   { font-family: var(--mono); font-size: .78rem; width: 32px; text-align: right; flex-shrink: 0; }
 .sc-m-sd    { font-family: var(--mono); font-size: .72rem; color: var(--text-m); width: 46px; flex-shrink: 0; }
-.sc-cost-row { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); }
+.sc-cost-row { margin-top: 2px; }
 .sc-cost-lbl { color: var(--text-m); font-size: .75rem; }
 .sc-cost-val { color: var(--text-m); font-family: var(--mono); font-size: .78rem; flex: 1; text-align: right; }
-.sc-dur-row  { margin-top: 2px; }
+.sc-dur-row  { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); }
 .sc-dur-lbl  { color: var(--text-m); font-size: .75rem; }
 .sc-dur-val  { color: var(--text-m); font-family: var(--mono); font-size: .78rem; }
 
@@ -1582,12 +1582,24 @@ select:focus:not(:focus-visible),
                   {{ m.short }}
                   <span class="tt-body">{{ m.def }}</span>
                 </span>
-                <div class="sc-m-track"><div class="sc-m-fill" :style="{width: bp(mv(cond,m.key))+'%', background: cc(cond)}"></div></div>
+                <div class="sc-m-track"><div class="sc-m-fill" :style="{width: bp(mv(cond,m.key))+'%', background: bulletColor(mv(cond,m.key))}"></div></div>
                 <span class="sc-m-val tt" :class="[sc(mv(cond,m.key)), ci >= conditions.length - 1 ? 'tt-right' : '']">
                   {{ mv(cond,m.key).toFixed(2) }}
                   <span class="tt-body">Mean: {{ mv(cond,m.key).toFixed(2) }} ±{{ sd(cond,m.key).toFixed(2) }} std dev across {{ repCount }} runs.</span>
                 </span>
                 <span class="sc-m-sd" v-if="repCount > 1">±{{ sd(cond,m.key).toFixed(2) }}</span>
+              </div>
+              <div class="sc-m-row sc-dur-row" v-if="condDuration(selIdx, cond)">
+                <span class="sc-m-lbl sc-dur-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                  time
+                  <span class="tt-body">Mean wall-clock duration per run for this sample in {{ cond }}.</span>
+                </span>
+                <div class="sc-m-track"><div class="sc-m-fill sc-dur-fill" :style="{width: condDurationPct(selIdx,cond)+'%', background: 'var(--text-m)', opacity: 0.5}"></div></div>
+                <span class="sc-m-val sc-dur-val tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                  {{ fmtMs(condDuration(selIdx,cond).mean) }}
+                  <span class="tt-body">Mean: {{ fmtMs(condDuration(selIdx,cond).mean) }} across {{ repCount }} runs. Bar shows relative duration — longer bar means slower.</span>
+                </span>
+                <span class="sc-m-sd" v-if="repCount > 1 && condDuration(selIdx,cond).sd > 0">±{{ fmtMs(condDuration(selIdx,cond).sd) }}</span>
               </div>
               <div class="sc-m-row sc-cost-row" v-if="sampleCondCost(selIdx, cond) != null">
                 <span class="sc-m-lbl sc-cost-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
@@ -1595,18 +1607,6 @@ select:focus:not(:focus-visible),
                   <span class="tt-body">Total agent API cost for this sample across {{ repCount }} runs in {{ cond }}.</span>
                 </span>
                 <span class="sc-cost-val">{{ fmtCost(sampleCondCost(selIdx, cond)) }}</span>
-              </div>
-              <div class="sc-m-row sc-dur-row" v-if="condDuration(selIdx, cond)">
-                <span class="sc-m-lbl sc-dur-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
-                  time
-                  <span class="tt-body">Mean wall-clock duration per run for this sample in {{ cond }}.</span>
-                </span>
-                <div class="sc-m-track"><div class="sc-m-fill sc-dur-fill" :style="{width: condDurationPct(selIdx,cond)+'%', background: cc(cond), opacity: 0.6}"></div></div>
-                <span class="sc-m-val sc-dur-val tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
-                  {{ fmtMs(condDuration(selIdx,cond).mean) }}
-                  <span class="tt-body">Mean: {{ fmtMs(condDuration(selIdx,cond).mean) }} across {{ repCount }} runs. Bar shows relative duration — longer bar means slower.</span>
-                </span>
-                <span class="sc-m-sd" v-if="repCount > 1 && condDuration(selIdx,cond).sd > 0">±{{ fmtMs(condDuration(selIdx,cond).sd) }}</span>
               </div>
             </div>
           </div>
