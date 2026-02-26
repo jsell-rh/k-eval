@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 import sys
 import time
 from datetime import datetime
@@ -118,6 +119,27 @@ def _write_outputs(
     )
 
     return json_path, jsonl_path
+
+
+# ---------------------------------------------------------------------------
+# Invocation detection
+# ---------------------------------------------------------------------------
+
+
+def _view_command_prefix() -> str:
+    """Infer how the user invoked k-eval and return the matching view command prefix.
+
+    Checks environment signals in priority order:
+    - UV_RUN_RECURSION_DEPTH set → launched via `uv run`
+    - $_ ends with 'uvx'        → launched via `uvx`
+    - fallback                  → installed entry-point `k-eval`
+    """
+    if os.environ.get("UV_RUN_RECURSION_DEPTH"):
+        return "uv run k-eval"
+    invoker = os.environ.get("_", "")
+    if invoker.endswith("uvx"):
+        return "uvx k-eval[all]"
+    return "k-eval"
 
 
 # ---------------------------------------------------------------------------
@@ -410,7 +432,10 @@ def _print_summary(
         )
 
     typer.echo("")
-    typer.echo(f"  {_DIM}View results{_RESET}  {_CYAN}k-eval view {jsonl_path}{_RESET}")
+    prefix = _view_command_prefix()
+    typer.echo(
+        f"  {_DIM}View results{_RESET}  {_CYAN}{prefix} view {jsonl_path}{_RESET}"
+    )
     typer.echo("")
     _rule(color=_CYAN)
     typer.echo("")
