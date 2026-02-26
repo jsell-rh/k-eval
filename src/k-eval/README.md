@@ -18,7 +18,7 @@ Once an evaluation is defined in a `yaml` file, you can invoke
 `k-eval` like:
 
 ```bash
-uvx k-eval /path/to/config.yaml
+uvx --python 3.13 "k-eval[all]" /path/to/config.yaml
 ```
 
 See [docs/run-configuration.md](docs/run-configuration.md) for authentication setup and all CLI options.
@@ -26,7 +26,7 @@ See [docs/run-configuration.md](docs/run-configuration.md) for authentication se
 #### CLI Options
 
 ```bash
-uvx k-eval --help
+uvx --python 3.13 "k-eval[all]" --help
                                                                                                                                     
  Usage: python -m cli.main [OPTIONS] CONFIG_PATH                                                                                    
                                                                                                                                     
