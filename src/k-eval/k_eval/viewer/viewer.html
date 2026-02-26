@@ -678,6 +678,9 @@ select:focus:not(:focus-visible),
 .sc-cost-row { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); }
 .sc-cost-lbl { color: var(--text-m); font-size: .75rem; }
 .sc-cost-val { color: var(--text-m); font-family: var(--mono); font-size: .78rem; }
+.sc-var-row  { margin-top: -2px; }
+.sc-var-lbl  { color: var(--text-m); font-size: .72rem; font-style: italic; }
+.sc-var-val  { color: var(--text-m); font-family: var(--mono); font-size: .75rem; }
 
 .spread-line {
   margin-top: 10px;
@@ -1558,17 +1561,30 @@ select:focus:not(:focus-visible),
               </span>
             </div>
             <div class="sc-metrics">
-              <div class="sc-m-row" v-for="m in METRICS" :key="m.key">
-                <span class="sc-m-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
-                  {{ m.short }}
-                  <span class="tt-body">{{ m.def }}</span>
-                </span>
-                <div class="sc-m-track"><div class="sc-m-fill" :style="{width: bp(mv(cond,m.key))+'%', background: cc(cond)}"></div></div>
-                <span class="sc-m-val tt" :class="[sc(mv(cond,m.key)), ci >= conditions.length - 1 ? 'tt-right' : '']">
-                  {{ mv(cond,m.key).toFixed(2) }}
-                  <span class="tt-body">Mean: {{ mv(cond,m.key).toFixed(3) }} across {{ repCount }} runs. ±{{ sd(cond,m.key).toFixed(3) }} std dev (run-to-run variance).</span>
-                </span>
-              </div>
+              <template v-for="m in METRICS" :key="m.key">
+                <div class="sc-m-row">
+                  <span class="sc-m-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                    {{ m.short }}
+                    <span class="tt-body">{{ m.def }}</span>
+                  </span>
+                  <div class="sc-m-track"><div class="sc-m-fill" :style="{width: bp(mv(cond,m.key))+'%', background: cc(cond)}"></div></div>
+                  <span class="sc-m-val tt" :class="[sc(mv(cond,m.key)), ci >= conditions.length - 1 ? 'tt-right' : '']">
+                    {{ mv(cond,m.key).toFixed(2) }}
+                    <span class="tt-body">Mean across {{ repCount }} runs. Range: 1 (poor) – 5 (excellent).</span>
+                  </span>
+                </div>
+                <div class="sc-m-row sc-var-row" v-if="sd(cond,m.key) > 0">
+                  <span class="sc-m-lbl sc-var-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                    variance
+                    <span class="tt-body">Run-to-run std dev for {{ m.label }}. Higher means the agent gave inconsistent scores across runs.</span>
+                  </span>
+                  <div class="sc-m-track"></div>
+                  <span class="sc-m-val sc-var-val tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                    ±{{ sd(cond,m.key).toFixed(2) }}
+                    <span class="tt-body">Std dev: {{ sd(cond,m.key).toFixed(3) }}. Mean ± std dev: {{ mv(cond,m.key).toFixed(2) }} ± {{ sd(cond,m.key).toFixed(2) }}.</span>
+                  </span>
+                </div>
+              </template>
               <div class="sc-m-row sc-cost-row" v-if="sampleCondCost(selIdx, cond) != null">
                 <span class="sc-m-lbl sc-cost-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
                   cost
