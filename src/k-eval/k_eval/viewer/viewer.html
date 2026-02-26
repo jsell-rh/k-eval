@@ -1709,7 +1709,7 @@ select:focus:not(:focus-visible),
                   {{ m.label }}
                   <span class="tt-body">{{ m.def }}</span>
                 </span>
-                <div class="mb-track"><div class="mb-fill" :style="{width: bp(rv(m.key) ?? mv(selCond,m.key))+'%', background: cc(selCond)}"></div></div>
+                <div class="mb-track"><div class="mb-fill" :style="{width: bp(rv(m.key) ?? mv(selCond,m.key))+'%', background: bulletColor(rv(m.key) ?? mv(selCond,m.key))}"></div></div>
                 <span class="mb-mean tt tt-right" :class="sc(rv(m.key) ?? mv(selCond,m.key))">
                   <template v-if="rv(m.key) !== null">{{ rv(m.key) }}<span class="mb-run-label">/5</span></template>
                   <template v-else>{{ mv(selCond,m.key).toFixed(2) }}</template>
