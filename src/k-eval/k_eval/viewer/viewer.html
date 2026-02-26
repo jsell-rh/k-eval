@@ -1410,8 +1410,8 @@ select:focus:not(:focus-visible),
             </span>
             <span class="mc-val tt tt-down tt-right mc-val-eff"
                   :class="isBestValue(r.cond) ? 'rank-eff-best' : 'rank-eff-val'">
-              {{ efficiencyScore(r.cond) }}/$<span v-if="isBestValue(r.cond)" class="mc-eff-star" aria-label="Best value condition">★</span>
-              <span class="tt-body">{{ efficiencyScore(r.cond) }} pts per dollar. {{ isBestValue(r.cond) ? '★ Best value condition.' : 'Best: '+bestEffCond+' ('+bestEffScore+' pts/$).' }}</span>
+              {{ efficiencyScore(r.cond) }}/¢<span v-if="isBestValue(r.cond)" class="mc-eff-star" aria-label="Best value condition">★</span>
+              <span class="tt-body">{{ efficiencyScore(r.cond) }} composite score pts per cent per sample. Higher means better quality per unit cost. {{ isBestValue(r.cond) ? '★ Best value condition.' : 'Best: '+bestEffCond+' ('+bestEffScore+' pts/¢).' }}</span>
             </span>
           </div>
         </div>
@@ -1979,12 +1979,16 @@ createApp({
       return ((costByCond.value[cond] / t) * 100).toFixed(0);
     }
 
-    // score per dollar — higher is better value
+    // score per cent per sample — higher is better value.
+    // Cost is expressed in cents (cost * 100) per sample so the ratio stays
+    // in a human-readable range even for sub-cent-per-sample evaluations.
     function efficiencyRaw(cond) {
       const cost = costByCond.value[cond];
       if (!cost) return 0;
+      const n = sampleIds.value.length || 1;
+      const costCentsPerSample = (cost / n) * 100;
       const mean = condRanking.value.find(r => r.cond === cond)?.mean ?? 0;
-      return mean / cost;
+      return mean / costCentsPerSample;
     }
 
     function efficiencyScore(cond) {
