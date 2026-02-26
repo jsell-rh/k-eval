@@ -682,6 +682,9 @@ select:focus:not(:focus-visible),
 .sc-cost-row { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); }
 .sc-cost-lbl { color: var(--text-m); font-size: .75rem; }
 .sc-cost-val { color: var(--text-m); font-family: var(--mono); font-size: .78rem; flex: 1; text-align: right; }
+.sc-dur-row  { margin-top: 2px; }
+.sc-dur-lbl  { color: var(--text-m); font-size: .75rem; }
+.sc-dur-val  { color: var(--text-m); font-family: var(--mono); font-size: .78rem; }
 
 .spread-line {
   margin-top: 10px;
@@ -1593,6 +1596,18 @@ select:focus:not(:focus-visible),
                 </span>
                 <span class="sc-cost-val">{{ fmtCost(sampleCondCost(selIdx, cond)) }}</span>
               </div>
+              <div class="sc-m-row sc-dur-row" v-if="condDuration(selIdx, cond)">
+                <span class="sc-m-lbl sc-dur-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                  time
+                  <span class="tt-body">Mean wall-clock duration per run for this sample in {{ cond }}.</span>
+                </span>
+                <div class="sc-m-track"><div class="sc-m-fill sc-dur-fill" :style="{width: condDurationPct(selIdx,cond)+'%', background: cc(cond), opacity: 0.6}"></div></div>
+                <span class="sc-m-val sc-dur-val tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                  {{ fmtMs(condDuration(selIdx,cond).mean) }}
+                  <span class="tt-body">Mean: {{ fmtMs(condDuration(selIdx,cond).mean) }} across {{ repCount }} runs. Bar shows relative duration — longer bar means slower.</span>
+                </span>
+                <span class="sc-m-sd" v-if="repCount > 1 && condDuration(selIdx,cond).sd > 0">±{{ fmtMs(condDuration(selIdx,cond).sd) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1934,6 +1949,23 @@ createApp({
       return hasAny ? t : null;
     }
 
+    function condDuration(idx, cond) {
+      const runs = (getRec(idx, cond)?.run_details ?? []).filter(r => r.duration_ms != null);
+      if (!runs.length) return null;
+      const vals = runs.map(r => r.duration_ms);
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const sd = vals.length > 1
+        ? Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / (vals.length - 1))
+        : 0;
+      return { mean, sd };
+    }
+
+    function condDurationPct(idx, cond) {
+      const maxMs = Math.max(...conditions.value.map(c => condDuration(idx, c)?.mean ?? 0));
+      if (!maxMs) return 0;
+      return ((condDuration(idx, cond)?.mean ?? 0) / maxMs) * 100;
+    }
+
     function fmtCost(v) {
       if (v == null) return '—';
       if (v >= 1) return '$' + v.toFixed(2);
@@ -2151,7 +2183,7 @@ createApp({
       anyClaimsForSample,
       mdResp, mdRef, md,
       cc, bp, sc, fmtMs, fmtCost, fmtDate, fmtElapsed, bulletColor,
-      totalCost, costByCond, sampleCondCost,
+      totalCost, costByCond, sampleCondCost, condDuration, condDurationPct,
       pctOfTotal, efficiencyScore, isBestValue, bestEffCond, bestEffScore, costPct,
       ovMetric, compScore, mv, sd, rv, isWinner,
       getReasonings, claimsFor,
