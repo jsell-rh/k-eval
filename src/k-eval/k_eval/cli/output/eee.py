@@ -176,6 +176,9 @@ def build_instance_jsonl_lines(
                 "cost_usd": run.agent_result.cost_usd,
                 "duration_ms": run.agent_result.duration_ms,
                 "num_turns": run.agent_result.num_turns,
+                "factual_adherence": run.judge_result.factual_adherence,
+                "completeness": run.judge_result.completeness,
+                "helpfulness_and_clarity": run.judge_result.helpfulness_and_clarity,
             }
             for run in agg.runs
         ]

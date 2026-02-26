@@ -318,7 +318,8 @@ select:focus:not(:focus-visible),
 .load-msg  { color: var(--text-m); font-size: .82rem; }
 
 /* ── Overview view ─────────────────────────────────────────────────────── */
-#v-ov { flex-direction: column; overflow-y: auto; padding: 28px 36px; gap: 28px; }
+#v-ov { flex-direction: column; overflow-y: auto; padding: 28px 36px; gap: 28px; align-items: center; }
+.ov-inner { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 28px; }
 
 /* Meta bar */
 .ov-meta {
@@ -373,12 +374,12 @@ select:focus:not(:focus-visible),
 .rank-eff-val  { color: var(--text-2); }
 .rank-eff-best { color: var(--green); font-weight: 700; }
 
-/* Metric grid — 4 columns when cost card present */
+/* Metric grid — 2×2 when cost card present, 3-col otherwise */
 .metric-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
-.metric-grid.with-cost { grid-template-columns: repeat(3,1fr) 1.1fr; }
-@media (max-width: 900px) {
-  .metric-grid.with-cost { grid-template-columns: repeat(2,1fr); }
-  .metric-grid           { grid-template-columns: repeat(2,1fr); }
+.metric-grid.with-cost { grid-template-columns: repeat(2,1fr); }
+@media (max-width: 700px) {
+  .metric-grid.with-cost { grid-template-columns: 1fr; }
+  .metric-grid           { grid-template-columns: 1fr; }
 }
 .metric-card {
   background: var(--s1);
@@ -877,8 +878,10 @@ select:focus:not(:focus-visible),
 }
 .mb-track { width: 64px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
 .mb-fill  { height: 100%; border-radius: 2px; }
-.mb-mean  { font-family: var(--mono); font-size: .82rem; }
-.mb-std   { font-family: var(--mono); font-size: .75rem; color: var(--text-m); }
+.mb-mean      { font-family: var(--mono); font-size: .82rem; }
+.mb-run-label { font-size: .65rem; color: var(--text-m); margin-left: 1px; }
+.mb-run-avg   { font-family: var(--mono); font-size: .75rem; color: var(--text-m); }
+.mb-std       { font-family: var(--mono); font-size: .75rem; color: var(--text-m); }
 .mb-text  { font-size: 13px; color: var(--text-2); line-height: 1.7; white-space: pre-wrap; }
 
 /* ── Section E: Unverified claims ──────────────────────────────────────── */
@@ -1685,7 +1688,7 @@ select:focus:not(:focus-visible),
           <div class="flow-right">
             <div class="judge-panel-hdr tt">
               Judge's Reasoning — Run {{ selRep+1 }}
-              <span class="tt-body">The judge LLM scored the agent's response on each metric and wrote a brief justification. The score shown is the mean across all {{ repCount }} runs; the reasoning shown is for the currently selected run.</span>
+              <span class="tt-body">The judge LLM scored the agent's response on each metric and wrote a brief justification. Each score shown is for the currently selected run; the smaller "avg" figure is the mean across all {{ repCount }} runs.</span>
             </div>
             <div class="metric-block" v-for="m in METRICS" :key="m.key">
               <div class="mb-hdr">
@@ -1693,12 +1696,18 @@ select:focus:not(:focus-visible),
                   {{ m.label }}
                   <span class="tt-body">{{ m.def }}</span>
                 </span>
-                <div class="mb-track"><div class="mb-fill" :style="{width: bp(mv(selCond,m.key))+'%', background: cc(selCond)}"></div></div>
-                <span class="mb-mean tt tt-right" :class="sc(mv(selCond,m.key))">
-                  {{ mv(selCond,m.key).toFixed(2) }}
-                  <span class="tt-body">Mean across {{ repCount }} runs. Score range: 1 (poor) – 5 (excellent).</span>
+                <div class="mb-track"><div class="mb-fill" :style="{width: bp(rv(m.key) ?? mv(selCond,m.key))+'%', background: cc(selCond)}"></div></div>
+                <span class="mb-mean tt tt-right" :class="sc(rv(m.key) ?? mv(selCond,m.key))">
+                  <template v-if="rv(m.key) !== null">{{ rv(m.key) }}<span class="mb-run-label">/5</span></template>
+                  <template v-else>{{ mv(selCond,m.key).toFixed(2) }}</template>
+                  <span class="tt-body" v-if="rv(m.key) !== null">Score for run {{ selRep+1 }}. Range: 1 (poor) – 5 (excellent).</span>
+                  <span class="tt-body" v-else>Mean across {{ repCount }} runs. Score range: 1 (poor) – 5 (excellent).</span>
                 </span>
-                <span class="mb-std tt tt-right" v-if="sd(selCond,m.key)>0">
+                <span class="mb-run-avg tt tt-right" v-if="rv(m.key) !== null">
+                  avg {{ mv(selCond,m.key).toFixed(2) }}
+                  <span class="tt-body">Mean across all {{ repCount }} runs.</span>
+                </span>
+                <span class="mb-std tt tt-right" v-else-if="sd(selCond,m.key)>0">
                   ±{{ sd(selCond,m.key).toFixed(2) }}
                   <span class="tt-body">Run-to-run variation (std dev across {{ repCount }} runs). A higher value means the agent gave inconsistent responses.</span>
                 </span>
@@ -1824,6 +1833,14 @@ createApp({
     function sd(cond, key) {
       const rec = getRec(selIdx.value, cond);
       return rec?.evaluation?.details?.[key+'_stddev'] ?? 0;
+    }
+
+    // Per-run score for the currently selected run. Returns null for older
+    // files that predate per-run score recording.
+    function rv(key) {
+      const run = selRecord.value?.run_details?.[selRep.value];
+      const v = run?.[key];
+      return (typeof v === 'number') ? v : null;
     }
 
     function isWinner(cond) {
