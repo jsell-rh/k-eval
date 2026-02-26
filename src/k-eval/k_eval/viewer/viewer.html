@@ -678,7 +678,7 @@ select:focus:not(:focus-visible),
 .sc-m-sd    { font-family: var(--mono); font-size: .72rem; color: var(--text-m); width: 46px; flex-shrink: 0; }
 .sc-cost-row { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); }
 .sc-cost-lbl { color: var(--text-m); font-size: .75rem; }
-.sc-cost-val { color: var(--text-m); font-family: var(--mono); font-size: .78rem; }
+.sc-cost-val { color: var(--text-m); font-family: var(--mono); font-size: .78rem; flex: 1; text-align: right; }
 
 .spread-line {
   margin-top: 10px;
@@ -1576,10 +1576,7 @@ select:focus:not(:focus-visible),
                   cost
                   <span class="tt-body">Total agent API cost for this sample across {{ repCount }} runs in {{ cond }}.</span>
                 </span>
-                <div class="sc-m-track"></div>
-                <span class="sc-m-val sc-cost-val">
-                  {{ fmtCost(sampleCondCost(selIdx, cond)) }}
-                </span>
+                <span class="sc-cost-val">{{ fmtCost(sampleCondCost(selIdx, cond)) }}</span>
               </div>
             </div>
           </div>
