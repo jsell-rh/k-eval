@@ -509,6 +509,7 @@ select:focus:not(:focus-visible),
 #lst-panel.collapsed .lst-collapsed-label { display: block; }
 #lst-panel.collapsed .lst-toolbar,
 #lst-panel.collapsed .lst-count,
+#lst-panel.collapsed .lst-sort-hint,
 #lst-panel.collapsed #smp-list { visibility: hidden; }
 
 .lst-toolbar {
@@ -545,8 +546,7 @@ select:focus:not(:focus-visible),
   align-items: center;
   gap: 6px;
 }
-/* Keyboard hint badge inline with count */
-.lst-count .kbd-hint { font-size: .65rem; padding: 0 4px; }
+
 
 #smp-list { flex: 1; overflow-y: auto; }
 /* Give keyboard focus a visible ring on the list container */
@@ -1040,7 +1040,9 @@ select:focus:not(:focus-visible),
   transition: color .12s, border-color .12s, background .12s;
   white-space: nowrap;
   flex-shrink: 0;
+  min-width: max-content;
   font-weight: 500;
+  overflow: visible;
 }
 .hdr-load-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(0,102,204,.08); }
 
@@ -1483,7 +1485,6 @@ select:focus:not(:focus-visible),
     </div>
     <div class="lst-count">
       {{ sortedIds.length }} samples
-      <span class="kbd-hint" title="Use arrow keys to navigate when the list is focused" aria-hidden="true">↑↓</span>
     </div>
     <div class="lst-sort-hint" v-if="sortMode==='variance'">Sorted by how much conditions disagreed — best for finding failures</div>
     <div class="lst-sort-hint" v-else-if="sortMode==='lowest'">Sorted by worst score — best for finding hard failures</div>
