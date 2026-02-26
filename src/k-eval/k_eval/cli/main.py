@@ -86,6 +86,7 @@ def _write_outputs(
     aggregated: list[AggregatedResult],
     agent_config: AgentConfig,
     judge_config: JudgeConfig,
+    elapsed_seconds: float,
 ) -> tuple[Path, Path]:
     """Write EEE JSON and JSONL output files. Returns (json_path, jsonl_path)."""
     json_path = output_dir / f"{stem}.json"
@@ -108,6 +109,8 @@ def _write_outputs(
         summary=summary,
         aggregated=aggregated,
         agent_config=agent_config,
+        evaluation_timestamp=int(aggregate_data["retrieved_timestamp"]),
+        elapsed_seconds=elapsed_seconds,
     )
     jsonl_path.write_text(
         "\n".join(json.dumps(line) for line in instance_lines) + "\n",
@@ -407,6 +410,8 @@ def _print_summary(
         )
 
     typer.echo("")
+    typer.echo(f"  {_DIM}View results{_RESET}  {_CYAN}k-eval view {jsonl_path}{_RESET}")
+    typer.echo("")
     _rule(color=_CYAN)
     typer.echo("")
 
@@ -481,6 +486,7 @@ def run(
             aggregated=aggregated,
             agent_config=config.agent,
             judge_config=config.judge,
+            elapsed_seconds=elapsed_seconds,
         )
 
         _print_summary(

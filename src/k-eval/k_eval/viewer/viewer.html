@@ -1299,6 +1299,20 @@ select:focus:not(:focus-visible),
       agent cost:&nbsp;<strong>{{ fmtCost(totalCost) }}</strong>
       <span class="tt-body">Agent LLM API costs across all samples, conditions, and runs. Does not include judge LLM costs.</span>
     </span>
+    <template v-if="fmtDate(evalTs)">
+      &nbsp;·&nbsp;
+      <span class="tt tt-down">
+        {{ fmtDate(evalTs) }}
+        <span class="tt-body">Date this evaluation run was executed.</span>
+      </span>
+    </template>
+    <template v-if="fmtElapsed(evalElapsed)">
+      &nbsp;·&nbsp;
+      <span class="tt tt-down tt-right">
+        {{ fmtElapsed(evalElapsed) }} total
+        <span class="tt-body">Wall-clock time for the full evaluation run across all samples, conditions, and runs.</span>
+      </span>
+    </template>
   </div>
 
   <!-- Ranking -->
@@ -1795,9 +1809,11 @@ createApp({
       return m;
     });
 
-    const evalName = computed(() => records.value[0]?.evaluation_name.split('/')[0] ?? '');
-    const modelId  = computed(() => records.value[0]?.model_id ?? '');
-    const repCount = computed(() => records.value[0]?.run_details?.length ?? 0);
+    const evalName  = computed(() => records.value[0]?.evaluation_name.split('/')[0] ?? '');
+    const modelId   = computed(() => records.value[0]?.model_id ?? '');
+    const repCount  = computed(() => records.value[0]?.run_details?.length ?? 0);
+    const evalTs    = computed(() => records.value[0]?.evaluation?.details?.evaluation_timestamp ?? null);
+    const evalElapsed = computed(() => records.value[0]?.evaluation?.details?.elapsed_seconds ?? null);
 
     // ── Helpers ────────────────────────────────────────────────────────────
     function cc(cond) { return CPAL[conditions.value.indexOf(cond) % CPAL.length]; }
@@ -1809,6 +1825,18 @@ createApp({
     function fmtMs(ms) {
       if (ms == null) return '—';
       return ms >= 60000 ? (ms/60000).toFixed(1)+'m' : (ms/1000).toFixed(1)+'s';
+    }
+
+    function fmtDate(ts) {
+      if (!ts) return null;
+      return new Date(ts * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function fmtElapsed(s) {
+      if (s == null) return null;
+      if (s < 60) return s.toFixed(1) + 's';
+      const m = Math.floor(s / 60), rem = (s % 60).toFixed(0).padStart(2, '0');
+      return `${m}m ${rem}s`;
     }
 
     function getRec(idx, cond) { return byKey.value[idx + '|' + cond] ?? null; }
@@ -2116,12 +2144,12 @@ createApp({
       records, loaded, view, dragging, loadErr, loadMsg,
       sortMode, selIdx, selCond, selRep, showRef, respExpanded,
       listEl, detEl, sidebarCollapsed,
-      conditions, sampleIds, evalName, modelId, repCount,
+      conditions, sampleIds, evalName, modelId, repCount, evalTs, evalElapsed,
       condRanking, topVariance, sortedIds,
       selQ, selRef, selRecord, spreadDetail, spreadLabel,
       anyClaimsForSample,
       mdResp, mdRef, md,
-      cc, bp, sc, fmtMs, fmtCost, bulletColor,
+      cc, bp, sc, fmtMs, fmtCost, fmtDate, fmtElapsed, bulletColor,
       totalCost, costByCond, sampleCondCost,
       pctOfTotal, efficiencyScore, isBestValue, bestEffCond, bestEffScore, costPct,
       ovMetric, compScore, mv, sd, rv, isWinner,

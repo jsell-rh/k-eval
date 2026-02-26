@@ -155,6 +155,8 @@ def build_instance_jsonl_lines(
     summary: RunSummary,
     aggregated: list[AggregatedResult],
     agent_config: AgentConfig,
+    evaluation_timestamp: int = 0,
+    elapsed_seconds: float = 0.0,
 ) -> list[JsonDict]:
     """Build one JSONL line dict per AggregatedResult.
 
@@ -204,6 +206,8 @@ def build_instance_jsonl_lines(
                 "evaluation": {
                     "score": None,
                     "details": {
+                        "evaluation_timestamp": evaluation_timestamp,
+                        "elapsed_seconds": round(elapsed_seconds, 1),
                         "factual_adherence_mean": agg.factual_adherence_mean,
                         "factual_adherence_stddev": agg.factual_adherence_stddev,
                         "factual_adherence_reasonings": fa_reasonings,
