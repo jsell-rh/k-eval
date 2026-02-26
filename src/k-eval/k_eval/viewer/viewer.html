@@ -1091,17 +1091,6 @@ select:focus:not(:focus-visible),
 }
 .inv-tbl tbody tr:hover td.inv-arrow { opacity: 1; color: var(--accent); }
 
-/* ── Condition definition note ─────────────────────────────────────────── */
-.ov-glossary {
-  font-size: .78rem;
-  color: var(--text-m);
-  padding: 7px 14px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  line-height: 1.55;
-}
-.ov-glossary strong { color: var(--text-2); font-weight: 600; }
 
 /* ── Run tabs (was: Rep tabs) — clearer labeling ─────────────────────── */
 .run-count-badge {
@@ -1260,7 +1249,7 @@ select:focus:not(:focus-visible),
 <!-- ── Load view ──────────────────────────────────────────────────────── -->
 <div id="v-load" class="view" :class="{on: !loaded, 'drag-over': dragging}"
      role="main" aria-label="Load evaluation file"
-     @dragover.prevent="dragging=true" @dragleave="dragging=false" @drop.prevent="onDrop">
+     @dragover.prevent="dragging=true" @dragleave.self="dragging=false" @drop.prevent="onDrop">
   <div class="load-zone" :class="{'drag-over': dragging}">
     <div class="load-icon" aria-hidden="true">📊</div>
     <div class="load-copy">
@@ -1279,9 +1268,10 @@ select:focus:not(:focus-visible),
 </div>
 
 <!-- ── Overview ───────────────────────────────────────────────────────── -->
-<div id="v-ov" class="view" :class="{on: loaded && view==='ov'}" role="main">
+<div id="v-ov" class="view" :class="{on: loaded && view==='ov'}" role="region" aria-label="Evaluation overview">
+<div class="ov-inner">
 
-  <p class="ov-meta">
+  <div class="ov-meta" role="status" aria-label="Evaluation summary">
     {{ sampleIds.length }} samples &nbsp;·&nbsp;
     <span class="tt tt-down">
       <span class="term-tip">{{ conditions.length }} conditions<span class="term-tip-icon">?</span></span>
@@ -1302,7 +1292,7 @@ select:focus:not(:focus-visible),
       agent cost:&nbsp;<strong>{{ fmtCost(totalCost) }}</strong>
       <span class="tt-body">Agent LLM API costs across all samples, conditions, and runs. Does not include judge LLM costs.</span>
     </span>
-  </p>
+  </div>
 
   <!-- Ranking -->
   <div>
@@ -1332,16 +1322,16 @@ select:focus:not(:focus-visible),
 
     <div class="rank-list">
       <!-- Column headers -->
-      <div class="rank-hdr" aria-hidden="true">
-        <span style="width:18px;flex-shrink:0"></span>
-        <span style="width:200px;flex-shrink:0"></span>
-        <span class="rank-hdr-spacer"></span>
-        <span class="rank-hdr-score tt tt-down">Score<span class="tt-body">Composite score: average of Factual, Completeness, and Helpfulness across all samples and runs.</span></span>
-        <span class="rank-hdr-cost tt tt-down tt-right">Agent cost<span class="tt-body">Agent LLM API cost for this condition across all samples and runs. Does not include judge LLM costs.</span></span>
+      <div class="rank-hdr" role="row" aria-label="Ranking column headers">
+        <span style="width:18px;flex-shrink:0" role="columnheader" aria-label="Rank"></span>
+        <span style="width:200px;flex-shrink:0" role="columnheader" aria-label="Condition name"></span>
+        <span class="rank-hdr-spacer" role="none"></span>
+        <span class="rank-hdr-score tt tt-down" role="columnheader">Score<span class="tt-body">Composite score: average of Factual, Completeness, and Helpfulness across all samples and runs.</span></span>
+        <span class="rank-hdr-cost tt tt-down tt-right" role="columnheader">Agent cost<span class="tt-body">Agent LLM API cost for this condition across all samples and runs. Does not include judge LLM costs.</span></span>
       </div>
       <div class="rank-row" v-for="(r,i) in condRanking" :key="r.cond">
         <span class="rank-pos" :aria-label="'Rank ' + (i+1)">{{ i+1 }}.</span>
-        <span class="rank-name tt" :style="{color: cc(r.cond)}">
+        <span class="rank-name tt tt-down" :style="{color: cc(r.cond)}">
           {{ r.cond }}
           <span class="tt-body">{{ r.cond }}: {{ r.mean.toFixed(3) }} composite mean across {{ sampleIds.length }} samples × {{ repCount }} runs.</span>
         </span>
@@ -1437,10 +1427,11 @@ select:focus:not(:focus-visible),
     </button>
   </div>
 
-</div>
+</div><!-- /.ov-inner -->
+</div><!-- /#v-ov -->
 
 <!-- ── Samples view ────────────────────────────────────────────────────── -->
-<div id="v-smp" class="view" :class="{on: loaded && view==='smp'}" role="main">
+<div id="v-smp" class="view" :class="{on: loaded && view==='smp'}" role="region" aria-label="Sample browser">
 
   <!-- List panel -->
   <div id="lst-panel" :class="{collapsed: sidebarCollapsed}" role="navigation" aria-label="Sample list">
@@ -1585,7 +1576,7 @@ select:focus:not(:focus-visible),
             </div>
           </div>
         </div>
-        <div class="spread-line" v-if="spreadDetail">
+        <div class="spread-line" v-if="spreadDetail && conditions.length >= 2">
           Score range: <span class="spread-val tt">{{ spreadDetail.spread.toFixed(2) }} pts
             <span class="tt-body">Best: {{ spreadDetail.max.cond }} ({{ spreadDetail.max.score.toFixed(2) }}) · Worst: {{ spreadDetail.min.cond }} ({{ spreadDetail.min.score.toFixed(2) }})</span>
           </span>
@@ -1619,7 +1610,7 @@ select:focus:not(:focus-visible),
         <div class="judge-cond-indicator" aria-live="polite">
           <span class="judge-cond-dot" :style="{background: cc(selCond)}"></span>
           Showing <strong>{{ selCond }}</strong>
-          <span style="margin-left:auto;font-size:.7rem">Run {{ selRep+1 }} of {{ repCount }}</span>
+          <span style="margin-left:auto;font-size:.7rem">Run {{ selRep+1 }} of {{ selRecord?.run_details?.length ?? repCount }}</span>
         </div>
 
         <!-- Run tabs — span full width above the split -->
@@ -1673,11 +1664,11 @@ select:focus:not(:focus-visible),
               <div class="resp-footer">
                 <span class="tt" v-if="selRecord.run_details[selRep]?.cost_usd != null">
                   Cost: ${{ selRecord.run_details[selRep].cost_usd.toFixed(4) }}
-                  <span class="tt-body">Agent API cost for this repetition.</span>
+                  <span class="tt-body">Agent API cost for this run.</span>
                 </span>
                 <span class="tt">
                   {{ fmtMs(selRecord.run_details[selRep]?.duration_ms) }}
-                  <span class="tt-body">Wall-clock duration for this repetition.</span>
+                  <span class="tt-body">Wall-clock duration for this run.</span>
                 </span>
                 <span>{{ selRecord.run_details[selRep]?.num_turns }} turns</span>
               </div>
@@ -1844,6 +1835,7 @@ createApp({
     }
 
     function isWinner(cond) {
+      if (!conditions.value.length) return false;
       const best = Math.max(...conditions.value.map(c => compScore(c)));
       return compScore(cond) >= best - 0.001;
     }
@@ -1945,18 +1937,26 @@ createApp({
 
     // efficiency bar width as % of best score/$ (longer = better value)
     function costPct(cond) {
+      if (!conditions.value.length) return 0;
       const maxEff = Math.max(...conditions.value.map(c => efficiencyRaw(c)));
       if (!maxEff) return 0;
       return (efficiencyRaw(cond) / maxEff) * 100;
     }
 
     function sampleVariance(idx) {
+      if (!conditions.value.length) return 0;
       const scores = conditions.value.map(c => comp(getRec(idx, c)));
       return Math.max(...scores) - Math.min(...scores);
     }
 
-    function sampleBest(idx)  { return Math.max(...conditions.value.map(c => comp(getRec(idx, c)))); }
-    function sampleWorst(idx) { return Math.min(...conditions.value.map(c => comp(getRec(idx, c)))); }
+    function sampleBest(idx) {
+      if (!conditions.value.length) return 0;
+      return Math.max(...conditions.value.map(c => comp(getRec(idx, c))));
+    }
+    function sampleWorst(idx) {
+      if (!conditions.value.length) return 0;
+      return Math.min(...conditions.value.map(c => comp(getRec(idx, c))));
+    }
 
     const topVariance = computed(() => {
       return sampleIds.value.map(idx => ({
