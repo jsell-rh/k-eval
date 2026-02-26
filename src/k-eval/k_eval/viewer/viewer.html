@@ -1254,7 +1254,7 @@ select:focus:not(:focus-visible),
 
   <!-- Load another file — always accessible once data is loaded -->
   <template v-if="loaded">
-    <button class="hdr-load-btn" @click="$refs.fiHdr.click()" title="Load a different .detailed.jsonl evaluation file" aria-label="Load a different evaluation file">Load eval…</button>
+    <button class="hdr-load-btn" @click="$refs.fiHdr.click()" title="Load a different .detailed.jsonl evaluation file" aria-label="Load a different evaluation file">Load results</button>
     <input ref="fiHdr" type="file" accept=".jsonl,.json" style="display:none" @change="onFile">
   </template>
 </header>
