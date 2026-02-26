@@ -674,11 +674,11 @@ select:focus:not(:focus-visible),
 .sc-m-lbl { font-size: .78rem; color: var(--text-2); width: 58px; flex-shrink: 0; }
 .sc-m-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
 .sc-m-fill  { height: 100%; border-radius: 2px; }
-.sc-m-val   { font-family: var(--mono); font-size: .78rem; min-width: 42px; text-align: right; flex-shrink: 0; }
+.sc-m-val   { font-family: var(--mono); font-size: .78rem; width: 32px; text-align: right; flex-shrink: 0; }
+.sc-m-sd    { font-family: var(--mono); font-size: .72rem; color: var(--text-m); width: 46px; flex-shrink: 0; }
 .sc-cost-row { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); }
 .sc-cost-lbl { color: var(--text-m); font-size: .75rem; }
 .sc-cost-val { color: var(--text-m); font-family: var(--mono); font-size: .78rem; }
-.sc-m-sd { color: var(--text-m); font-size: .72rem; }
 
 .spread-line {
   margin-top: 10px;
@@ -1566,9 +1566,10 @@ select:focus:not(:focus-visible),
                 </span>
                 <div class="sc-m-track"><div class="sc-m-fill" :style="{width: bp(mv(cond,m.key))+'%', background: cc(cond)}"></div></div>
                 <span class="sc-m-val tt" :class="[sc(mv(cond,m.key)), ci >= conditions.length - 1 ? 'tt-right' : '']">
-                  {{ mv(cond,m.key).toFixed(2) }}<span class="sc-m-sd" v-if="sd(cond,m.key) > 0"> ±{{ sd(cond,m.key).toFixed(2) }}</span>
+                  {{ mv(cond,m.key).toFixed(2) }}
                   <span class="tt-body">Mean: {{ mv(cond,m.key).toFixed(2) }} ±{{ sd(cond,m.key).toFixed(2) }} std dev across {{ repCount }} runs.</span>
                 </span>
+                <span class="sc-m-sd" v-if="repCount > 1">±{{ sd(cond,m.key).toFixed(2) }}</span>
               </div>
               <div class="sc-m-row sc-cost-row" v-if="sampleCondCost(selIdx, cond) != null">
                 <span class="sc-m-lbl sc-cost-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
