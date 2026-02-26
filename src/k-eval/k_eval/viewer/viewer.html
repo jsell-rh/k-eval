@@ -404,6 +404,9 @@ select:focus:not(:focus-visible),
 /* Cost card — subtle amber tint border */
 .metric-card-cost { border-color: rgba(245,146,27,.3); }
 .mc-title-cost    { color: var(--amber); }
+.mc-val-cost { color: var(--amber); width: 52px; font-size: .82rem; flex-shrink: 0; }
+.mc-val-eff  { width: auto; font-size: .82rem; flex-shrink: 0; white-space: nowrap; }
+.mc-eff-star { font-size: .72em; margin-left: 2px; }
 
 /* Top samples table */
 .inv-tbl  { width: 100%; border-collapse: collapse; }
@@ -1398,15 +1401,13 @@ select:focus:not(:focus-visible),
             <div class="mc-track">
               <div class="mc-fill" :style="{width: costPct(r.cond)+'%', background: isBestValue(r.cond) ? 'var(--green)' : 'var(--accent)', opacity: isBestValue(r.cond) ? 1 : 0.6}"></div>
             </div>
-            <span class="mc-val tt tt-down tt-right" style="color:var(--amber);width:52px">
+            <span class="mc-val tt tt-down tt-right mc-val-cost">
               {{ fmtCost(costByCond[r.cond]) }}
               <span class="tt-body">{{ pctOfTotal(r.cond) }}% of total spend.</span>
             </span>
-            <span class="mc-val tt tt-down tt-right"
-                  :class="isBestValue(r.cond) ? 'rank-eff-best' : 'rank-eff-val'"
-                  style="width:52px;font-size:.78rem">
-              {{ efficiencyScore(r.cond) }}<span style="font-size:.7em;margin-left:1px">/$</span>
-              <span v-if="isBestValue(r.cond)" style="margin-left:2px;font-size:.75em" aria-label="Best value condition">★</span>
+            <span class="mc-val tt tt-down tt-right mc-val-eff"
+                  :class="isBestValue(r.cond) ? 'rank-eff-best' : 'rank-eff-val'">
+              {{ efficiencyScore(r.cond) }}/$<span v-if="isBestValue(r.cond)" class="mc-eff-star" aria-label="Best value condition">★</span>
               <span class="tt-body">{{ efficiencyScore(r.cond) }} pts per dollar. {{ isBestValue(r.cond) ? '★ Best value condition.' : 'Best: '+bestEffCond+' ('+bestEffScore+' pts/$).' }}</span>
             </span>
           </div>
