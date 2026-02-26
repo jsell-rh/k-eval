@@ -53,6 +53,9 @@ dev = [
 where = ["."]
 include = ["k_eval*"]
 
+[tool.setuptools.package-data]
+"k_eval.viewer" = ["viewer.html"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]

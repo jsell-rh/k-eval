@@ -18,6 +18,7 @@ from k_eval.config.domain.agent import AgentConfig
 from k_eval.config.domain.judge import JudgeConfig
 from k_eval.config.infrastructure.observer import StructlogConfigObserver
 from k_eval.config.infrastructure.yaml_loader import YamlConfigLoader
+from k_eval.cli.view.command import open_viewer
 from k_eval.core.errors import KEvalError
 from k_eval.dataset.infrastructure.jsonl_loader import JsonlDatasetLoader
 from k_eval.dataset.infrastructure.observer import StructlogDatasetObserver
@@ -499,6 +500,25 @@ def run(
     except Exception as exc:  # noqa: BLE001
         typer.echo(f"Unexpected error: {repr(exc)}")
         sys.exit(1)
+
+
+@app.command()
+def view(
+    jsonl_path: Path = typer.Argument(
+        ...,
+        help="Path to a .detailed.jsonl results file",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+) -> None:
+    """Open a k-eval results file in the interactive browser viewer."""
+    try:
+        open_viewer(jsonl_path=jsonl_path)
+    except FileNotFoundError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
 
 
 if __name__ == "__main__":

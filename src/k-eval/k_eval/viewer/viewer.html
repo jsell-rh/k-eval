@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>k-eval Results Viewer</title>
+<style>
+  /* ── Reset & base ─────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0f1117;
+    --bg2:      #1a1d27;
+    --bg3:      #22263a;
+    --border:   #2e3352;
+    --text:     #e2e8f0;
+    --muted:    #7c8db5;
+    --accent:   #6c8ef5;
+    --green:    #34d399;
+    --yellow:   #fbbf24;
+    --red:      #f87171;
+    --green-bg: rgba(52,211,153,.12);
+    --yellow-bg:rgba(251,191,36,.12);
+    --red-bg:   rgba(248,113,113,.12);
+    --radius:   8px;
+    --shadow:   0 2px 8px rgba(0,0,0,.4);
+    --font:     system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono:     "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg:       #f8fafc;
+      --bg2:      #ffffff;
+      --bg3:      #f1f5f9;
+      --border:   #e2e8f0;
+      --text:     #1e293b;
+      --muted:    #64748b;
+      --accent:   #4f6ef5;
+      --green:    #059669;
+      --yellow:   #d97706;
+      --red:      #dc2626;
+      --green-bg: rgba(5,150,105,.08);
+      --yellow-bg:rgba(217,119,6,.08);
+      --red-bg:   rgba(220,38,38,.08);
+      --shadow:   0 2px 8px rgba(0,0,0,.08);
+    }
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Typography ───────────────────────────────────────────────────────── */
+  h1 { font-size: 1.25rem; font-weight: 700; }
+  h2 { font-size: 1rem; font-weight: 600; }
+  h3 { font-size: .9rem; font-weight: 600; }
+  p  { line-height: 1.6; }
+
+  /* ── Layout ───────────────────────────────────────────────────────────── */
+  #app { display: flex; flex-direction: column; height: 100%; }
+
+  /* top nav */
+  #nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 16px;
+    height: 48px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  #nav .brand {
+    font-weight: 700;
+    color: var(--accent);
+    margin-right: 16px;
+    font-size: .95rem;
+    letter-spacing: .02em;
+  }
+  .nav-tab {
+    padding: 6px 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--muted);
+    font-size: .875rem;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    transition: color .15s, background .15s;
+  }
+  .nav-tab:hover   { color: var(--text); background: var(--bg3); }
+  .nav-tab.active  { color: var(--text); background: var(--bg3); }
+  #nav .spacer     { flex: 1; }
+  #nav .meta       { font-size: .75rem; color: var(--muted); }
+
+  /* load-file btn always visible in nav */
+  #btn-load-nav {
+    padding: 5px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: .8rem;
+    cursor: pointer;
+  }
+  #btn-load-nav:hover { color: var(--text); border-color: var(--accent); }
+
+  /* main content area */
+  #content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* views */
+  .view { display: none; flex: 1; overflow: auto; padding: 20px; }
+  .view.active { display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── Drop zone / loader ───────────────────────────────────────────────── */
+  #view-load {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+  }
+  #view-load.active { display: flex; }
+  #drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 64px 80px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    max-width: 520px;
+    width: 100%;
+  }
+  #drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(108,142,245,.06);
+  }
+  #drop-zone .dz-icon { font-size: 3rem; margin-bottom: 16px; }
+  #drop-zone h2 { margin-bottom: 8px; }
+  #drop-zone p  { color: var(--muted); margin-bottom: 20px; }
+  #btn-browse {
+    padding: 10px 24px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #btn-browse:hover { opacity: .88; }
+  #file-input { display: none; }
+  #load-progress { margin-top: 20px; color: var(--muted); font-size: .85rem; min-height: 1.2em; }
+
+  /* ── Shared card ──────────────────────────────────────────────────────── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .card-title {
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* ── Score badges ─────────────────────────────────────────────────────── */
+  .score-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: .85rem;
+    font-weight: 700;
+  }
+  .score-badge.high  { background: var(--green-bg);  color: var(--green); }
+  .score-badge.mid   { background: var(--yellow-bg); color: var(--yellow); }
+  .score-badge.low   { background: var(--red-bg);    color: var(--red); }
+
+  /* ── Overview view ────────────────────────────────────────────────────── */
+  #view-overview { gap: 20px; }
+
+  .overview-header h1 { margin-bottom: 4px; }
+  .overview-header .sub { color: var(--muted); font-size: .85rem; }
+
+  /* Score matrix table */
+  .score-matrix { width: 100%; border-collapse: collapse; }
+  .score-matrix th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    border-bottom: 2px solid var(--border);
+  }
+  .score-matrix th:not(:first-child) { text-align: center; }
+  .score-matrix td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: .875rem;
+  }
+  .score-matrix td:not(:first-child) { text-align: center; }
+  .score-matrix td.metric-label { font-weight: 600; }
+  .score-matrix .cell-mean  { font-weight: 700; }
+  .score-matrix .cell-std   { font-size: .75rem; color: var(--muted); }
+  .score-matrix .winner-cell { position: relative; }
+  .score-matrix .winner-marker {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  /* perf summary row */
+  .perf-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .perf-card {
+    flex: 1;
+    min-width: 160px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+  }
+  .perf-card .perf-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: .06em; }
+  .perf-card .perf-val   { font-size: 1.3rem; font-weight: 700; color: var(--text); margin-top: 4px; }
+  .perf-card .perf-sub   { font-size: .75rem; color: var(--muted); }
+
+  /* ── Sample Browser view ──────────────────────────────────────────────── */
+  #view-samples {
+    flex-direction: row !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+  #view-samples.active { display: flex !important; }
+
+  /* left panel */
+  #sample-list-panel {
+    width: 280px;
+    min-width: 220px;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+  #sample-list-toolbar {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .toolbar-row { display: flex; gap: 6px; align-items: center; }
+  .toolbar-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: .06em; min-width: 36px; }
+  select, input[type="text"], input[type="range"] {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: .8rem;
+    font-family: var(--font);
+  }
+  select:focus, input:focus { outline: 2px solid var(--accent); }
+  select { cursor: pointer; flex: 1; }
+  input[type="text"] { flex: 1; }
+  #sample-search { width: 100%; padding: 6px 10px; font-size: .8rem; }
+
+  #sample-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+  .sample-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: background .1s;
+  }
+  .sample-item:hover    { background: var(--bg3); }
+  .sample-item.selected { background: var(--bg3); border-left: 3px solid var(--accent); }
+  .sample-item-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: space-between;
+  }
+  .sample-item-idx  { font-weight: 700; font-size: .8rem; color: var(--accent); }
+  .sample-item-q    { font-size: .78rem; color: var(--muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .sparkline        { display: flex; gap: 3px; align-items: center; }
+  .spark-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .variance-badge {
+    font-size: .65rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--yellow-bg);
+    color: var(--yellow);
+  }
+
+  /* right panel */
+  #sample-detail-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #sample-detail-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: .9rem;
+  }
+  #sample-detail-content {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #sample-detail-content.visible {
+    display: flex;
+  }
+
+  #sample-context {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+  #sample-context .ctx-label {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted);
+    letter-spacing: .06em;
+    margin-bottom: 4px;
+  }
+  #sample-question {
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--text);
+    max-height: 80px;
+    overflow-y: auto;
+    line-height: 1.5;
+  }
+  .collapsible-section {
+    margin-top: 8px;
+  }
+  .collapsible-toggle {
+    font-size: .78rem;
+    color: var(--accent);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font);
+  }
+  .collapsible-toggle:hover { text-decoration: underline; }
+  .collapsible-body { display: none; margin-top: 6px; }
+  .collapsible-body.open { display: block; }
+  #sample-reference {
+    font-size: .82rem;
+    color: var(--muted);
+    max-height: 120px;
+    overflow-y: auto;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  /* condition cards grid */
+  #condition-cards {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 14px;
+    align-content: start;
+  }
+
+  .condition-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .condition-card-header {
+    padding: 10px 14px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .cond-name {
+    font-weight: 700;
+    font-size: .85rem;
+    color: var(--accent);
+  }
+  .claim-badge {
+    font-size: .7rem;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--yellow-bg);
+    color: var(--yellow);
+    font-weight: 700;
+  }
+  .score-row {
+    padding: 0 14px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .score-col { flex: 1; }
+  .score-col-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: .05em; margin-bottom: 4px; }
+  .score-col-val   { display: flex; align-items: center; gap: 6px; }
+  .score-stddev    { font-size: .72rem; color: var(--muted); }
+  .score-bar-track {
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .score-bar-fill  { height: 100%; border-radius: 2px; transition: width .3s; }
+
+  .reasonings { padding: 0 14px; display: flex; flex-direction: column; gap: 8px; }
+  .reasoning-block { }
+  .reasoning-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: .05em; margin-bottom: 3px; }
+  .reasoning-tabs { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
+  .reasoning-tab {
+    font-size: .72rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .reasoning-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .reasoning-text {
+    font-size: .82rem;
+    color: var(--text);
+    line-height: 1.65;
+    white-space: pre-wrap;
+    background: var(--bg3);
+    border-radius: 6px;
+    padding: 10px 12px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .card-footer {
+    padding: 0 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .card-collapsible-toggle {
+    font-size: .78rem;
+    color: var(--muted);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 2px 0;
+    font-family: var(--font);
+    text-align: left;
+  }
+  .card-collapsible-toggle:hover { color: var(--text); }
+  .claims-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .claims-list li {
+    font-size: .78rem;
+    color: var(--yellow);
+    background: var(--yellow-bg);
+    border-radius: 4px;
+    padding: 4px 8px;
+    line-height: 1.4;
+  }
+  .runs-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .runs-table th { font-size: .7rem; font-weight: 700; text-transform: uppercase; color: var(--muted); padding: 4px 8px; text-align: left; }
+  .runs-table td { font-size: .78rem; padding: 4px 8px; border-top: 1px solid var(--border); color: var(--text); }
+  .agent-response-box {
+    font-size: .78rem;
+    color: var(--text);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    background: var(--bg3);
+    border-radius: 6px;
+    padding: 10px 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 6px;
+    font-family: var(--mono);
+  }
+
+  /* ── Compare view ─────────────────────────────────────────────────────── */
+  #view-compare { gap: 16px; }
+  .compare-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .compare-toolbar label { font-size: .8rem; color: var(--muted); }
+  .compare-table-wrap { overflow-x: auto; }
+  .compare-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+  .compare-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted);
+    letter-spacing: .06em;
+    border-bottom: 2px solid var(--border);
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .compare-table th:hover { color: var(--text); }
+  .compare-table th .sort-arrow { margin-left: 4px; opacity: .5; }
+  .compare-table th.sorted .sort-arrow { opacity: 1; color: var(--accent); }
+  .compare-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: .82rem;
+  }
+  .compare-table tr:hover td { background: var(--bg3); cursor: pointer; }
+  .compare-table .q-cell {
+    max-width: 220px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--muted);
+  }
+  .compare-table .score-cell { font-weight: 700; text-align: center; }
+  .compare-table .best-cell  { background: var(--green-bg); color: var(--green); }
+
+  /* ── Misc utilities ───────────────────────────────────────────────────── */
+  .hidden   { display: none !important; }
+  .divider  { border: none; border-top: 1px solid var(--border); }
+  .tag {
+    display: inline-block;
+    font-size: .72rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--bg3);
+    color: var(--muted);
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Nav ──────────────────────────────────────────────────────────── -->
+  <nav id="nav">
+    <span class="brand">k-eval</span>
+    <button class="nav-tab" data-view="overview">Overview</button>
+    <button class="nav-tab" data-view="samples">Samples</button>
+    <button class="nav-tab" data-view="compare">Compare</button>
+    <span class="spacer"></span>
+    <span class="meta" id="nav-meta"></span>
+    <button id="btn-load-nav" title="Load a different .detailed.jsonl file">Load file</button>
+  </nav>
+
+  <!-- ── Content ───────────────────────────────────────────────────────── -->
+  <div id="content">
+
+    <!-- Load / drop zone -->
+    <div id="view-load" class="view active">
+      <div id="drop-zone">
+        <div class="dz-icon">📊</div>
+        <h2>k-eval Result Viewer</h2>
+        <p>Drop a <code>.detailed.jsonl</code> file here, or click to browse.</p>
+        <button id="btn-browse">Browse file</button>
+        <input type="file" id="file-input" accept=".jsonl,.json">
+        <div id="load-progress"></div>
+      </div>
+    </div>
+
+    <!-- Overview -->
+    <div id="view-overview" class="view">
+      <div class="overview-header">
+        <h1 id="ov-title">Evaluation Results</h1>
+        <div class="sub" id="ov-sub"></div>
+      </div>
+
+      <!-- Score matrix -->
+      <div class="card">
+        <div class="card-title">Scores by Condition (mean ± stddev, scale 1–5)</div>
+        <div style="overflow-x:auto">
+          <table class="score-matrix" id="score-matrix"></table>
+        </div>
+      </div>
+
+      <!-- Performance summary -->
+      <div class="card" id="perf-section">
+        <div class="card-title">Agent Performance</div>
+        <div class="perf-row" id="perf-row"></div>
+      </div>
+    </div>
+
+    <!-- Samples -->
+    <div id="view-samples" class="view">
+      <!-- Left: list -->
+      <div id="sample-list-panel">
+        <div id="sample-list-toolbar">
+          <input type="text" id="sample-search" placeholder="Search questions…">
+          <div class="toolbar-row">
+            <span class="toolbar-label">Sort</span>
+            <select id="sort-select">
+              <option value="score-delta">Score variance</option>
+              <option value="worst-score">Worst score</option>
+              <option value="best-score">Best score</option>
+              <option value="idx">Sample index</option>
+            </select>
+          </div>
+          <div class="toolbar-row">
+            <span class="toolbar-label">Filter</span>
+            <select id="filter-condition">
+              <option value="">All conditions</option>
+            </select>
+          </div>
+          <div class="toolbar-row" id="filter-metric-row">
+            <span class="toolbar-label">Metric</span>
+            <select id="filter-metric">
+              <option value="composite">Composite</option>
+              <option value="factual_adherence">Factual</option>
+              <option value="completeness">Complete</option>
+              <option value="helpfulness_and_clarity">Helpful</option>
+            </select>
+          </div>
+        </div>
+        <div id="sample-list"></div>
+      </div>
+
+      <!-- Right: detail -->
+      <div id="sample-detail-panel">
+        <div id="sample-detail-empty">← Select a sample</div>
+        <div id="sample-detail-content">
+          <div id="sample-context">
+            <div class="ctx-label" id="sample-idx-label"></div>
+            <div id="sample-question"></div>
+            <div class="collapsible-section">
+              <button class="collapsible-toggle" data-target="ref-body">Show reference answer ▾</button>
+              <div class="collapsible-body" id="ref-body">
+                <div id="sample-reference"></div>
+              </div>
+            </div>
+          </div>
+          <div id="condition-cards"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compare -->
+    <div id="view-compare" class="view">
+      <div class="compare-toolbar">
+        <label>Metric:
+          <select id="cmp-metric">
+            <option value="composite">Composite (avg)</option>
+            <option value="factual_adherence">Factual Adherence</option>
+            <option value="completeness">Completeness</option>
+            <option value="helpfulness_and_clarity">Helpfulness & Clarity</option>
+          </select>
+        </label>
+        <label>Min score:
+          <input type="range" id="cmp-min" min="1" max="5" step="0.5" value="1" style="width:80px">
+          <span id="cmp-min-val">1.0</span>
+        </label>
+        <label>Max score:
+          <input type="range" id="cmp-max" min="1" max="5" step="0.5" value="5" style="width:80px">
+          <span id="cmp-max-val">5.0</span>
+        </label>
+      </div>
+      <div class="compare-table-wrap card">
+        <table class="compare-table" id="compare-table">
+          <thead id="compare-thead"></thead>
+          <tbody id="compare-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<script>
+// ── Data injection point (CLI replaces this line) ──────────────────────────
+window.__KEVAL_DATA__ = null;
+
+// ── State ──────────────────────────────────────────────────────────────────
+const state = {
+  records: [],          // all JSONL records
+  conditions: [],       // sorted condition names
+  sampleIds: [],        // sorted sample idx strings
+  byKey: {},            // {sampleIdx_condition: record}
+  selectedSample: null,
+  activeView: 'load',
+  sortMode: 'score-delta',
+  filterCondition: '',
+  filterMetric: 'composite',
+  searchQ: '',
+  cmpMetric: 'composite',
+  cmpMin: 1,
+  cmpMax: 5,
+  cmpSortCol: null,
+  cmpSortAsc: true,
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function scoreColor(v) {
+  if (v >= 4) return 'high';
+  if (v >= 3) return 'mid';
+  return 'low';
+}
+
+function scoreHex(v) {
+  if (v >= 4) return 'var(--green)';
+  if (v >= 3) return 'var(--yellow)';
+  return 'var(--red)';
+}
+
+function fmtScore(v) { return v != null ? v.toFixed(2) : '—'; }
+function fmtMs(ms) {
+  if (ms == null) return '—';
+  if (ms >= 60000) return (ms/60000).toFixed(1)+'m';
+  return (ms/1000).toFixed(1)+'s';
+}
+function fmtCost(c) { return c != null ? '$'+c.toFixed(4) : '—'; }
+
+function composite(rec) {
+  const d = rec.evaluation.details;
+  return (d.factual_adherence_mean + d.completeness_mean + d.helpfulness_and_clarity_mean) / 3;
+}
+
+function metricMean(rec, m) {
+  if (m === 'composite') return composite(rec);
+  return rec.evaluation.details[m + '_mean'];
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// ── Load records ───────────────────────────────────────────────────────────
+function loadRecords(records) {
+  state.records = records;
+  state.conditions = [...new Set(records.map(r => r.evaluation_name.split('/')[1]))].sort();
+  state.sampleIds = [...new Set(records.map(r => r.sample_idx))].sort((a,b) => +a - +b);
+  state.byKey = {};
+  for (const r of records) {
+    const cond = r.evaluation_name.split('/')[1];
+    state.byKey[r.sample_idx + '|' + cond] = r;
+  }
+
+  // Populate filter select
+  const fc = document.getElementById('filter-condition');
+  fc.innerHTML = '<option value="">All conditions</option>';
+  for (const c of state.conditions) {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    fc.appendChild(o);
+  }
+
+  // Nav meta
+  const evalName = (records[0].evaluation_name.split('/')[0]) || 'Evaluation';
+  const modelId = records[0].model_id || '';
+  document.getElementById('nav-meta').textContent =
+    `${evalName} · ${state.sampleIds.length} samples · ${state.conditions.length} conditions · ${modelId}`;
+
+  renderOverview();
+  renderCompareTable();
+  renderSampleList();
+  showView('overview');
+}
+
+// ── View routing ───────────────────────────────────────────────────────────
+function showView(name) {
+  state.activeView = name;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const view = document.getElementById('view-' + name);
+  if (view) view.classList.add('active');
+  const tab = document.querySelector(`.nav-tab[data-view="${name}"]`);
+  if (tab) tab.classList.add('active');
+}
+
+// ── Overview ───────────────────────────────────────────────────────────────
+function renderOverview() {
+  const records = state.records;
+  const conds = state.conditions;
+
+  // Title
+  const evalName = records[0].evaluation_name.split('/')[0];
+  const modelId = records[0].model_id || '';
+  document.getElementById('ov-title').textContent = evalName;
+  document.getElementById('ov-sub').textContent =
+    `${state.sampleIds.length} samples · ${conds.length} conditions · model: ${modelId}`;
+
+  // Per-condition per-metric means
+  const metrics = [
+    { key: 'factual_adherence', label: 'Factual Adherence' },
+    { key: 'completeness',      label: 'Completeness' },
+    { key: 'helpfulness_and_clarity', label: 'Helpfulness & Clarity' },
+  ];
+
+  // Compute stats per (condition, metric)
+  const stats = {}; // {cond: {metric: {mean, std}}}
+  for (const cond of conds) {
+    stats[cond] = {};
+    const recs = records.filter(r => r.evaluation_name.split('/')[1] === cond);
+    for (const m of metrics) {
+      const vals = recs.map(r => r.evaluation.details[m.key + '_mean']);
+      const mu = vals.reduce((a,b)=>a+b,0)/vals.length;
+      const pooledStd = recs.map(r => r.evaluation.details[m.key+'_stddev']).reduce((a,b)=>a+b,0)/recs.length;
+      stats[cond][m.key] = { mean: mu, std: pooledStd };
+    }
+  }
+
+  // Build table
+  const tbl = document.getElementById('score-matrix');
+  let html = '<thead><tr><th>Metric</th>';
+  for (const c of conds) html += `<th>${escHtml(c)}</th>`;
+  html += '</tr></thead><tbody>';
+
+  for (const m of metrics) {
+    const means = conds.map(c => stats[c][m.key].mean);
+    const maxMean = Math.max(...means);
+    html += `<tr><td class="metric-label">${escHtml(m.label)}</td>`;
+    for (const c of conds) {
+      const { mean, std } = stats[c][m.key];
+      const isWinner = mean >= maxMean - 0.001;
+      const cls = scoreColor(mean);
+      html += `<td class="${isWinner?'winner-cell':''}">
+        <span class="score-badge ${cls}">${mean.toFixed(2)}</span>
+        <span class="cell-std">±${std.toFixed(2)}</span>
+        ${isWinner ? '<span class="winner-marker"></span>' : ''}
+      </td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  tbl.innerHTML = html;
+
+  // Performance summary
+  const perfRow = document.getElementById('perf-row');
+  perfRow.innerHTML = '';
+  for (const cond of conds) {
+    const recs = records.filter(r => r.evaluation_name.split('/')[1] === cond);
+    const allRuns = recs.flatMap(r => r.run_details);
+    const costs = allRuns.map(r => r.cost_usd).filter(c => c != null);
+    const durs = allRuns.map(r => r.duration_ms);
+    const turns = allRuns.map(r => r.num_turns);
+    const medCost = costs.length ? median(costs) : null;
+    const medDur  = median(durs);
+    const medTurn = median(turns);
+    const div = document.createElement('div');
+    div.className = 'perf-card';
+    div.innerHTML = `
+      <div class="perf-label">${escHtml(cond)}</div>
+      <div class="perf-val">${fmtScore(medCost != null ? medCost*100 : null)}¢</div>
+      <div class="perf-sub">median cost · ${fmtMs(medDur)} · ${medTurn.toFixed(0)} turns</div>
+    `;
+    perfRow.appendChild(div);
+  }
+}
+
+function median(arr) {
+  const s = [...arr].sort((a,b)=>a-b);
+  const m = Math.floor(s.length/2);
+  return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
+}
+
+// ── Sample list ────────────────────────────────────────────────────────────
+function computeSampleScore(sampleIdx, metric, cond) {
+  const key = sampleIdx + '|' + (cond || state.conditions[0]);
+  const rec = state.byKey[key];
+  if (!rec) return 0;
+  return metricMean(rec, metric);
+}
+
+function computeSampleDelta(sampleIdx, metric) {
+  const scores = state.conditions.map(c => {
+    const rec = state.byKey[sampleIdx + '|' + c];
+    return rec ? metricMean(rec, metric) : 0;
+  });
+  return Math.max(...scores) - Math.min(...scores);
+}
+
+function computeWorstScore(sampleIdx, metric) {
+  const scores = state.conditions.map(c => {
+    const rec = state.byKey[sampleIdx + '|' + c];
+    return rec ? metricMean(rec, metric) : 0;
+  });
+  return Math.min(...scores);
+}
+
+function computeBestScore(sampleIdx, metric) {
+  const scores = state.conditions.map(c => {
+    const rec = state.byKey[sampleIdx + '|' + c];
+    return rec ? metricMean(rec, metric) : 0;
+  });
+  return Math.max(...scores);
+}
+
+function highVarianceSample(sampleIdx) {
+  // True if any per-sample stddev is in the top quartile for that condition/metric
+  const conds = state.conditions;
+  const metrics = ['factual_adherence','completeness','helpfulness_and_clarity'];
+  let maxStd = 0;
+  for (const c of conds) {
+    const rec = state.byKey[sampleIdx + '|' + c];
+    if (!rec) continue;
+    for (const m of metrics) {
+      const v = rec.evaluation.details[m + '_stddev'];
+      if (v > maxStd) maxStd = v;
+    }
+  }
+  return maxStd > 0.8; // threshold
+}
+
+function renderSampleList() {
+  const q = state.searchQ.toLowerCase();
+  let ids = state.sampleIds.filter(idx => {
+    if (!q) return true;
+    const rec = state.byKey[idx + '|' + state.conditions[0]];
+    if (!rec) return false;
+    return rec.input.raw.toLowerCase().includes(q);
+  });
+
+  const metric = state.filterMetric;
+
+  // Sort
+  if (state.sortMode === 'score-delta') {
+    ids = [...ids].sort((a,b) => computeSampleDelta(b,metric) - computeSampleDelta(a,metric));
+  } else if (state.sortMode === 'worst-score') {
+    ids = [...ids].sort((a,b) => computeWorstScore(a,metric) - computeWorstScore(b,metric));
+  } else if (state.sortMode === 'best-score') {
+    ids = [...ids].sort((a,b) => computeBestScore(b,metric) - computeBestScore(a,metric));
+  } else {
+    ids = [...ids].sort((a,b) => +a - +b);
+  }
+
+  const list = document.getElementById('sample-list');
+  list.innerHTML = '';
+
+  for (const idx of ids) {
+    const firstRec = state.byKey[idx + '|' + state.conditions[0]];
+    if (!firstRec) continue;
+
+    const q = firstRec.input.raw.slice(0,80);
+    const highVar = highVarianceSample(idx);
+
+    // Sparkline dots for each condition
+    const dots = state.conditions.map(c => {
+      const rec = state.byKey[idx + '|' + c];
+      const score = rec ? metricMean(rec, metric) : 0;
+      return `<div class="spark-dot" style="background:${scoreHex(score)}" title="${c}: ${fmtScore(score)}"></div>`;
+    }).join('');
+
+    const item = document.createElement('div');
+    item.className = 'sample-item' + (state.selectedSample === idx ? ' selected' : '');
+    item.dataset.idx = idx;
+    item.innerHTML = `
+      <div class="sample-item-header">
+        <span class="sample-item-idx">#${idx}</span>
+        <span class="sparkline">${dots}</span>
+        ${highVar ? '<span class="variance-badge">⚡ var</span>' : ''}
+      </div>
+      <div class="sample-item-q">${escHtml(q)}</div>
+    `;
+    item.addEventListener('click', () => selectSample(idx));
+    list.appendChild(item);
+  }
+}
+
+// ── Sample detail ──────────────────────────────────────────────────────────
+function selectSample(idx) {
+  state.selectedSample = idx;
+
+  // Update list selection
+  document.querySelectorAll('.sample-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.idx === idx);
+  });
+
+  const empty = document.getElementById('sample-detail-empty');
+  const content = document.getElementById('sample-detail-content');
+  empty.style.display = 'none';
+  content.classList.add('visible');
+
+  const firstRec = state.byKey[idx + '|' + state.conditions[0]];
+  document.getElementById('sample-idx-label').textContent = `Sample #${idx}`;
+  document.getElementById('sample-question').textContent = firstRec.input.raw;
+  document.getElementById('sample-reference').textContent = firstRec.input.reference;
+
+  renderConditionCards(idx);
+}
+
+function renderConditionCards(idx) {
+  const container = document.getElementById('condition-cards');
+  container.innerHTML = '';
+  const metrics = ['factual_adherence','completeness','helpfulness_and_clarity'];
+  const metricLabels = {'factual_adherence':'Factual Adherence','completeness':'Completeness','helpfulness_and_clarity':'Helpfulness & Clarity'};
+
+  for (const cond of state.conditions) {
+    const rec = state.byKey[idx + '|' + cond];
+    if (!rec) continue;
+    const d = rec.evaluation.details;
+    const claims = d.unverified_claims || [];
+    const runDetails = rec.run_details || [];
+    const numReps = runDetails.length;
+
+    const cardEl = document.createElement('div');
+    cardEl.className = 'condition-card';
+
+    // Header
+    let headerHtml = `<div class="condition-card-header">
+      <span class="cond-name">${escHtml(cond)}</span>
+      ${claims.length > 0 ? `<span class="claim-badge">⚠ ${claims.length} unverified</span>` : ''}
+    </div>`;
+
+    // Score row
+    let scoreHtml = '<div class="score-row">';
+    for (const m of metrics) {
+      const mean = d[m+'_mean'];
+      const std  = d[m+'_stddev'];
+      const cls  = scoreColor(mean);
+      const pct  = ((mean-1)/4*100).toFixed(0);
+      scoreHtml += `<div class="score-col">
+        <div class="score-col-label">${metricLabels[m].split(' ')[0]}</div>
+        <div class="score-col-val">
+          <span class="score-badge ${cls}">${mean.toFixed(1)}</span>
+          <span class="score-stddev">±${std.toFixed(2)}</span>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:${pct}%;background:${scoreHex(mean)}"></div></div>
+      </div>`;
+    }
+    scoreHtml += '</div>';
+
+    // Reasonings — one block per metric, with rep tabs
+    let reasoningsHtml = '<div class="reasonings">';
+    for (const m of metrics) {
+      const reasonings = d[m+'_reasonings'] || [];
+      const tabsHtml = reasonings.map((_, i) =>
+        `<button class="reasoning-tab${i===0?' active':''}" data-cond="${escHtml(cond)}" data-metric="${m}" data-rep="${i}">Run ${i+1}</button>`
+      ).join('');
+      const textId = `rt-${idx}-${cond}-${m}`.replace(/[^a-z0-9-]/gi,'_');
+      reasoningsHtml += `<div class="reasoning-block">
+        <div class="reasoning-label">${escHtml(metricLabels[m])}</div>
+        ${reasonings.length > 1 ? `<div class="reasoning-tabs">${tabsHtml}</div>` : ''}
+        <div class="reasoning-text" id="${textId}">${escHtml(reasonings[0] || '—')}</div>
+      </div>`;
+    }
+    reasoningsHtml += '</div>';
+
+    // Footer: claims, runs, agent response
+    let footerHtml = '<div class="card-footer">';
+
+    if (claims.length > 0) {
+      const claimsId = `claims-${idx}-${cond}`.replace(/[^a-z0-9-]/gi,'_');
+      footerHtml += `<button class="card-collapsible-toggle" data-target="${claimsId}">▸ Unverified claims (${claims.length})</button>
+        <div class="collapsible-body" id="${claimsId}">
+          <ul class="claims-list">${claims.map(c=>`<li>${escHtml(c)}</li>`).join('')}</ul>
+        </div>`;
+    }
+
+    // Run details table
+    const runsId = `runs-${idx}-${cond}`.replace(/[^a-z0-9-]/gi,'_');
+    const runRows = runDetails.map(r => `<tr>
+      <td>Run ${r.repetition_index+1}</td>
+      <td>${fmtCost(r.cost_usd)}</td>
+      <td>${fmtMs(r.duration_ms)}</td>
+      <td>${r.num_turns}</td>
+    </tr>`).join('');
+    footerHtml += `<button class="card-collapsible-toggle" data-target="${runsId}">▸ Run details (${numReps} reps)</button>
+      <div class="collapsible-body" id="${runsId}">
+        <table class="runs-table">
+          <thead><tr><th>Run</th><th>Cost</th><th>Duration</th><th>Turns</th></tr></thead>
+          <tbody>${runRows}</tbody>
+        </table>
+      </div>`;
+
+    // Agent responses
+    const agentId = `agent-${idx}-${cond}`.replace(/[^a-z0-9-]/gi,'_');
+    const rawRuns = rec.output?.raw_runs || runDetails.map(r=>r.agent_response);
+    const agentTabsHtml = rawRuns.map((_, i) =>
+      `<button class="reasoning-tab${i===0?' active':''}" data-cond="${escHtml(cond)}" data-agent="true" data-rep="${i}" data-agentid="${agentId}">Run ${i+1}</button>`
+    ).join('');
+    footerHtml += `<button class="card-collapsible-toggle" data-target="${agentId}">▸ Agent response</button>
+      <div class="collapsible-body" id="${agentId}">
+        ${rawRuns.length > 1 ? `<div class="reasoning-tabs" style="margin-bottom:6px">${agentTabsHtml}</div>` : ''}
+        <div class="agent-response-box" id="${agentId}-text">${escHtml(rawRuns[0] || '—')}</div>
+      </div>`;
+
+    footerHtml += '</div>'; // card-footer
+
+    cardEl.innerHTML = headerHtml + scoreHtml + reasoningsHtml + footerHtml;
+
+    // Wire up reasoning tab clicks (need recs in scope)
+    cardEl.addEventListener('click', e => {
+      const btn = e.target.closest('.reasoning-tab');
+      if (!btn) return;
+      const condName = btn.dataset.cond;
+      const rep = parseInt(btn.dataset.rep, 10);
+      const recLocal = state.byKey[idx + '|' + condName];
+      if (!recLocal) return;
+
+      if (btn.dataset.agent) {
+        // Agent response tabs
+        const agentIdLocal = btn.dataset.agentid;
+        const rawRunsLocal = recLocal.output?.raw_runs || recLocal.run_details.map(r=>r.agent_response);
+        const textEl = document.getElementById(agentIdLocal + '-text');
+        if (textEl) textEl.textContent = rawRunsLocal[rep] || '—';
+        btn.closest('.reasoning-tabs').querySelectorAll('.reasoning-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+      } else {
+        const mLocal = btn.dataset.metric;
+        const textId = `rt-${idx}-${condName}-${mLocal}`.replace(/[^a-z0-9-]/gi,'_');
+        const textEl = document.getElementById(textId);
+        if (textEl) textEl.textContent = recLocal.evaluation.details[mLocal+'_reasonings'][rep] || '—';
+        btn.closest('.reasoning-tabs').querySelectorAll('.reasoning-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    });
+
+    // Wire collapsible toggles
+    cardEl.addEventListener('click', e => {
+      const btn = e.target.closest('.card-collapsible-toggle');
+      if (!btn) return;
+      const targetId = btn.dataset.target;
+      const body = document.getElementById(targetId);
+      if (!body) return;
+      body.classList.toggle('open');
+      btn.textContent = btn.textContent.startsWith('▸')
+        ? btn.textContent.replace('▸','▾')
+        : btn.textContent.replace('▾','▸');
+    });
+
+    container.appendChild(cardEl);
+  }
+}
+
+// ── Compare table ──────────────────────────────────────────────────────────
+function renderCompareTable() {
+  const metric = state.cmpMetric;
+  const conds = state.conditions;
+  const metrics3 = ['factual_adherence','completeness','helpfulness_and_clarity'];
+  const metricLabels3 = {'factual_adherence':'Factual','completeness':'Complete','helpfulness_and_clarity':'Helpful'};
+
+  // Build rows
+  let rows = state.sampleIds.map(idx => {
+    const firstRec = state.byKey[idx + '|' + conds[0]];
+    const q = firstRec ? firstRec.input.raw.slice(0,60) : '';
+    const scores = {};
+    for (const c of conds) {
+      const rec = state.byKey[idx + '|' + c];
+      scores[c] = rec ? metricMean(rec, metric) : null;
+    }
+    const validScores = Object.values(scores).filter(s => s != null);
+    const compScore = validScores.length ? validScores.reduce((a,b)=>a+b,0)/validScores.length : 0;
+    return { idx, q, scores, compScore };
+  });
+
+  // Filter
+  rows = rows.filter(r => {
+    const vals = Object.values(r.scores).filter(v=>v!=null);
+    if (!vals.length) return false;
+    const mn = Math.min(...vals), mx = Math.max(...vals);
+    return mx >= state.cmpMin && mn <= state.cmpMax;
+  });
+
+  // Sort
+  if (state.cmpSortCol) {
+    rows.sort((a,b) => {
+      const va = state.cmpSortCol === 'idx' ? +a.idx : (a.scores[state.cmpSortCol] ?? 0);
+      const vb = state.cmpSortCol === 'idx' ? +b.idx : (b.scores[state.cmpSortCol] ?? 0);
+      return state.cmpSortAsc ? va - vb : vb - va;
+    });
+  }
+
+  // thead
+  const thead = document.getElementById('compare-thead');
+  let thHtml = `<tr>
+    <th data-col="idx">Sample <span class="sort-arrow">↕</span></th>
+    <th>Question</th>`;
+  for (const c of conds) {
+    const short = c.length > 14 ? c.slice(0,13)+'…' : c;
+    thHtml += `<th data-col="${escHtml(c)}" class="${state.cmpSortCol===c?'sorted':''}">${escHtml(short)} <span class="sort-arrow">${state.cmpSortCol===c?(state.cmpSortAsc?'↑':'↓'):'↕'}</span></th>`;
+  }
+  thHtml += '</tr>';
+  thead.innerHTML = thHtml;
+
+  // tbody
+  const tbody = document.getElementById('compare-tbody');
+  let tbHtml = '';
+  for (const row of rows) {
+    const validScores = Object.values(row.scores).filter(s=>s!=null);
+    const maxScore = validScores.length ? Math.max(...validScores) : 0;
+    tbHtml += `<tr data-idx="${escHtml(row.idx)}">
+      <td><strong>#${escHtml(row.idx)}</strong></td>
+      <td class="q-cell" title="${escHtml(row.q)}">${escHtml(row.q)}…</td>`;
+    for (const c of conds) {
+      const s = row.scores[c];
+      const isBest = s != null && s >= maxScore - 0.001 && validScores.length > 1;
+      const cls = s != null ? 'score-cell ' + (isBest ? 'best-cell' : '') : '';
+      tbHtml += `<td class="${cls}">${s != null ? fmtScore(s) : '—'}</td>`;
+    }
+    tbHtml += '</tr>';
+  }
+  tbody.innerHTML = tbHtml;
+
+  // Row click → go to sample browser
+  tbody.querySelectorAll('tr[data-idx]').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const idx = tr.dataset.idx;
+      showView('samples');
+      state.selectedSample = null;
+      renderSampleList();
+      selectSample(idx);
+    });
+  });
+
+  // Header sort clicks
+  thead.querySelectorAll('th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (state.cmpSortCol === col) {
+        state.cmpSortAsc = !state.cmpSortAsc;
+      } else {
+        state.cmpSortCol = col;
+        state.cmpSortAsc = false;
+      }
+      renderCompareTable();
+    });
+  });
+}
+
+// ── JSONL parser ───────────────────────────────────────────────────────────
+function parseJsonl(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  return lines.map(l => JSON.parse(l));
+}
+
+function handleFile(file) {
+  const progress = document.getElementById('load-progress');
+  progress.textContent = 'Parsing…';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const records = parseJsonl(e.target.result);
+      if (!records.length) throw new Error('No records found');
+      loadRecords(records);
+    } catch (err) {
+      progress.textContent = 'Error: ' + err.message;
+    }
+  };
+  reader.onerror = () => { progress.textContent = 'Failed to read file.'; };
+  reader.readAsText(file);
+}
+
+// ── Wire up DOM ────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Nav tabs
+  document.querySelectorAll('.nav-tab').forEach(btn => {
+    btn.addEventListener('click', () => showView(btn.dataset.view));
+  });
+
+  // Load nav button
+  document.getElementById('btn-load-nav').addEventListener('click', () => {
+    document.getElementById('file-input').click();
+  });
+
+  // Drop zone
+  const dz = document.getElementById('drop-zone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+  document.getElementById('btn-browse').addEventListener('click', () => {
+    document.getElementById('file-input').click();
+  });
+  document.getElementById('file-input').addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  // Sample list controls
+  document.getElementById('sort-select').addEventListener('change', e => {
+    state.sortMode = e.target.value;
+    renderSampleList();
+  });
+  document.getElementById('filter-condition').addEventListener('change', e => {
+    state.filterCondition = e.target.value;
+  });
+  document.getElementById('filter-metric').addEventListener('change', e => {
+    state.filterMetric = e.target.value;
+    renderSampleList();
+  });
+  document.getElementById('sample-search').addEventListener('input', e => {
+    state.searchQ = e.target.value;
+    renderSampleList();
+  });
+
+  // Collapsible toggles (global, for sample context panel)
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.collapsible-toggle');
+    if (!btn) return;
+    const targetId = btn.dataset.target;
+    const body = document.getElementById(targetId);
+    if (!body) return;
+    body.classList.toggle('open');
+    btn.textContent = body.classList.contains('open')
+      ? btn.textContent.replace('▾','▴').replace('Show','Hide')
+      : btn.textContent.replace('▴','▾').replace('Hide','Show');
+  });
+
+  // Compare controls
+  document.getElementById('cmp-metric').addEventListener('change', e => {
+    state.cmpMetric = e.target.value;
+    if (state.records.length) renderCompareTable();
+  });
+  const cmpMin = document.getElementById('cmp-min');
+  const cmpMax = document.getElementById('cmp-max');
+  cmpMin.addEventListener('input', e => {
+    state.cmpMin = +e.target.value;
+    document.getElementById('cmp-min-val').textContent = state.cmpMin.toFixed(1);
+    if (state.records.length) renderCompareTable();
+  });
+  cmpMax.addEventListener('input', e => {
+    state.cmpMax = +e.target.value;
+    document.getElementById('cmp-max-val').textContent = state.cmpMax.toFixed(1);
+    if (state.records.length) renderCompareTable();
+  });
+
+  // Auto-load if data was inlined by CLI
+  if (window.__KEVAL_DATA__ && Array.isArray(window.__KEVAL_DATA__) && window.__KEVAL_DATA__.length) {
+    loadRecords(window.__KEVAL_DATA__);
+  }
+});
+</script>
+</body>
+</html>
