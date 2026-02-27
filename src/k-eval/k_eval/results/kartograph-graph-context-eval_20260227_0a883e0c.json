@@ -1,0 +1,148 @@
+{
+  "schema_version": "0.2.1",
+  "evaluation_id": "0a883e0c-0e3c-4465-8614-7b1bff7c03c8",
+  "retrieved_timestamp": "1772211446",
+  "source_metadata": {
+    "source_name": "k-eval",
+    "source_type": "evaluation_run",
+    "source_organization_name": "k-eval",
+    "evaluator_relationship": "self"
+  },
+  "model_info": {
+    "id": "claude-sonnet-4-5",
+    "name": "claude-sonnet-4-5",
+    "developer": null,
+    "inference_platform": null
+  },
+  "eval_library": {
+    "name": "k-eval",
+    "version": "1.0.0"
+  },
+  "evaluation_results": [
+    {
+      "evaluation_name": "kartograph-graph-context-eval/baseline",
+      "evaluation_timestamp": "1772211446",
+      "source_data": {
+        "source_type": "jsonl_file",
+        "dataset_sha256": "38d0ca75daccac353bc7c8c95584fd83fbeac9d2053d1a7a143e9de756bc1323",
+        "samples_number": 1
+      },
+      "metric_config": {
+        "evaluation_description": "k-eval LLM-as-judge scoring: factual_adherence, completeness, helpfulness_and_clarity (each 1-5)",
+        "lower_is_better": false,
+        "score_type": "composite",
+        "min_score": 1.0,
+        "max_score": 5.0
+      },
+      "score_details": {
+        "score": null,
+        "details": {
+          "factual_adherence_mean": 3.6666666666666665,
+          "factual_adherence_stddev": 0.5773502691896257,
+          "completeness_mean": 3.6666666666666665,
+          "completeness_stddev": 1.1547005383792515,
+          "helpfulness_and_clarity_mean": 4.666666666666667,
+          "helpfulness_and_clarity_stddev": 0.5773502691896257
+        }
+      },
+      "generation_config": {
+        "judge_temperature": 0.0
+      }
+    },
+    {
+      "evaluation_name": "kartograph-graph-context-eval/with_ask_sre",
+      "evaluation_timestamp": "1772211446",
+      "source_data": {
+        "source_type": "jsonl_file",
+        "dataset_sha256": "38d0ca75daccac353bc7c8c95584fd83fbeac9d2053d1a7a143e9de756bc1323",
+        "samples_number": 1
+      },
+      "metric_config": {
+        "evaluation_description": "k-eval LLM-as-judge scoring: factual_adherence, completeness, helpfulness_and_clarity (each 1-5)",
+        "lower_is_better": false,
+        "score_type": "composite",
+        "min_score": 1.0,
+        "max_score": 5.0
+      },
+      "score_details": {
+        "score": null,
+        "details": {
+          "factual_adherence_mean": 4.333333333333333,
+          "factual_adherence_stddev": 0.5773502691896257,
+          "completeness_mean": 5.0,
+          "completeness_stddev": 0.0,
+          "helpfulness_and_clarity_mean": 5.0,
+          "helpfulness_and_clarity_stddev": 0.0
+        }
+      },
+      "generation_config": {
+        "judge_temperature": 0.0
+      }
+    },
+    {
+      "evaluation_name": "kartograph-graph-context-eval/with_graph",
+      "evaluation_timestamp": "1772211446",
+      "source_data": {
+        "source_type": "jsonl_file",
+        "dataset_sha256": "38d0ca75daccac353bc7c8c95584fd83fbeac9d2053d1a7a143e9de756bc1323",
+        "samples_number": 1
+      },
+      "metric_config": {
+        "evaluation_description": "k-eval LLM-as-judge scoring: factual_adherence, completeness, helpfulness_and_clarity (each 1-5)",
+        "lower_is_better": false,
+        "score_type": "composite",
+        "min_score": 1.0,
+        "max_score": 5.0
+      },
+      "score_details": {
+        "score": null,
+        "details": {
+          "factual_adherence_mean": 4.0,
+          "factual_adherence_stddev": 0.0,
+          "completeness_mean": 5.0,
+          "completeness_stddev": 0.0,
+          "helpfulness_and_clarity_mean": 4.666666666666667,
+          "helpfulness_and_clarity_stddev": 0.5773502691896257
+        }
+      },
+      "generation_config": {
+        "judge_temperature": 0.0
+      }
+    },
+    {
+      "evaluation_name": "kartograph-graph-context-eval/with_graph_and_ask_sre",
+      "evaluation_timestamp": "1772211446",
+      "source_data": {
+        "source_type": "jsonl_file",
+        "dataset_sha256": "38d0ca75daccac353bc7c8c95584fd83fbeac9d2053d1a7a143e9de756bc1323",
+        "samples_number": 1
+      },
+      "metric_config": {
+        "evaluation_description": "k-eval LLM-as-judge scoring: factual_adherence, completeness, helpfulness_and_clarity (each 1-5)",
+        "lower_is_better": false,
+        "score_type": "composite",
+        "min_score": 1.0,
+        "max_score": 5.0
+      },
+      "score_details": {
+        "score": null,
+        "details": {
+          "factual_adherence_mean": 4.0,
+          "factual_adherence_stddev": 0.0,
+          "completeness_mean": 5.0,
+          "completeness_stddev": 0.0,
+          "helpfulness_and_clarity_mean": 4.666666666666667,
+          "helpfulness_and_clarity_stddev": 0.5773502691896257
+        }
+      },
+      "generation_config": {
+        "judge_temperature": 0.0
+      }
+    }
+  ],
+  "detailed_evaluation_results": {
+    "file_path": "kartograph-graph-context-eval_20260227_0a883e0c.detailed.jsonl",
+    "format": "jsonl",
+    "checksum": "38d0ca75daccac353bc7c8c95584fd83fbeac9d2053d1a7a143e9de756bc1323"
+  }
+}
