@@ -1417,6 +1417,38 @@ select:focus:not(:focus-visible),
 }
 .qa-ref-wrap:hover .copy-btn-overlay { opacity: 1; }
 
+/* Agent response body — copy button overlaid top-right, fades in on hover */
+.resp-body-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.resp-body-wrap .copy-btn-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 2;
+}
+.resp-body-wrap:hover .copy-btn-overlay { opacity: 1; }
+
+/* Tool call input/output pre blocks — copy button overlaid top-right */
+.trace-pre-wrap {
+  position: relative;
+}
+.trace-pre-wrap .copy-btn-overlay {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 2;
+}
+.trace-pre-wrap:hover .copy-btn-overlay { opacity: 1; }
+
 /* ── Judge section condition indicator ─────────────────────────────────── */
 .judge-cond-indicator {
   display: flex;
@@ -1935,15 +1967,18 @@ select:focus:not(:focus-visible),
                           aria-label="Show interaction trace with tool calls">
                     <span class="tt">Trace<span class="tt-body">Show the full multi-turn interaction: assistant reasoning steps and MCP tool calls with inputs, results, and durations.</span></span>
                   </button>
-                  <!-- Copy agent response (raw markdown) — always copies raw text regardless of tab -->
-                  <button class="copy-btn" :class="{copied: copiedKey==='agentresp'}"
-                          @click.stop="copyToClipboard(selRecord.run_details[selRep]?.agent_response ?? '', 'agentresp')"
-                          :aria-label="copiedKey==='agentresp' ? 'Copied' : 'Copy agent response to clipboard'">
-                    {{ copiedKey==='agentresp' ? '✓ Copied' : '⎘ Copy' }}
-                  </button>
                   <span class="resp-rep-lbl">Run {{ selRep+1 }}</span>
                 </div>
               </div>
+
+              <!-- Body wrap — positions the overlay copy button -->
+              <div class="resp-body-wrap">
+                <!-- Overlay copy button — tab-aware text -->
+                <button class="copy-btn copy-btn-overlay" :class="{copied: copiedKey==='agentresp'}"
+                        @click.stop="copyToClipboard(respCopyText, 'agentresp')"
+                        :aria-label="copiedKey==='agentresp' ? 'Copied' : 'Copy to clipboard'">
+                  {{ copiedKey==='agentresp' ? '✓ Copied' : '⎘ Copy' }}
+                </button>
 
               <!-- Rendered markdown view (default) -->
               <div v-if="respTab==='rendered'"
@@ -2008,34 +2043,34 @@ select:focus:not(:focus-visible),
                                 :class="{open: isTraceToolOpen(selRep+'|'+chunk.turn_idx+'|'+tci)}">›</span>
                         </div>
                         <!-- Tool call body — expandable: shows input then result -->
-                        <div class="trace-tool-body"
-                             v-show="isTraceToolOpen(selRep+'|'+chunk.turn_idx+'|'+tci)">
-                          <div v-if="tc.tool_input != null">
-                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
-                              <div class="trace-tool-section-lbl" style="margin-bottom:0">Input</div>
-                              <button class="copy-btn"
-                                      :class="{copied: copiedKey==='tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci}"
-                                      @click.stop="copyToClipboard(typeof tc.tool_input === 'object' ? JSON.stringify(tc.tool_input, null, 2) : String(tc.tool_input), 'tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci)"
-                                      :aria-label="copiedKey===('tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? 'Copied' : 'Copy tool input to clipboard'">
-                                {{ copiedKey===('tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? '✓ Copied' : '⎘ Copy' }}
-                              </button>
-                            </div>
-                            <pre class="trace-tool-result">{{ typeof tc.tool_input === 'object' ? JSON.stringify(tc.tool_input, null, 2) : tc.tool_input }}</pre>
-                          </div>
-                          <div>
-                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
-                              <div class="trace-tool-section-lbl" style="margin-bottom:0">Result</div>
-                              <button v-if="tc.extracted_value"
-                                      class="copy-btn"
-                                      :class="{copied: copiedKey==='tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci}"
-                                      @click.stop="copyToClipboard(tc.extracted_value, 'tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci)"
-                                      :aria-label="copiedKey===('tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? 'Copied' : 'Copy tool result to clipboard'">
-                                {{ copiedKey===('tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? '✓ Copied' : '⎘ Copy' }}
-                              </button>
-                            </div>
-                            <div class="trace-tool-result" :class="{'err-result': tc.tool_error}">{{ tc.extracted_value || (tc.tool_error ? '(error — no result)' : '(empty result)') }}</div>
-                          </div>
-                        </div>
+                         <div class="trace-tool-body"
+                              v-show="isTraceToolOpen(selRep+'|'+chunk.turn_idx+'|'+tci)">
+                           <div v-if="tc.tool_input != null">
+                             <div class="trace-tool-section-lbl">Input</div>
+                             <div class="trace-pre-wrap">
+                               <button class="copy-btn copy-btn-overlay"
+                                       :class="{copied: copiedKey==='tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci}"
+                                       @click.stop="copyToClipboard(typeof tc.tool_input === 'object' ? JSON.stringify(tc.tool_input, null, 2) : String(tc.tool_input), 'tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci)"
+                                       :aria-label="copiedKey===('tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? 'Copied' : 'Copy tool input to clipboard'">
+                                 {{ copiedKey===('tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? '✓ Copied' : '⎘ Copy' }}
+                               </button>
+                               <pre class="trace-tool-result">{{ typeof tc.tool_input === 'object' ? JSON.stringify(tc.tool_input, null, 2) : tc.tool_input }}</pre>
+                             </div>
+                           </div>
+                           <div>
+                             <div class="trace-tool-section-lbl">Result</div>
+                             <div class="trace-pre-wrap">
+                               <button v-if="tc.extracted_value"
+                                       class="copy-btn copy-btn-overlay"
+                                       :class="{copied: copiedKey==='tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci}"
+                                       @click.stop="copyToClipboard(tc.extracted_value, 'tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci)"
+                                       :aria-label="copiedKey===('tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? 'Copied' : 'Copy tool result to clipboard'">
+                                 {{ copiedKey===('tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? '✓ Copied' : '⎘ Copy' }}
+                               </button>
+                               <div class="trace-tool-result" :class="{'err-result': tc.tool_error}">{{ tc.extracted_value || (tc.tool_error ? '(error — no result)' : '(empty result)') }}</div>
+                             </div>
+                           </div>
+                         </div>
                       </div>
                     </div>
 
@@ -2043,6 +2078,8 @@ select:focus:not(:focus-visible),
                 </template>
                 <div v-else class="trace-empty">No interaction trace available for this run.</div>
               </div>
+
+              </div><!-- /.resp-body-wrap -->
 
               <button class="resp-expand-btn" @click="respExpanded=!respExpanded" :aria-expanded="respExpanded">
                 {{ respExpanded ? '▴ Collapse response' : '▾ Show full response' }}
@@ -2336,6 +2373,41 @@ createApp({
         }
       }
       return chunks;
+    });
+
+    // Text to copy from the agent response area — depends on the active tab.
+    const respCopyText = computed(() => {
+      const run = selRecord.value?.run_details?.[selRep.value];
+      if (respTab.value === 'rendered' || respTab.value === 'plain') {
+        return run?.agent_response ?? '';
+      }
+      // Trace tab — format all chunks as readable plain text
+      const chunks = selTraceChunks.value;
+      if (!chunks.length) return '';
+      const lines = [];
+      let turnNum = 0;
+      for (const chunk of chunks) {
+        turnNum++;
+        if (chunk.kind === 'assistant') {
+          const label = chunk.entry.is_terminal
+            ? `[Turn ${turnNum} - Agent - Final Response]`
+            : `[Turn ${turnNum} - Agent]`;
+          lines.push(label);
+          lines.push(chunk.entry.extracted_value ?? '');
+          lines.push('');
+        } else if (chunk.kind === 'tool_group') {
+          for (const tc of chunk.entries) {
+            const inputStr = tc.tool_input != null
+              ? (typeof tc.tool_input === 'object' ? JSON.stringify(tc.tool_input) : String(tc.tool_input))
+              : '';
+            lines.push(`[Turn ${turnNum} - Tool: ${tc.tool_name}]`);
+            if (inputStr) lines.push(`Input: ${inputStr}`);
+            lines.push(`Result: ${tc.extracted_value ?? ''}`);
+            lines.push('');
+          }
+        }
+      }
+      return lines.join('\n').trimEnd();
     });
 
     function toggleTraceToolCall(key) {
@@ -2636,7 +2708,7 @@ createApp({
       selQ, selRef, selRecord, spreadDetail, spreadLabel,
       anyClaimsForSample,
       mdResp, mdRef, md, respTab, traceOpen,
-      selTraceEntries, selTraceHasTools, selTraceChunks,
+      selTraceEntries, selTraceHasTools, selTraceChunks, respCopyText,
       toggleTraceToolCall, isTraceToolOpen,
       cc, bp, sc, fmtMs, fmtCost, fmtDate, fmtElapsed, bulletColor,
       totalCost, costByCond, sampleCondCost, condDuration, condDurationPct,
