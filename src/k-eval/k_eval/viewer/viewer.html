@@ -957,6 +957,39 @@ select:focus:not(:focus-visible),
 .md-toggle:hover { color: var(--text-2); border-color: var(--border-l); background: var(--s3); }
 .md-toggle.on    { color: var(--accent-h); border-color: var(--accent); background: rgba(0,102,204,.1); }
 
+/* ── Copy-to-clipboard button ───────────────────────────────────────────── */
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 2px 6px;
+  font-size: .68rem;
+  font-family: var(--mono);
+  color: var(--text-m);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color .12s, border-color .12s, background .12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.copy-btn:hover { color: var(--text-2); border-color: var(--border-l); background: var(--s3); }
+.copy-btn.copied { color: var(--green); border-color: rgba(99,153,61,.5); background: rgba(99,153,61,.08); }
+
+/* Wrap that positions copy button at top-right of a content block */
+.copy-wrap {
+  position: relative;
+}
+.copy-wrap > .copy-btn-abs {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+}
+
 /* ── Markdown prose (scoped under .md-body) ────────────────────────────── */
 .md-body {
   font-size: 14px;
@@ -1692,7 +1725,14 @@ select:focus:not(:focus-visible),
 
       <!-- A: Question + Reference -->
       <div class="sec-qa">
-        <div class="qa-lbl">Sample #{{ selIdx }} &nbsp;·&nbsp; Question</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div class="qa-lbl" style="margin-bottom:0">Sample #{{ selIdx }} &nbsp;·&nbsp; Question</div>
+          <button class="copy-btn" :class="{copied: copiedKey==='question'}"
+                  @click.stop="copyToClipboard(selQ, 'question')"
+                  :aria-label="copiedKey==='question' ? 'Copied' : 'Copy question to clipboard'">
+            {{ copiedKey==='question' ? '✓ Copied' : '⎘ Copy' }}
+          </button>
+        </div>
         <div class="qa-q">{{ selQ }}</div>
         <div class="qa-ref">
           <div style="display:flex;align-items:center;gap:10px">
@@ -1700,6 +1740,11 @@ select:focus:not(:focus-visible),
               {{ showRef ? '▴ Hide reference answer' : '▾ Show reference answer' }}
             </button>
             <button v-if="showRef" class="md-toggle" :class="{on: mdRef}" @click="mdRef=!mdRef" :title="mdRef ? 'Switch to plain text view' : 'Render as Markdown (formatted)'" :aria-pressed="mdRef" aria-label="Toggle markdown rendering for reference answer">{{ mdRef ? 'Rendered' : 'Plain' }}</button>
+            <button v-if="showRef && selRef" class="copy-btn" :class="{copied: copiedKey==='refanswer'}"
+                    @click.stop="copyToClipboard(selRef, 'refanswer')"
+                    :aria-label="copiedKey==='refanswer' ? 'Copied' : 'Copy reference answer to clipboard'">
+              {{ copiedKey==='refanswer' ? '✓ Copied' : '⎘ Copy' }}
+            </button>
           </div>
           <div id="ref-answer-block">
             <div class="qa-ref-text md-body" v-if="showRef && mdRef" v-html="md(selRef)"></div>
@@ -1861,6 +1906,12 @@ select:focus:not(:focus-visible),
                           aria-label="Show interaction trace with tool calls">
                     <span class="tt">Trace<span class="tt-body">Show the full multi-turn interaction: assistant reasoning steps and MCP tool calls with inputs, results, and durations.</span></span>
                   </button>
+                  <!-- Copy agent response (raw markdown) — always copies raw text regardless of tab -->
+                  <button class="copy-btn" :class="{copied: copiedKey==='agentresp'}"
+                          @click.stop="copyToClipboard(selRecord.run_details[selRep]?.agent_response ?? '', 'agentresp')"
+                          :aria-label="copiedKey==='agentresp' ? 'Copied' : 'Copy agent response to clipboard'">
+                    {{ copiedKey==='agentresp' ? '✓ Copied' : '⎘ Copy' }}
+                  </button>
                   <span class="resp-rep-lbl">Run {{ selRep+1 }}</span>
                 </div>
               </div>
@@ -1890,6 +1941,14 @@ select:focus:not(:focus-visible),
                         <span class="trace-turn-role">Assistant</span>
                         <span class="trace-turn-idx">turn {{ chunk.entry.turn_idx }}</span>
                         <span v-if="chunk.entry.is_terminal" class="trace-terminal-badge">Final response</span>
+                        <button v-if="chunk.entry.extracted_value"
+                                class="copy-btn"
+                                style="margin-left:auto"
+                                :class="{copied: copiedKey==='trace-asst-'+ci}"
+                                @click.stop="copyToClipboard(chunk.entry.extracted_value, 'trace-asst-'+ci)"
+                                :aria-label="copiedKey===('trace-asst-'+ci) ? 'Copied' : 'Copy assistant reasoning to clipboard'">
+                          {{ copiedKey===('trace-asst-'+ci) ? '✓ Copied' : '⎘ Copy' }}
+                        </button>
                       </div>
                       <div class="trace-assistant-text">{{ chunk.entry.extracted_value || '—' }}</div>
                     </div>
@@ -1923,11 +1982,28 @@ select:focus:not(:focus-visible),
                         <div class="trace-tool-body"
                              v-show="isTraceToolOpen(selRep+'|'+chunk.turn_idx+'|'+tci)">
                           <div v-if="tc.tool_input != null">
-                            <div class="trace-tool-section-lbl">Input</div>
+                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+                              <div class="trace-tool-section-lbl" style="margin-bottom:0">Input</div>
+                              <button class="copy-btn"
+                                      :class="{copied: copiedKey==='tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci}"
+                                      @click.stop="copyToClipboard(typeof tc.tool_input === 'object' ? JSON.stringify(tc.tool_input, null, 2) : String(tc.tool_input), 'tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci)"
+                                      :aria-label="copiedKey===('tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? 'Copied' : 'Copy tool input to clipboard'">
+                                {{ copiedKey===('tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? '✓ Copied' : '⎘ Copy' }}
+                              </button>
+                            </div>
                             <pre class="trace-tool-result">{{ typeof tc.tool_input === 'object' ? JSON.stringify(tc.tool_input, null, 2) : tc.tool_input }}</pre>
                           </div>
                           <div>
-                            <div class="trace-tool-section-lbl">Result</div>
+                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+                              <div class="trace-tool-section-lbl" style="margin-bottom:0">Result</div>
+                              <button v-if="tc.extracted_value"
+                                      class="copy-btn"
+                                      :class="{copied: copiedKey==='tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci}"
+                                      @click.stop="copyToClipboard(tc.extracted_value, 'tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci)"
+                                      :aria-label="copiedKey===('tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? 'Copied' : 'Copy tool result to clipboard'">
+                                {{ copiedKey===('tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? '✓ Copied' : '⎘ Copy' }}
+                              </button>
+                            </div>
                             <div class="trace-tool-result" :class="{'err-result': tc.tool_error}">{{ tc.extracted_value || (tc.tool_error ? '(error — no result)' : '(empty result)') }}</div>
                           </div>
                         </div>
@@ -1983,6 +2059,13 @@ select:focus:not(:focus-visible),
                   ±{{ sd(selCond,m.key).toFixed(2) }}
                   <span class="tt-body">Run-to-run variation (std dev across {{ repCount }} runs). A higher value means the agent gave inconsistent responses.</span>
                 </span>
+                <button v-if="getReasonings(m.key)[selRep]"
+                        class="copy-btn"
+                        :class="{copied: copiedKey==='reasoning-'+m.key}"
+                        @click.stop="copyToClipboard(getReasonings(m.key)[selRep], 'reasoning-'+m.key)"
+                        :aria-label="copiedKey==='reasoning-'+m.key ? 'Copied' : 'Copy ' + m.label + ' reasoning to clipboard'">
+                  {{ copiedKey===('reasoning-'+m.key) ? '✓ Copied' : '⎘ Copy' }}
+                </button>
               </div>
               <div class="mb-text">{{ getReasonings(m.key)[selRep] ?? '—' }}</div>
             </div>
@@ -2053,6 +2136,36 @@ createApp({
     const respTab  = ref('rendered'); // 'rendered' | 'plain' | 'trace'
     // Tracks which tool call bodies are expanded; key = `${repIdx}|${toolUseId}`
     const traceOpen = ref({});
+
+    // ── Copy to clipboard ──────────────────────────────────────────────────
+    // copiedKey holds the identifier of the button currently showing "✓ Copied"
+    // so multiple buttons can coexist without interfering.
+    const copiedKey = ref(null);
+    let _copyTimer = null;
+
+    function copyToClipboard(text, key) {
+      const finish = () => {
+        copiedKey.value = key;
+        clearTimeout(_copyTimer);
+        _copyTimer = setTimeout(() => { copiedKey.value = null; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(finish).catch(() => _fallbackCopy(text, finish));
+      } else {
+        _fallbackCopy(text, finish);
+      }
+    }
+
+    function _fallbackCopy(text, cb) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch(_) {}
+      document.body.removeChild(ta);
+      cb();
+    }
 
     // ── Derived structure ──────────────────────────────────────────────────
     const conditions = computed(() => {
@@ -2502,6 +2615,7 @@ createApp({
       ovMetric, compScore, mv, sd, rv, isWinner,
       getReasonings, claimsFor,
       sel, goSample, onKey, onDrop, onFile,
+      copiedKey, copyToClipboard,
     };
   }
 }).mount('#app');
