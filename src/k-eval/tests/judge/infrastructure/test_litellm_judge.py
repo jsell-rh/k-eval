@@ -245,6 +245,114 @@ class TestScoreLiteLLMFailure:
                     agent_response="R",
                 )
 
+
+# ---------------------------------------------------------------------------
+# score() — retriable vs non-retriable classification
+# ---------------------------------------------------------------------------
+
+
+class TestScoreRetriableClassification:
+    """JudgeInvocationError.retriable reflects whether the failure is transient."""
+
+    async def test_rate_limit_error_is_retriable(self) -> None:
+        judge, _ = _make_judge()
+
+        with patch(
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
+            new=AsyncMock(
+                side_effect=openai.RateLimitError(
+                    message="rate limit", response=MagicMock(), body={}
+                )
+            ),
+        ):
+            with pytest.raises(JudgeInvocationError) as exc_info:
+                await judge.score(
+                    question="Q",
+                    golden_answer="A",
+                    agent_response="R",
+                )
+
+        assert exc_info.value.retriable is True
+
+    async def test_api_connection_error_is_retriable(self) -> None:
+        judge, _ = _make_judge()
+
+        with patch(
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
+            new=AsyncMock(side_effect=openai.APIConnectionError(request=MagicMock())),
+        ):
+            with pytest.raises(JudgeInvocationError) as exc_info:
+                await judge.score(
+                    question="Q",
+                    golden_answer="A",
+                    agent_response="R",
+                )
+
+        assert exc_info.value.retriable is True
+
+    async def test_api_timeout_error_is_retriable(self) -> None:
+        judge, _ = _make_judge()
+
+        with patch(
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
+            new=AsyncMock(side_effect=openai.APITimeoutError(request=MagicMock())),
+        ):
+            with pytest.raises(JudgeInvocationError) as exc_info:
+                await judge.score(
+                    question="Q",
+                    golden_answer="A",
+                    agent_response="R",
+                )
+
+        assert exc_info.value.retriable is True
+
+    async def test_internal_server_error_is_retriable(self) -> None:
+        """InternalServerError from proxy/auth failures must be retriable.
+
+        LiteLLM raises openai.InternalServerError (a subclass of openai.APIError)
+        when a credential refresh call to an upstream service (e.g. Google OAuth2)
+        returns a 502 Bad Gateway.  This is a transient infrastructure failure and
+        must be retried rather than aborting the evaluation run.
+        """
+        judge, _ = _make_judge()
+
+        with patch(
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
+            new=AsyncMock(
+                side_effect=openai.InternalServerError(
+                    message="502 Bad Gateway from oauth2.googleapis.com",
+                    response=MagicMock(),
+                    body={},
+                )
+            ),
+        ):
+            with pytest.raises(JudgeInvocationError) as exc_info:
+                await judge.score(
+                    question="Q",
+                    golden_answer="A",
+                    agent_response="R",
+                )
+
+        assert exc_info.value.retriable is True
+
+    async def test_parse_failure_is_not_retriable(self) -> None:
+        """A response parse error should not be retried — it is a model behaviour issue."""
+        mock_response = _make_acompletion_response(content="garbage")
+        judge, _ = _make_judge()
+
+        with patch(
+            "k_eval.judge.infrastructure.litellm.litellm.acompletion",
+            new=AsyncMock(return_value=mock_response),
+        ):
+            with pytest.raises(JudgeInvocationError) as exc_info:
+                await judge.score(
+                    question="Q",
+                    golden_answer="A",
+                    agent_response="R",
+                )
+
+        assert exc_info.value.retriable is False
+
     async def test_litellm_exception_message_starts_with_failed(self) -> None:
         judge, _ = _make_judge()
 
