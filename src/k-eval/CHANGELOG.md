@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/jsell-rh/k-eval/compare/v1.1.1...v1.1.2) (2026-02-27)
+
+
+### Bug Fixes
+
+* treat InternalServerError as retriable in judge ([#29](https://github.com/jsell-rh/k-eval/issues/29)) ([4ad294f](https://github.com/jsell-rh/k-eval/commit/4ad294f2915be6fa755d6fa7b0de4d9da6ef7eef))
+
 ## [1.1.1](https://github.com/jsell-rh/k-eval/compare/v1.1.0...v1.1.1) (2026-02-27)
 
 
