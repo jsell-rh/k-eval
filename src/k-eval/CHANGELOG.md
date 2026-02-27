@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/jsell-rh/k-eval/compare/v1.0.0...v1.1.0) (2026-02-27)
+
+
+### Features
+
+* mcp reliability and agent traceability ([#24](https://github.com/jsell-rh/k-eval/issues/24)) ([c5807fd](https://github.com/jsell-rh/k-eval/commit/c5807fd5429df04e3e84fd64427daaa1f0ebe6bd))
+
 ## [1.0.0](https://github.com/jsell-rh/k-eval/compare/v0.3.2...v1.0.0) (2026-02-26)
 
 
