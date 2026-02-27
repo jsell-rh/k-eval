@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>k-eval Viewer</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/marked@9/marked.min.js"></script>
+<style>
+/* ── Reset ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Tokens — Red Hat brand palette ───────────────────────────────────── */
+:root {
+  /* ── Page backgrounds — Red Hat gray scale ── */
+  --bg:        #151515;   /* Gray-95 / UX black — page background */
+  --s1:        #1f1f1f;   /* Gray-90 — panel backgrounds */
+  --s2:        #292929;   /* Gray-80 — card / elevated surfaces */
+  --s3:        #383838;   /* Gray-70 — judge section band */
+
+  /* ── Borders ── */
+  --border:    #383838;   /* Gray-70 — primary borders */
+  --border-l:  #4d4d4d;   /* Gray-60 — lighter/elevated borders */
+
+  /* ── Text ── */
+  --text:      #ffffff;   /* White — primary text */
+  --text-2:    #c7c7c7;   /* Gray-30 — secondary body */
+  --text-m:    #a3a3a3;   /* Gray-40 — muted labels */
+
+  /* ── Brand & interactive ── */
+  --rh-red:    #ee0000;   /* Red Hat Red — brand mark only */
+  --accent:    #0066cc;   /* Interaction Blue-50 — primary interactive/accent */
+  --accent-h:  #4394e5;   /* Interaction Blue-40 — hover states */
+
+  /* ── Score & status colors ── */
+  --green:     #63993d;   /* Success Green-50 — positive scores (≥4.0) */
+  --yellow:    #ffcc17;   /* Yellow-30 — warning/medium scores (≥3.0) */
+  --red:       #f0561d;   /* Danger Orange-50 — low scores (<3.0) */
+
+  /* ── Semantic accents ── */
+  --amber:     #f5921b;   /* Orange-40 — cost/efficiency highlights */
+  --teal:      #37a3a3;   /* Teal-50 — informational accents */
+
+  /* ── Condition palette — brand-adjacent colors ── */
+  --c0: #707070;   /* Gray-50  — neutral */
+  --c1: #0066cc;   /* Blue-50  — interaction blue */
+  --c2: #5e40be;   /* Purple-50 */
+  --c3: #63993d;   /* Green-50 */
+  --c4: #f5921b;   /* Orange-40 */
+  --c5: #37a3a3;   /* Teal-50 */
+  --c6: #f0561d;   /* Danger orange */
+  --c7: #4394e5;   /* Blue-40 */
+
+  /* ── Code/pre surfaces — derived from brand grays ── */
+  --code-bg:   #292929;
+  --code-bdr:  #4d4d4d;
+  --pre-bg:    #1f1f1f;
+  --pre-bdr:   #383838;
+
+  --radius: 4px;
+  --font: "Red Hat Text", "Red Hat Display", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Red Hat Mono", "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --hh: 48px;
+}
+
+html, body { height: 100%; }
+body {
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Focus-visible — keyboard accessibility ───────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Suppress focus ring for mouse users on interactive elements */
+button:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+[tabindex]:focus:not(:focus-visible) { outline: none; }
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-l); border-radius: 3px; }
+
+/* ── Tooltips ──────────────────────────────────────────────────────────── */
+.tt { position: relative; display: inline-flex; align-items: center; }
+.tt-body {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111111;
+  border: 1px solid var(--border-l);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text-2);
+  white-space: normal;
+  width: max-content;
+  max-width: 260px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .12s ease;
+  z-index: 9000;
+  box-shadow: 0 4px 16px rgba(0,0,0,.6);
+  text-align: left;
+}
+/* Only show the DIRECTLY hovered .tt's tooltip, not ancestors */
+.tt:hover > .tt-body { opacity: 1; }
+/* flip down near viewport top */
+.tt-down .tt-body { bottom: auto; top: calc(100% + 7px); }
+/* horizontal edge anchoring */
+.tt-right .tt-body { left: auto; right: 0; transform: none; }
+.tt-left  .tt-body { left: 0;    transform: none; }
+
+/* ── App shell ─────────────────────────────────────────────────────────── */
+#app { display: flex; flex-direction: column; height: 100vh; overflow-x: clip; overflow-y: hidden; }
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+#hdr {
+  height: var(--hh);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+/* Brand mark — Red Hat Red wordmark, interactive when data is loaded */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: .95rem;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--font);
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  transition: color .12s, background .12s;
+  line-height: 1;
+  letter-spacing: -.01em;
+}
+/* Red Hat shadowman logo */
+.brand-hat {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+/* "k-eval" product name in white; "Red Hat" implied by the hat mark */
+.brand-name { color: var(--text); }
+.brand-sub  { color: var(--text-m); font-weight: 400; font-size: .8rem; letter-spacing: 0; }
+
+.brand.clickable { cursor: pointer; }
+.brand.clickable:hover .brand-name { color: var(--accent-h); }
+.brand.clickable:hover { background: rgba(0,102,204,.1); }
+.brand.static { cursor: default; }
+
+.hdr-divider { width: 1px; height: 20px; background: var(--border-l); flex-shrink: 0; }
+.eval-n {
+  font-size: .85rem;
+  color: var(--text-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 280px;
+  font-weight: 500;
+}
+.hdr-sp { flex: 1; }
+
+/* Primary nav segmented control */
+.seg {
+  display: flex;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px;
+  gap: 2px;
+}
+.seg-btn {
+  padding: 5px 16px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-m);
+  font-size: .82rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background .12s, color .12s;
+  letter-spacing: .01em;
+}
+.seg-btn:hover { color: var(--text); background: var(--s2); }
+.seg-btn.on    {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Header breadcrumb — shown when a sample is selected in Samples view */
+.hdr-crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .82rem;
+  color: var(--text-m);
+  overflow: hidden;
+  flex-shrink: 1;
+  min-width: 0;
+}
+.hdr-crumb-sep { color: var(--border-l); flex-shrink: 0; }
+.hdr-crumb-q {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-2);
+  font-size: .82rem;
+  min-width: 0;
+  max-width: 340px;
+}
+
+/* Keyboard shortcut badge */
+.kbd-hint {
+  font-size: .72rem;
+  color: var(--text-m);
+  background: var(--s1);
+  border: 1px solid var(--border-l);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+
+/* ── Views ─────────────────────────────────────────────────────────────── */
+.view { display: none; flex: 1; min-height: 0; overflow: hidden; }
+.view.on { display: flex; }
+
+/* ── Load view ─────────────────────────────────────────────────────────── */
+#v-load {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  /* Subtle drag target affordance on the full viewport */
+  transition: background .15s;
+}
+#v-load.drag-over {
+  background: rgba(0,102,204,.06);
+  outline: 2px dashed var(--accent);
+  outline-offset: -12px;
+}
+
+/* Drop zone card */
+.load-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  background: var(--s1);
+  border: 2px dashed var(--border-l);
+  border-radius: 8px;
+  padding: 40px 52px;
+  width: 460px;
+  text-align: center;
+  transition: border-color .15s, background .15s;
+}
+#v-load.drag-over .load-zone {
+  border-color: var(--accent);
+  background: rgba(0,102,204,.08);
+}
+
+.load-icon { font-size: 2.2rem; line-height: 1; }
+.load-copy h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; }
+.load-copy p  { font-size: .85rem; color: var(--text-2); line-height: 1.55; }
+.load-copy code {
+  font-family: var(--mono);
+  font-size: .8em;
+  background: var(--s2);
+  border: 1px solid var(--border-l);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+.load-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 24px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font);
+  transition: background .12s;
+  letter-spacing: .01em;
+}
+.load-btn:hover { background: var(--accent-h); }
+
+.load-hint { font-size: .78rem; color: var(--text-m); }
+.load-err  { color: var(--red); font-size: .85rem; font-weight: 500; }
+.load-msg  { color: var(--text-m); font-size: .82rem; }
+
+/* ── Overview view ─────────────────────────────────────────────────────── */
+#v-ov { flex-direction: column; overflow-y: auto; padding: 28px 36px; gap: 28px; align-items: center; }
+.ov-inner { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 28px; }
+
+/* Meta bar */
+.ov-meta {
+  font-size: .875rem;
+  color: var(--text-m);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+}
+.ov-cost-chip strong { color: var(--amber); }
+
+.sec-hdr {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text-m);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Thin accent bar beside section headers */
+.sec-hdr::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Ranking */
+.rank-list  { display: flex; flex-direction: column; gap: 10px; }
+.rank-hdr   { display: flex; align-items: center; gap: 12px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+.rank-hdr-spacer { flex: 1; }
+.rank-hdr-score  { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-m); width: 40px; text-align: right; }
+.rank-hdr-cost   { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--amber); width: 72px; text-align: right; }
+.rank-row  { display: flex; align-items: center; gap: 12px; }
+.rank-pos  { font-family: var(--mono); font-size: .8rem; color: var(--text-m); width: 18px; text-align: right; flex-shrink: 0; }
+.rank-name { width: 200px; font-size: .9rem; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex-shrink: 0; }
+.rank-track { flex: 1; height: 8px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.rank-fill  { height: 100%; border-radius: 2px; transition: width .3s ease; }
+.rank-val   { font-family: var(--mono); font-size: .875rem; color: var(--text-2); width: 40px; text-align: right; flex-shrink: 0; }
+.rank-cost  { font-family: var(--mono); font-size: .875rem; color: var(--amber); width: 72px; text-align: right; flex-shrink: 0; }
+.rank-eff-val  { color: var(--text-2); }
+.rank-eff-best { color: var(--green); font-weight: 700; }
+
+/* Metric grid — 2×2 when cost card present, 3-col otherwise */
+.metric-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+.metric-grid.with-cost { grid-template-columns: repeat(2,1fr); }
+@media (max-width: 700px) {
+  .metric-grid.with-cost { grid-template-columns: 1fr; }
+  .metric-grid           { grid-template-columns: 1fr; }
+}
+.metric-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.mc-title { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-m); margin-bottom: 12px; }
+.mc-rows  { display: flex; flex-direction: column; gap: 8px; }
+.mc-row   { display: flex; align-items: center; gap: 8px; }
+.mc-name  { font-size: .85rem; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mc-track { width: 80px; height: 5px; background: var(--border); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+.mc-fill  { height: 100%; border-radius: 2px; }
+.mc-val   { font-family: var(--mono); font-size: .85rem; width: 32px; text-align: right; }
+
+/* Cost card — subtle amber tint border */
+.metric-card-cost { border-color: rgba(245,146,27,.3); }
+.mc-title-cost    { color: var(--amber); }
+.mc-val-cost { color: var(--amber); width: 52px; font-size: .82rem; flex-shrink: 0; }
+.mc-val-eff  { width: auto; font-size: .82rem; flex-shrink: 0; white-space: nowrap; }
+.mc-eff-star { font-size: .72em; margin-left: 2px; }
+
+/* Top samples table */
+.inv-tbl  { width: 100%; border-collapse: collapse; }
+.inv-tbl th {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-m);
+  padding: 7px 12px; border-bottom: 1px solid var(--border); text-align: left;
+}
+.inv-tbl td { padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: .88rem; }
+.inv-tbl tbody tr { transition: background .1s; cursor: pointer; }
+.inv-tbl tbody tr:hover td { background: var(--s1); }
+.inv-idx   { font-family: var(--mono); color: var(--text-m); width: 56px; }
+.inv-q     { color: var(--text-2); max-width: 500px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.inv-delta { font-family: var(--mono); color: var(--amber); text-align: right; width: 64px; }
+.inv-arrow { color: var(--accent); width: 24px; text-align: center; }
+
+/* "View all samples" CTA — more prominent */
+.ov-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 7px 14px;
+  background: none;
+  border: 1px solid var(--border-l);
+  border-radius: var(--radius);
+  color: var(--text-2);
+  font-size: .85rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: color .12s, border-color .12s, background .12s;
+}
+.ov-all-link:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: rgba(0,102,204,.08);
+}
+
+/* ── Samples view ──────────────────────────────────────────────────────── */
+#v-smp { flex-direction: row; min-height: 0; }
+
+/* List panel */
+#lst-panel {
+  width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+  min-height: 0;
+  transition: width 0.2s ease;
+  position: relative;
+}
+#lst-panel.collapsed {
+  width: 32px;
+  min-width: 32px;
+}
+
+/* Collapse toggle button */
+.lst-collapse-btn {
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--s1);
+  border: 1px solid var(--border-l);
+  border-radius: 3px;
+  color: var(--text-m);
+  font-size: .85rem;
+  cursor: pointer;
+  z-index: 10;
+  flex-shrink: 0;
+  transition: color .12s, background .12s, border-color .12s;
+  font-family: var(--font);
+  line-height: 1;
+  padding: 0;
+}
+.lst-collapse-btn:hover { color: var(--text); background: var(--s2); border-color: var(--accent); }
+
+/* Vertical label shown when collapsed */
+.lst-collapsed-label {
+  display: none;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: .72rem;
+  color: var(--text-m);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-top: 48px;
+  padding-left: 8px;
+  user-select: none;
+  white-space: nowrap;
+}
+#lst-panel.collapsed .lst-collapsed-label { display: block; }
+#lst-panel.collapsed .lst-toolbar,
+#lst-panel.collapsed .lst-count,
+#lst-panel.collapsed .lst-sort-hint,
+#lst-panel.collapsed #smp-list { visibility: hidden; }
+
+.lst-toolbar {
+  padding: 8px 12px;
+  padding-right: 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.lst-lbl { font-size: .78rem; color: var(--text-m); white-space: nowrap; }
+.lst-sel {
+  flex: 1;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 4px 6px;
+  font-size: .85rem;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: border-color .12s;
+}
+.lst-sel:hover { border-color: var(--border-l); }
+
+.lst-count {
+  padding: 5px 12px;
+  font-size: .75rem;
+  color: var(--text-m);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+
+#smp-list { flex: 1; overflow-y: auto; }
+/* Give keyboard focus a visible ring on the list container */
+#smp-list:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.smp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 46px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+  user-select: none;
+}
+.smp-row:hover    { background: var(--s1); }
+/* Selected row: strong left accent bar + lifted background */
+.smp-row.on       {
+  background: rgba(0,102,204,.14);
+  border-left: 3px solid var(--accent);
+  padding-left: 9px;
+}
+.smp-row.on .smp-q   { color: var(--text); }
+.smp-row.on .smp-idx { color: var(--text-2); }
+/* Bullet — score health indicator */
+.smp-bullet       { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.smp-idx          { font-family: var(--mono); font-size: .82rem; color: var(--text-m); width: 30px; flex-shrink: 0; }
+.smp-q            { flex: 1; font-size: .85rem; color: var(--text-2); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.smp-delta        { font-family: var(--mono); font-size: .78rem; color: var(--text-m); flex-shrink: 0; }
+
+/* Detail panel */
+#det-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px 40px;
+  min-width: 0;
+  min-height: 0;
+}
+.det-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-m);
+  font-size: .9rem;
+}
+.det-empty-hint {
+  font-size: .8rem;
+  color: var(--text-m);
+  opacity: .7;
+}
+
+/* Back-to-overview link in detail panel */
+.det-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .8rem;
+  color: var(--text-m);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+  padding: 0;
+  margin-bottom: 16px;
+  transition: color .12s;
+}
+.det-back:hover { color: var(--accent); }
+
+/* ── Section A: Question + Reference ──────────────────────────────────── */
+.sec-qa { padding-bottom: 20px; border-bottom: 2px solid var(--border); margin-bottom: 22px; }
+.qa-lbl { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-m); margin-bottom: 8px; }
+.qa-q   { font-size: 1.05rem; font-weight: 600; color: var(--text); line-height: 1.55; }
+.qa-ref { margin-top: 12px; }
+.qa-ref-text {
+  font-size: .875rem;
+  color: var(--text-2);
+  line-height: 1.65;
+  background: var(--s2);
+  border: 1px solid var(--border-l);
+  border-left: 3px solid var(--border-l);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-top: 6px;
+}
+.ref-toggle {
+  font-size: .78rem;
+  color: var(--text-m);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+  padding: 0;
+  transition: color .12s;
+}
+.ref-toggle:hover { color: var(--accent-h); }
+
+/* ── Section B: Aggregate score grid ──────────────────────────────────── */
+.sec-scores { margin-bottom: 8px; }
+.score-grid { display: grid; gap: 8px; }
+.score-col {
+  border-top: 3px solid var(--border);
+  background: var(--s1);
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 12px 12px;
+  cursor: pointer;
+  transition: background .12s, box-shadow .12s;
+}
+.score-col:hover { background: var(--s2); }
+/* Selected column: visible lift + accent outline */
+.score-col.on    {
+  background: rgba(0,102,204,.12);
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.sc-name {
+  font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.sc-star { color: var(--yellow); }
+.sc-comp { font-size: 1.8rem; font-weight: 700; font-family: var(--mono); line-height: 1; margin-bottom: 10px; }
+.sc-metrics { display: flex; flex-direction: column; gap: 4px; }
+.sc-m-row { display: flex; align-items: center; gap: 6px; }
+.sc-m-lbl { font-size: .78rem; color: var(--text-2); width: 58px; flex-shrink: 0; }
+.sc-m-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.sc-m-fill  { height: 100%; border-radius: 2px; }
+.sc-m-val   { font-family: var(--mono); font-size: .78rem; width: 32px; text-align: right; flex-shrink: 0; }
+.sc-m-sd    { font-family: var(--mono); font-size: .72rem; color: var(--text-m); width: 46px; flex-shrink: 0; }
+.sc-cost-row { margin-top: 2px; }
+.sc-cost-lbl { color: var(--text-m); font-size: .75rem; }
+.sc-cost-val { color: var(--text-m); font-family: var(--mono); font-size: .78rem; flex: 1; text-align: right; }
+.sc-dur-row  { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); }
+.sc-dur-lbl  { color: var(--text-m); font-size: .75rem; }
+.sc-dur-val  { color: var(--text-m); font-family: var(--mono); font-size: .78rem; }
+
+.spread-line {
+  margin-top: 10px;
+  margin-bottom: 4px;
+  font-size: .78rem;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.spread-val { font-family: var(--mono); color: var(--text); }
+
+/* ── Section C: Condition + Rep nav ───────────────────────────────────── */
+.cond-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 0;
+  gap: 0;
+}
+.cond-tab {
+  padding: 9px 16px;
+  font-size: .85rem;
+  color: var(--text-m);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  transition: color .12s;
+  user-select: none;
+}
+.cond-tab:hover { color: var(--text-2); }
+.cond-tab.on    { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* Rep tabs */
+.rep-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 7px 14px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.rep-tab {
+  padding: 3px 12px;
+  font-size: .75rem;
+  color: var(--text-m);
+  cursor: pointer;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  transition: background .1s, color .1s, border-color .1s;
+  user-select: none;
+  font-family: var(--font);
+}
+.rep-tab:hover { color: var(--text-2); border-color: var(--border); background: var(--s2); }
+.rep-tab.on    { color: var(--text); background: var(--s2); border-color: var(--accent); font-weight: 600; }
+.rep-lbl { font-size: .7rem; color: var(--text-m); margin-right: 4px; text-transform: uppercase; letter-spacing: .06em; }
+
+/* ── Judge section wrapper ─────────────────────────────────────────────── */
+.judge-section {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: 24px;
+  overflow: hidden;
+}
+.judge-section .cond-tabs {
+  background: var(--s2);
+  border-bottom-color: var(--border);
+}
+.judge-section .rep-tabs {
+  background: var(--s2);
+}
+
+/* ── Section D: Side-by-side split layout ─────────────────────────────── */
+.flow-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  min-height: 0;
+}
+
+/* Left column — agent response */
+.flow-left {
+  padding: 14px;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Right column — judge metrics */
+.flow-right {
+  padding: 14px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Response block */
+.resp-block {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.resp-hdr {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.resp-lbl {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--text-m);
+  display: flex; align-items: center; gap: 8px;
+}
+.resp-lbl::before {
+  content: '';
+  display: block;
+  width: 3px; height: 12px;
+  background: var(--accent);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.resp-rep-lbl { font-size: .78rem; color: var(--text-m); font-family: var(--mono); }
+.resp-body {
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  line-height: 1.7;
+  max-height: 480px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  flex: 1;
+}
+.resp-body.expanded { max-height: none; }
+.resp-expand-btn {
+  margin-top: 6px;
+  font-size: .75rem; color: var(--text-m); background: none; border: none;
+  cursor: pointer; font-family: var(--font); padding: 0;
+  flex-shrink: 0;
+  transition: color .12s;
+}
+.resp-expand-btn:hover { color: var(--accent-h); }
+.resp-footer {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 14px;
+  font-size: .75rem; color: var(--text-m);
+  flex-shrink: 0;
+}
+.resp-footer span { white-space: nowrap; }
+
+/* Judge panel header — consistent with resp-lbl style */
+.judge-panel-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-m);
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+.judge-panel-hdr::before {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Metric reasoning blocks */
+.metric-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  background: var(--s1);
+  flex-shrink: 0;
+}
+.mb-hdr {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 4px;
+}
+.mb-name  {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-2);
+  flex: 1;
+}
+.mb-track { width: 64px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+.mb-fill  { height: 100%; border-radius: 2px; }
+.mb-mean      { font-family: var(--mono); font-size: .82rem; }
+.mb-run-label { font-size: .65rem; color: var(--text-m); margin-left: 1px; }
+.mb-run-avg   { font-family: var(--mono); font-size: .75rem; color: var(--text-m); }
+.mb-std       { font-family: var(--mono); font-size: .75rem; color: var(--text-m); }
+.mb-text  { font-size: 13px; color: var(--text-2); line-height: 1.7; white-space: pre-wrap; }
+
+/* ── Section E: Unverified claims ──────────────────────────────────────── */
+.sec-claims { margin-top: 28px; }
+.claims-grid {
+  display: grid;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.claims-cell { background: var(--s1); padding: 12px; }
+.claims-cond {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: 8px;
+}
+.claim-item  {
+  border-left: 3px solid var(--amber);
+  padding: 4px 8px;
+  font-size: .82rem;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 4px;
+  background: rgba(245,146,27,.06);
+  border-radius: 0 2px 2px 0;
+}
+.claim-item:last-child { margin-bottom: 0; }
+/* "None" treatment — use a check mark with green tint for clarity */
+.claims-none {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .82rem;
+  color: var(--green);
+}
+.claims-none::before { content: '✓'; font-weight: 700; }
+
+/* ── Score color utils ─────────────────────────────────────────────────── */
+.s-g { color: var(--green); }
+.s-y { color: var(--yellow); }
+.s-r { color: var(--red); }
+
+/* ── Markdown toggle button ────────────────────────────────────────────── */
+.md-toggle {
+  font-size: .7rem;
+  color: var(--text-m);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 7px;
+  cursor: pointer;
+  font-family: var(--mono);
+  transition: color .12s, border-color .12s, background .12s;
+  flex-shrink: 0;
+}
+.md-toggle:hover { color: var(--text-2); border-color: var(--border-l); background: var(--s3); }
+.md-toggle.on    { color: var(--accent-h); border-color: var(--accent); background: rgba(0,102,204,.1); }
+
+/* ── Markdown prose (scoped under .md-body) ────────────────────────────── */
+.md-body {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.8;
+  min-width: 0;
+  display: flow-root;
+}
+.md-body p               { margin: 0 0 1em; }
+.md-body p:last-child    { margin-bottom: 0; }
+.md-body * + h1, .md-body * + h2, .md-body * + h3,
+.md-body * + h4, .md-body * + h5, .md-body * + h6 { margin-top: 1.6em; }
+.md-body h1, .md-body h2, .md-body h3,
+.md-body h4, .md-body h5, .md-body h6 {
+  color: var(--text);
+  font-weight: 600;
+  margin-bottom: .55em;
+  line-height: 1.3;
+}
+.md-body h1 { font-size: 1.2em; }
+.md-body h2 { font-size: 1.1em; }
+.md-body h3, .md-body h4 { font-size: 1em; }
+.md-body ul, .md-body ol { padding-left: 1.6em; margin: .25em 0 1.1em; }
+.md-body li              { margin-bottom: .55em; line-height: 1.7; }
+.md-body li:last-child   { margin-bottom: 0; }
+.md-body code {
+  font-family: var(--mono);
+  font-size: .875em;
+  background: var(--code-bg);
+  border: 1px solid var(--code-bdr);
+  border-radius: 3px;
+  padding: 2px 6px;
+  color: var(--text-2);
+}
+.md-body pre {
+  background: var(--pre-bg);
+  border: 1px solid var(--pre-bdr);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 12px 16px;
+  overflow-x: auto;
+  margin: 1em 0 1.2em;
+  line-height: 1.6;
+}
+.md-body pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: .875em;
+  color: var(--text-2);
+  border-radius: 0;
+}
+.md-body blockquote {
+  border-left: 3px solid var(--border-l);
+  padding-left: 10px;
+  color: var(--text-m);
+  margin: .5em 0;
+}
+.md-body a       { color: var(--accent-h); text-decoration: none; }
+.md-body a:hover { text-decoration: underline; }
+.md-body strong  { color: var(--text); font-weight: 600; }
+.md-body em      { color: var(--text-2); }
+.md-body hr      { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+.md-body table   { border-collapse: collapse; width: 100%; margin-bottom: .75em; font-size: .9em; }
+.md-body th, .md-body td { border: 1px solid var(--border); padding: 5px 10px; text-align: left; }
+.md-body th      { background: var(--s2); color: var(--text); font-weight: 600; }
+
+/* When md-body is inside resp-body (scrollable container), size to content */
+.resp-body.md-mode { white-space: normal; font-family: var(--font); flex: none; }
+
+/* ── Load-another button (header) ──────────────────────────────────────── */
+.hdr-load-btn {
+  font-size: .78rem;
+  color: var(--text-m);
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: color .12s, border-color .12s, background .12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+.hdr-load-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(0,102,204,.08); }
+
+/* ── Winner callout banner ─────────────────────────────────────────────── */
+.winner-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(99,153,61,.12);
+  border: 1px solid rgba(99,153,61,.35);
+  border-left: 3px solid var(--green);
+  border-radius: var(--radius);
+  font-size: .88rem;
+}
+.winner-banner-label {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--green);
+  flex-shrink: 0;
+}
+.winner-banner-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+}
+.winner-banner-score {
+  font-family: var(--mono);
+  font-size: .92rem;
+  color: var(--text-2);
+}
+.winner-banner-margin {
+  font-family: var(--mono);
+  font-size: .8rem;
+  color: var(--text-m);
+  margin-left: auto;
+}
+.winner-banner-margin strong { color: var(--text-2); }
+
+/* ── Domain term inline glossary label ─────────────────────────────────── */
+.term-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: help;
+  border-bottom: 1px dotted var(--border-l);
+}
+.term-tip-icon {
+  font-size: .7em;
+  color: var(--text-m);
+  vertical-align: super;
+  line-height: 1;
+}
+
+/* ── Clickable row hint ─────────────────────────────────────────────────── */
+.inv-tbl tbody tr td.inv-arrow {
+  opacity: .45;
+  transition: opacity .1s;
+}
+.inv-tbl tbody tr:hover td.inv-arrow { opacity: 1; color: var(--accent); }
+
+
+/* ── Run tabs (was: Rep tabs) — clearer labeling ─────────────────────── */
+.run-count-badge {
+  font-size: .68rem;
+  color: var(--text-m);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: var(--mono);
+  margin-left: 2px;
+}
+
+/* ── Score grid click hint ──────────────────────────────────────────────── */
+.score-grid-hint {
+  font-size: .73rem;
+  color: var(--text-m);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.score-grid-hint::before {
+  content: '↓';
+  color: var(--accent);
+  font-size: .8rem;
+}
+
+/* ── Spread row — rename to Score Range ─────────────────────────────────── */
+.spread-line .spread-interpretation {
+  font-size: .74rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--s2);
+}
+
+/* ── MD toggle — clearer label ──────────────────────────────────────────── */
+.md-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── Sample list sort hint ──────────────────────────────────────────────── */
+.lst-sort-hint {
+  padding: 4px 12px 6px;
+  font-size: .73rem;
+  color: var(--text-m);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  font-style: italic;
+}
+
+/* ── Unverified claims section note ────────────────────────────────────── */
+.claims-note {
+  font-size: .78rem;
+  color: var(--text-m);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+/* ── Empty state improvements ───────────────────────────────────────────── */
+.det-empty-icon {
+  font-size: 2rem;
+  margin-bottom: 4px;
+}
+.det-empty h3 {
+  font-size: .95rem;
+  color: var(--text-2);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.det-empty p {
+  font-size: .82rem;
+  color: var(--text-m);
+  text-align: center;
+  max-width: 240px;
+  line-height: 1.6;
+}
+
+/* ── Variance summary chip in overview ─────────────────────────────────── */
+.ov-variance-note {
+  font-size: .78rem;
+  color: var(--text-m);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+/* ── Judge section condition indicator ─────────────────────────────────── */
+.judge-cond-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  font-size: .73rem;
+  color: var(--text-m);
+  border-bottom: 1px solid var(--border);
+  background: var(--s2);
+  flex-shrink: 0;
+}
+.judge-cond-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.judge-cond-indicator strong { color: var(--text-2); }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── Header ────────────────────────────────────────────────────────── -->
+<header id="hdr">
+  <!-- Brand mark: Red Hat SVG hat + product name -->
+  <button
+    class="brand"
+    :class="loaded ? 'clickable' : 'static'"
+    @click="loaded && (view = 'ov')"
+    :title="loaded ? 'Back to Overview' : 'k-eval'"
+    :aria-label="loaded ? 'k-eval — back to Overview' : 'k-eval'"
+  >
+    <!-- Red Hat shadowman logo (hat only, cropped viewBox) -->
+    <svg class="brand-hat" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 145" aria-hidden="true" focusable="false">
+      <path d="M127.47 83.49c12.51 0 30.61-2.58 30.61-17.46a14 14 0 0 0-.31-3.42l-7.45-32.36c-1.72-7.12-3.23-10.35-15.73-16.6C124.89 8.69 103.76.5 97.51.5 91.69.5 90 8 83.06 8c-6.68 0-11.64-5.6-17.89-5.6-6 0-9.91 4.09-12.93 12.5 0 0-8.41 23.72-9.49 27.16a6.43 6.43 0 0 0-.22 1.94c0 9.22 36.3 39.45 84.94 39.45M160 72.07c1.73 8.19 1.73 9.05 1.73 10.13 0 14-15.74 21.77-36.43 21.77-46.76.03-87.72-27.37-87.72-45.48a18.45 18.45 0 0 1 1.51-7.33C22.27 52 .5 55 .5 74.22c0 31.48 74.59 70.28 133.65 70.28 45.28 0 56.7-20.48 56.7-36.65 0-12.72-11-27.16-30.83-35.78" fill="#ee0000"/>
+      <path d="M160 72.07c1.73 8.19 1.73 9.05 1.73 10.13 0 14-15.74 21.77-36.43 21.77-46.76.03-87.72-27.37-87.72-45.48a18.45 18.45 0 0 1 1.51-7.33l3.66-9.06a6.43 6.43 0 0 0-.22 1.9c0 9.22 36.3 39.45 84.94 39.45 12.51 0 30.61-2.58 30.61-17.46a14 14 0 0 0-.31-3.42Z"/>
+    </svg>
+    <span class="brand-name">k-eval</span>
+  </button>
+
+  <!-- Primary nav — anchored left, next to brand -->
+  <div class="seg" v-if="loaded" role="tablist" aria-label="Main navigation">
+    <button class="seg-btn" :class="{on: view==='ov'}"  @click="view='ov'"  role="tab" :aria-selected="view==='ov'">Overview</button>
+    <button class="seg-btn" :class="{on: view==='smp'}" @click="view='smp'" role="tab" :aria-selected="view==='smp'">Samples</button>
+  </div>
+
+  <!-- Eval name + optional sample breadcrumb -->
+  <template v-if="loaded">
+    <div class="hdr-divider" aria-hidden="true"></div>
+    <span class="eval-n" :title="evalName">{{ evalName }}</span>
+    <template v-if="view === 'smp' && selIdx">
+      <span class="hdr-crumb-sep" aria-hidden="true">›</span>
+      <span class="hdr-crumb-q" :title="selQ">#{{ selIdx }} · {{ selQ }}</span>
+    </template>
+  </template>
+
+  <div class="hdr-sp"></div>
+
+  <!-- Load another file — always accessible once data is loaded -->
+  <template v-if="loaded">
+    <button class="hdr-load-btn" @click="$refs.fiHdr.click()" title="Load a different .detailed.jsonl evaluation file" aria-label="Load a different evaluation file">Load results</button>
+    <input ref="fiHdr" type="file" accept=".jsonl,.json" style="display:none" @change="onFile">
+  </template>
+</header>
+
+<!-- ── Load view ──────────────────────────────────────────────────────── -->
+<div id="v-load" class="view" :class="{on: !loaded, 'drag-over': dragging}"
+     role="main" aria-label="Load evaluation file"
+     @dragover.prevent="dragging=true" @dragleave.self="dragging=false" @drop.prevent="onDrop">
+  <div class="load-zone" :class="{'drag-over': dragging}">
+    <div class="load-icon" aria-hidden="true">📊</div>
+    <div class="load-copy">
+      <h2>k-eval Viewer</h2>
+      <p>Load a k-eval results file to compare how different agent configurations performed across a benchmark dataset.</p>
+      <p style="margin-top:8px">Drop a <code>.detailed.jsonl</code> file anywhere on this page, or click the button below.</p>
+    </div>
+    <button class="load-btn" @click="$refs.fi.click()" aria-label="Browse your filesystem to choose an evaluation results file">
+      Choose results file…
+    </button>
+    <p class="load-hint">Accepts <code>.jsonl</code> or <code>.json</code> — produced by <code>k-eval run</code></p>
+    <input ref="fi" type="file" accept=".jsonl,.json" style="display:none" @change="onFile">
+  </div>
+  <p class="load-err" v-if="loadErr" role="alert">{{ loadErr }} Check that the file was produced by <code>k-eval run</code> and is not empty.</p>
+  <p class="load-msg" v-if="loadMsg" role="status">{{ loadMsg }}</p>
+</div>
+
+<!-- ── Overview ───────────────────────────────────────────────────────── -->
+<div id="v-ov" class="view" :class="{on: loaded && view==='ov'}" role="region" aria-label="Evaluation overview">
+<div class="ov-inner">
+
+  <div class="ov-meta" role="status" aria-label="Evaluation summary">
+    {{ sampleIds.length }} samples &nbsp;·&nbsp;
+    <span class="tt tt-down">
+      <span class="term-tip">{{ conditions.length }} conditions<span class="term-tip-icon">?</span></span>
+      <span class="tt-body">A condition is a distinct agent configuration (e.g. different prompt, model, or tool setup) being compared in this evaluation.</span>
+    </span>
+    &nbsp;·&nbsp;
+    <span class="tt tt-down">
+      <span class="term-tip">{{ repCount }} runs each<span class="term-tip-icon">?</span></span>
+      <span class="tt-body">Each condition was run {{ repCount }}× independently on every sample to account for model non-determinism. Scores are averaged across runs.</span>
+    </span>
+    &nbsp;·&nbsp;
+    <span class="tt tt-down">
+      agent: {{ modelId }}
+      <span class="tt-body">LLM model used by the agent across all conditions and runs.</span>
+    </span>
+    &nbsp;·&nbsp;
+    <span class="tt tt-down ov-cost-chip">
+      agent cost:&nbsp;<strong>{{ fmtCost(totalCost) }}</strong>
+      <span class="tt-body">Agent LLM API costs across all samples, conditions, and runs. Does not include judge LLM costs.</span>
+    </span>
+    <template v-if="fmtDate(evalTs)">
+      &nbsp;·&nbsp;
+      <span class="tt tt-down">
+        {{ fmtDate(evalTs) }}
+        <span class="tt-body">Date this evaluation run was executed.</span>
+      </span>
+    </template>
+    <template v-if="fmtElapsed(evalElapsed)">
+      &nbsp;·&nbsp;
+      <span class="tt tt-down tt-right">
+        {{ fmtElapsed(evalElapsed) }} total
+        <span class="tt-body">Wall-clock time for the full evaluation run across all samples, conditions, and runs.</span>
+      </span>
+    </template>
+  </div>
+
+  <!-- Ranking -->
+  <div>
+    <div class="sec-hdr">
+      Condition Ranking
+      <span class="tt tt-down" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:var(--text-m)">
+        <span class="term-tip">composite score (1–5)<span class="term-tip-icon">?</span></span>
+        <span class="tt-body">The composite score is the average of three judge metrics: Factual Adherence, Completeness, and Helpfulness &amp; Clarity. Scored 1–5 per sample per run, then averaged across all samples and runs.</span>
+      </span>
+    </div>
+
+    <!-- Winner callout — immediate answer to "which condition won?" -->
+    <div class="winner-banner" v-if="condRanking.length >= 2" role="status" :aria-label="'Best condition: ' + condRanking[0].cond">
+      <span class="winner-banner-label">Best condition</span>
+      <span class="winner-banner-name" :style="{color: cc(condRanking[0].cond)}">{{ condRanking[0].cond }}</span>
+      <span class="winner-banner-score">{{ condRanking[0].mean.toFixed(2) }} / 5</span>
+      <span class="winner-banner-margin">
+        +{{ (condRanking[0].mean - condRanking[1].mean).toFixed(2) }} pts ahead of
+        <strong>{{ condRanking[1].cond }}</strong>
+      </span>
+    </div>
+    <div class="winner-banner" v-else-if="condRanking.length === 1" role="status">
+      <span class="winner-banner-label">Only condition</span>
+      <span class="winner-banner-name" :style="{color: cc(condRanking[0].cond)}">{{ condRanking[0].cond }}</span>
+      <span class="winner-banner-score">{{ condRanking[0].mean.toFixed(2) }} / 5</span>
+    </div>
+
+    <div class="rank-list">
+      <!-- Column headers -->
+      <div class="rank-hdr" role="row" aria-label="Ranking column headers">
+        <span style="width:18px;flex-shrink:0" role="columnheader" aria-label="Rank"></span>
+        <span style="width:200px;flex-shrink:0" role="columnheader" aria-label="Condition name"></span>
+        <span class="rank-hdr-spacer" role="none"></span>
+        <span class="rank-hdr-score tt tt-down" role="columnheader">Score<span class="tt-body">Composite score: average of Factual, Completeness, and Helpfulness across all samples and runs.</span></span>
+        <span class="rank-hdr-cost tt tt-down tt-right" role="columnheader">Agent cost<span class="tt-body">Agent LLM API cost for this condition across all samples and runs. Does not include judge LLM costs.</span></span>
+      </div>
+      <div class="rank-row" v-for="(r,i) in condRanking" :key="r.cond">
+        <span class="rank-pos" :aria-label="'Rank ' + (i+1)">{{ i+1 }}.</span>
+        <span class="rank-name tt tt-down" :style="{color: cc(r.cond)}">
+          {{ r.cond }}
+          <span class="tt-body">{{ r.cond }}: {{ r.mean.toFixed(3) }} composite mean across {{ sampleIds.length }} samples × {{ repCount }} runs.</span>
+        </span>
+        <div class="rank-track" role="progressbar" :aria-valuenow="r.mean.toFixed(2)" aria-valuemin="0" aria-valuemax="5" :aria-label="r.cond + ' score'">
+          <div class="rank-fill" :style="{width: bp(r.mean)+'%', background: cc(r.cond)}"></div>
+        </div>
+        <span class="rank-val">{{ r.mean.toFixed(2) }}</span>
+        <span class="rank-cost tt tt-right">
+          {{ fmtCost(costByCond[r.cond]) }}
+          <span class="tt-body">Total agent cost for {{ r.cond }}: {{ fmtCost(costByCond[r.cond]) }}. {{ pctOfTotal(r.cond) }}% of total spend.</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric breakdown -->
+  <div>
+    <div class="sec-hdr">Score Breakdown by Metric</div>
+    <div class="metric-grid with-cost">
+      <div class="metric-card" v-for="m in METRICS" :key="m.key">
+        <div class="mc-title tt tt-down">
+          {{ m.label }}
+          <span class="tt-body">{{ m.def }}</span>
+        </div>
+        <div class="mc-rows">
+          <div class="mc-row" v-for="r in condRanking" :key="r.cond">
+            <span class="mc-name" :style="{color: cc(r.cond)}" :title="r.cond">{{ r.cond }}</span>
+            <div class="mc-track">
+              <div class="mc-fill" :style="{width: bp(ovMetric(r.cond, m.key))+'%', background: cc(r.cond)}"></div>
+            </div>
+            <span class="mc-val" :class="sc(ovMetric(r.cond, m.key))">{{ ovMetric(r.cond, m.key).toFixed(2) }}</span>
+          </div>
+        </div>
+      </div>
+      <!-- Cost & Efficiency card -->
+      <div class="metric-card metric-card-cost">
+        <div class="mc-title mc-title-cost tt tt-down">Agent Cost &amp; Efficiency<span class="tt-body">Agent LLM API costs only. Does not include judge LLM costs.</span></div>
+        <div class="mc-rows">
+          <div class="mc-row" v-for="r in condRanking" :key="r.cond">
+            <span class="mc-name tt tt-down" :style="{color: cc(r.cond)}" :title="r.cond">{{ r.cond }}
+              <span class="tt-body">{{ fmtCost(costByCond[r.cond]) }}, {{ pctOfTotal(r.cond) }}% of total spend.</span>
+            </span>
+            <div class="mc-track">
+              <div class="mc-fill" :style="{width: costPct(r.cond)+'%', background: isBestValue(r.cond) ? 'var(--green)' : 'var(--accent)', opacity: isBestValue(r.cond) ? 1 : 0.6}"></div>
+            </div>
+            <span class="mc-val tt tt-down tt-right mc-val-cost">
+              {{ fmtCost(costByCond[r.cond]) }}
+              <span class="tt-body">{{ pctOfTotal(r.cond) }}% of total spend.</span>
+            </span>
+            <span class="mc-val tt tt-down tt-right mc-val-eff"
+                  :class="isBestValue(r.cond) ? 'rank-eff-best' : 'rank-eff-val'">
+              {{ efficiencyScore(r.cond) }}/¢<span v-if="isBestValue(r.cond)" class="mc-eff-star" aria-label="Best value condition">★</span>
+              <span class="tt-body">{{ efficiencyScore(r.cond) }} composite score pts per cent per sample. Higher means better quality per unit cost. {{ isBestValue(r.cond) ? '★ Best value condition.' : 'Best: '+bestEffCond+' ('+bestEffScore+' pts/¢).' }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top samples -->
+  <div>
+    <div class="sec-hdr">
+      Most Interesting Samples to Investigate
+      <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:var(--text-m)">· conditions disagree most here</span>
+    </div>
+    <p class="ov-variance-note">These samples show the largest gap between conditions — the best place to understand <em>why</em> one condition outperforms another. Click any row to inspect.</p>
+    <table class="inv-tbl" aria-label="Samples with highest score variance across conditions">
+      <thead><tr>
+        <th style="width:56px">#</th>
+        <th>Question</th>
+        <th style="width:88px;text-align:right">
+          <span class="tt tt-down">
+            Score gap
+            <span class="tt-body">Score gap: best condition score minus worst condition score on this sample. A larger gap means conditions disagreed significantly — good samples to investigate.</span>
+          </span>
+        </th>
+        <th style="width:28px"></th>
+      </tr></thead>
+      <tbody>
+        <tr v-for="s in topVariance" :key="s.idx" @click="goSample(s.idx)" :aria-label="'Sample ' + s.idx + ': ' + s.q + ', score gap ' + s.delta.toFixed(2)">
+          <td class="inv-idx">#{{ s.idx }}</td>
+          <td class="inv-q" :title="s.q">{{ s.q }}</td>
+          <td class="inv-delta">{{ s.delta.toFixed(2) }}</td>
+          <td class="inv-arrow" aria-hidden="true">→</td>
+        </tr>
+      </tbody>
+    </table>
+    <button class="ov-all-link" @click="view='smp'" aria-label="View all samples in the Samples view">
+      View all {{ sampleIds.length }} samples →
+    </button>
+  </div>
+
+</div><!-- /.ov-inner -->
+</div><!-- /#v-ov -->
+
+<!-- ── Samples view ────────────────────────────────────────────────────── -->
+<div id="v-smp" class="view" :class="{on: loaded && view==='smp'}" role="region" aria-label="Sample browser">
+
+  <!-- List panel -->
+  <div id="lst-panel" :class="{collapsed: sidebarCollapsed}" role="navigation" aria-label="Sample list">
+    <!-- Collapse toggle — always visible -->
+    <button
+      class="lst-collapse-btn"
+      @click="sidebarCollapsed = !sidebarCollapsed"
+      :title="sidebarCollapsed ? 'Expand sample list  [ (keyboard shortcut)' : 'Collapse sample list  [ (keyboard shortcut)'"
+      :aria-label="sidebarCollapsed ? 'Expand sample list' : 'Collapse sample list'"
+      :aria-expanded="!sidebarCollapsed"
+    >{{ sidebarCollapsed ? '›' : '‹' }}</button>
+
+    <!-- Vertical label shown when collapsed -->
+    <span class="lst-collapsed-label" aria-hidden="true">Samples</span>
+
+    <div class="lst-toolbar">
+      <label class="lst-lbl" for="sort-select">Sort:</label>
+      <select class="lst-sel" id="sort-select" v-model="sortMode" aria-label="Sort samples by">
+        <option value="variance">Biggest condition gap</option>
+        <option value="lowest">Worst score first</option>
+        <option value="highest">Best score first</option>
+        <option value="idx">Sample index</option>
+      </select>
+    </div>
+    <div class="lst-count">
+      {{ sortedIds.length }} samples
+    </div>
+    <div class="lst-sort-hint" v-if="sortMode==='variance'">Sorted by how much conditions disagreed — best for finding failures</div>
+    <div class="lst-sort-hint" v-else-if="sortMode==='lowest'">Sorted by worst score — best for finding hard failures</div>
+    <div class="lst-sort-hint" v-else-if="sortMode==='highest'">Sorted by best score first</div>
+    <div id="smp-list" ref="listEl" tabindex="0" @keydown="onKey" role="listbox" :aria-label="'Sample list, ' + sortedIds.length + ' items'" :aria-activedescendant="selIdx ? 'smp-row-' + selIdx : undefined">
+      <div
+        class="smp-row"
+        :class="{on: selIdx===s.idx}"
+        v-for="s in sortedIds"
+        :key="s.idx"
+        :id="'smp-row-' + s.idx"
+        :data-idx="s.idx"
+        @click="sel(s.idx)"
+        role="option"
+        :aria-selected="selIdx===s.idx"
+        :aria-label="'Sample ' + s.idx + ': ' + s.q + ', score gap ' + s.delta.toFixed(2)"
+      >
+        <span class="smp-bullet tt tt-left"
+              :style="{background: bulletColor(s.best)}"
+              aria-hidden="true"
+              >
+          <span class="tt-body">Best condition score: {{ s.best.toFixed(2) }} / 5. Green ≥4.0, yellow ≥3.0, red &lt;3.0.</span>
+        </span>
+        <span class="smp-idx">#{{ s.idx }}</span>
+        <span class="smp-q">{{ s.q }}</span>
+        <span class="smp-delta tt tt-right" aria-label="Score gap between best and worst condition">
+          ±{{ s.delta.toFixed(2) }}
+          <span class="tt-body">Score gap: {{ s.delta.toFixed(2) }} pts between best and worst condition on this sample.</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail panel -->
+  <div id="det-panel" ref="detEl" role="region" aria-label="Sample detail">
+    <div class="det-empty" v-if="!selIdx">
+      <div class="det-empty-icon" aria-hidden="true">📋</div>
+      <h3>Select a sample to inspect</h3>
+      <p>Choose a sample from the list on the left. Each sample shows the agent's response and the judge's scoring for every condition.</p>
+      <span class="det-empty-hint">Tip: use ↑↓ arrow keys when the list is focused</span>
+    </div>
+
+    <template v-if="selIdx">
+
+      <!-- A: Question + Reference -->
+      <div class="sec-qa">
+        <div class="qa-lbl">Sample #{{ selIdx }} &nbsp;·&nbsp; Question</div>
+        <div class="qa-q">{{ selQ }}</div>
+        <div class="qa-ref">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button class="ref-toggle" @click="showRef=!showRef" :aria-expanded="showRef" aria-controls="ref-answer-block">
+              {{ showRef ? '▴ Hide reference answer' : '▾ Show reference answer' }}
+            </button>
+            <button v-if="showRef" class="md-toggle" :class="{on: mdRef}" @click="mdRef=!mdRef" :title="mdRef ? 'Switch to plain text view' : 'Render as Markdown (formatted)'" :aria-pressed="mdRef" aria-label="Toggle markdown rendering for reference answer">{{ mdRef ? 'Rendered' : 'Plain' }}</button>
+          </div>
+          <div id="ref-answer-block">
+            <div class="qa-ref-text md-body" v-if="showRef && mdRef" v-html="md(selRef)"></div>
+            <div class="qa-ref-text" v-if="showRef && !mdRef">{{ selRef }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- B: Aggregate score grid -->
+      <div class="sec-scores">
+        <div class="sec-hdr">Scores by Condition</div>
+        <p class="score-grid-hint">Click a condition card to view its agent response and judge reasoning below</p>
+        <div class="score-grid" :style="{gridTemplateColumns: 'repeat('+conditions.length+', 1fr)'}">
+          <div
+            class="score-col"
+            :class="{on: selCond===cond}"
+            :style="{borderTopColor: cc(cond)}"
+            v-for="(cond, ci) in conditions"
+            :key="cond"
+            @click="selCond=cond"
+            role="button"
+            :aria-pressed="selCond===cond"
+            :aria-label="cond + ': composite score ' + compScore(cond).toFixed(1)"
+            tabindex="0"
+            @keydown.enter.space.prevent="selCond=cond"
+          >
+            <div class="sc-name" :style="{color: cc(cond)}">
+              {{ cond }}
+              <span class="sc-star" v-if="isWinner(cond)">
+                <span class="tt" aria-label="Highest scoring condition for this sample">★<span class="tt-body">Highest composite score for this sample.</span></span>
+              </span>
+            </div>
+            <div class="sc-comp" :class="sc(compScore(cond))">
+              <span class="tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                {{ compScore(cond).toFixed(1) }}
+                <span class="tt-body">Composite: {{ compScore(cond).toFixed(3) }}. Avg of factual ({{ mv(cond,'factual_adherence').toFixed(2) }}), completeness ({{ mv(cond,'completeness').toFixed(2) }}), helpfulness ({{ mv(cond,'helpfulness_and_clarity').toFixed(2) }}).</span>
+              </span>
+            </div>
+            <div class="sc-metrics">
+              <div class="sc-m-row" v-for="m in METRICS" :key="m.key">
+                <span class="sc-m-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                  {{ m.short }}
+                  <span class="tt-body">{{ m.def }}</span>
+                </span>
+                <div class="sc-m-track"><div class="sc-m-fill" :style="{width: bp(mv(cond,m.key))+'%', background: bulletColor(mv(cond,m.key))}"></div></div>
+                <span class="sc-m-val tt" :class="[sc(mv(cond,m.key)), ci >= conditions.length - 1 ? 'tt-right' : '']">
+                  {{ mv(cond,m.key).toFixed(2) }}
+                  <span class="tt-body">Mean: {{ mv(cond,m.key).toFixed(2) }} ±{{ sd(cond,m.key).toFixed(2) }} std dev across {{ repCount }} runs.</span>
+                </span>
+                <span class="sc-m-sd" v-if="repCount > 1">±{{ sd(cond,m.key).toFixed(2) }}</span>
+              </div>
+              <div class="sc-m-row sc-dur-row" v-if="condDuration(selIdx, cond)">
+                <span class="sc-m-lbl sc-dur-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                  time
+                  <span class="tt-body">Mean wall-clock duration per run for this sample in {{ cond }}.</span>
+                </span>
+                <div class="sc-m-track"><div class="sc-m-fill sc-dur-fill" :style="{width: condDurationPct(selIdx,cond)+'%', background: 'var(--text-m)', opacity: 0.5}"></div></div>
+                <span class="sc-m-val sc-dur-val tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                  {{ fmtMs(condDuration(selIdx,cond).mean) }}
+                  <span class="tt-body">Mean: {{ fmtMs(condDuration(selIdx,cond).mean) }} across {{ repCount }} runs. Bar shows relative duration — longer bar means slower.</span>
+                </span>
+                <span class="sc-m-sd" v-if="repCount > 1 && condDuration(selIdx,cond).sd > 0">±{{ fmtMs(condDuration(selIdx,cond).sd) }}</span>
+              </div>
+              <div class="sc-m-row sc-cost-row" v-if="sampleCondCost(selIdx, cond) != null">
+                <span class="sc-m-lbl sc-cost-lbl tt" :class="ci >= conditions.length - 1 ? 'tt-right' : ''">
+                  cost
+                  <span class="tt-body">Total agent API cost for this sample across {{ repCount }} runs in {{ cond }}.</span>
+                </span>
+                <span class="sc-cost-val">{{ fmtCost(sampleCondCost(selIdx, cond)) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="spread-line" v-if="spreadDetail && conditions.length >= 2">
+          Score range: <span class="spread-val tt">{{ spreadDetail.spread.toFixed(2) }} pts
+            <span class="tt-body">Best: {{ spreadDetail.max.cond }} ({{ spreadDetail.max.score.toFixed(2) }}) · Worst: {{ spreadDetail.min.cond }} ({{ spreadDetail.min.score.toFixed(2) }})</span>
+          </span>
+          &nbsp;·&nbsp; <span class="spread-interpretation">{{ spreadLabel }}</span>
+        </div>
+      </div>
+
+      <!-- C + D: Condition & rep nav + split layout — judge section -->
+      <div class="judge-section" role="region" aria-label="Judge evaluation detail">
+
+        <!-- Condition tabs -->
+        <div class="cond-tabs" role="tablist" aria-label="Select condition to inspect">
+          <div
+            class="cond-tab tt"
+            :class="{on: selCond===cond}"
+            v-for="cond in conditions"
+            :key="cond"
+            @click="selCond=cond"
+            :style="selCond===cond ? {color: cc(cond), borderBottomColor: cc(cond)} : {}"
+            role="tab"
+            :aria-selected="selCond===cond"
+            tabindex="0"
+            @keydown.enter.space.prevent="selCond=cond"
+          >
+            {{ cond }}
+            <span class="tt-body">View <strong>{{ cond }}</strong> agent response and judge reasoning. {{ repCount }} independent run{{ repCount!==1?'s':'' }} for this condition.</span>
+          </div>
+        </div>
+
+        <!-- Context strip: what you're looking at -->
+        <div class="judge-cond-indicator" aria-live="polite">
+          <span class="judge-cond-dot" :style="{background: cc(selCond)}"></span>
+          Showing <strong>{{ selCond }}</strong>
+          <span style="margin-left:auto;font-size:.7rem">Run {{ selRep+1 }} of {{ selRecord?.run_details?.length ?? repCount }}</span>
+        </div>
+
+        <!-- Run tabs — span full width above the split -->
+        <div class="rep-tabs" role="tablist" :aria-label="'Select which of the ' + repCount + ' independent runs to view'">
+          <span class="rep-lbl" aria-hidden="true">Run:</span>
+          <div
+            class="rep-tab tt"
+            :class="{on: selRep===i, 'tt-right': i === repCount-1}"
+            v-for="(_,i) in repCount"
+            :key="i"
+            @click="selRep=i"
+            role="tab"
+            :aria-selected="selRep===i"
+            :aria-label="'Run ' + (i+1) + ' of ' + repCount"
+            tabindex="0"
+            @keydown.enter.space.prevent="selRep=i"
+          >
+            {{ i+1 }}
+            <span class="tt-body">Run {{ i+1 }} of {{ repCount }}. Each run is an independent execution of the agent on this sample — useful for checking consistency.</span>
+          </div>
+        </div>
+
+        <!-- Split: left = agent response, right = judge metrics -->
+        <div class="flow-card" v-if="selRecord">
+
+          <!-- Left: Agent response -->
+          <div class="flow-left">
+            <div class="resp-block">
+              <div class="resp-hdr">
+                <span class="resp-lbl">Agent Response</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <button class="md-toggle" :class="{on: mdResp}" @click="mdResp=!mdResp" :title="mdResp ? 'Switch to plain text view' : 'Render as Markdown (formatted)'" :aria-pressed="mdResp" aria-label="Toggle markdown rendering for agent response">
+                    <span class="tt">{{ mdResp ? 'Rendered' : 'Plain' }}<span class="tt-body">{{ mdResp ? 'Showing formatted Markdown. Switch to plain text.' : 'Showing raw text. Switch to rendered Markdown.' }}</span></span>
+                  </button>
+                  <span class="resp-rep-lbl">Run {{ selRep+1 }}</span>
+                </div>
+              </div>
+              <!-- Markdown rendered view -->
+              <div v-if="mdResp"
+                   class="resp-body md-mode md-body"
+                   :class="{expanded: respExpanded}"
+                   v-html="md(selRecord.run_details[selRep]?.agent_response ?? '')">
+              </div>
+              <!-- Raw text view -->
+              <div v-else
+                   class="resp-body"
+                   :class="{expanded: respExpanded}">{{ selRecord.run_details[selRep]?.agent_response ?? '—' }}</div>
+              <button class="resp-expand-btn" @click="respExpanded=!respExpanded" :aria-expanded="respExpanded">
+                {{ respExpanded ? '▴ Collapse response' : '▾ Show full response' }}
+              </button>
+              <div class="resp-footer">
+                <span class="tt" v-if="selRecord.run_details[selRep]?.cost_usd != null">
+                  Cost: ${{ selRecord.run_details[selRep].cost_usd.toFixed(4) }}
+                  <span class="tt-body">Agent API cost for this run.</span>
+                </span>
+                <span class="tt">
+                  {{ fmtMs(selRecord.run_details[selRep]?.duration_ms) }}
+                  <span class="tt-body">Wall-clock duration for this run.</span>
+                </span>
+                <span>{{ selRecord.run_details[selRep]?.num_turns }} turns</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Judge metrics -->
+          <div class="flow-right">
+            <div class="judge-panel-hdr tt">
+              Judge's Reasoning — Run {{ selRep+1 }}
+              <span class="tt-body">The judge LLM scored the agent's response on each metric and wrote a brief justification. Each score shown is for the currently selected run; the smaller "avg" figure is the mean across all {{ repCount }} runs.</span>
+            </div>
+            <div class="metric-block" v-for="m in METRICS" :key="m.key">
+              <div class="mb-hdr">
+                <span class="mb-name tt tt-right">
+                  {{ m.label }}
+                  <span class="tt-body">{{ m.def }}</span>
+                </span>
+                <div class="mb-track"><div class="mb-fill" :style="{width: bp(rv(m.key) ?? mv(selCond,m.key))+'%', background: bulletColor(rv(m.key) ?? mv(selCond,m.key))}"></div></div>
+                <span class="mb-mean tt tt-right" :class="sc(rv(m.key) ?? mv(selCond,m.key))">
+                  <template v-if="rv(m.key) !== null">{{ rv(m.key) }}<span class="mb-run-label">/5</span></template>
+                  <template v-else>{{ mv(selCond,m.key).toFixed(2) }}</template>
+                  <span class="tt-body" v-if="rv(m.key) !== null">Score for run {{ selRep+1 }}. Range: 1 (poor) – 5 (excellent).</span>
+                  <span class="tt-body" v-else>Mean across {{ repCount }} runs. Score range: 1 (poor) – 5 (excellent).</span>
+                </span>
+                <span class="mb-run-avg tt tt-right" v-if="rv(m.key) !== null">
+                  avg {{ mv(selCond,m.key).toFixed(2) }}
+                  <span class="tt-body">Mean across all {{ repCount }} runs.</span>
+                </span>
+                <span class="mb-std tt tt-right" v-else-if="sd(selCond,m.key)>0">
+                  ±{{ sd(selCond,m.key).toFixed(2) }}
+                  <span class="tt-body">Run-to-run variation (std dev across {{ repCount }} runs). A higher value means the agent gave inconsistent responses.</span>
+                </span>
+              </div>
+              <div class="mb-text">{{ getReasonings(m.key)[selRep] ?? '—' }}</div>
+            </div>
+          </div>
+
+        </div><!-- /.flow-card -->
+      </div><!-- /.judge-section -->
+
+      <!-- E: Unverified claims (all conditions) -->
+      <div class="sec-claims" v-if="anyClaimsForSample" role="region" aria-label="Unverified claims">
+        <div class="sec-hdr">
+          Potentially Unverified Claims
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:var(--text-m)">flagged by judge</span>
+        </div>
+        <p class="claims-note">Statements in the agent's response that the judge could not verify against the reference answer. These may be hallucinations or out-of-scope claims — inspect the agent response above for context.</p>
+        <div class="claims-grid" :style="{gridTemplateColumns: 'repeat('+conditions.length+', 1fr)'}">
+          <div class="claims-cell" v-for="cond in conditions" :key="cond">
+            <div class="claims-cond" :style="{color: cc(cond)}">{{ cond }}</div>
+            <div v-if="claimsFor(cond).length===0" class="claims-none">No unverified claims flagged</div>
+            <div v-else>
+              <div class="claim-item" v-for="(c,i) in claimsFor(cond)" :key="i">{{ c }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </template>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ── Data injection point ───────────────────────────────────────────────────
+window.__KEVAL_DATA__ = null;
+
+const { createApp, ref, computed, watch, onMounted, onUnmounted } = Vue;
+
+// Brand-adjacent condition color palette — Red Hat colors
+const CPAL = ['#707070','#0066cc','#5e40be','#63993d','#f5921b','#37a3a3','#f0561d','#4394e5'];
+
+const METRICS = [
+  { key: 'factual_adherence',       label: 'Factual Adherence',    short: 'Factual',   def: 'Does the response contain only claims supported by the reference answer?' },
+  { key: 'completeness',            label: 'Completeness',         short: 'Complete',  def: 'Does the response cover all key points in the reference answer?' },
+  { key: 'helpfulness_and_clarity', label: 'Helpfulness & Clarity', short: 'Helpful',  def: 'Is the response well-structured, clear, and useful to the end user?' },
+];
+
+createApp({
+  setup() {
+    // ── Core state ─────────────────────────────────────────────────────────
+    const records  = ref([]);
+    const loaded   = ref(false);
+    const view     = ref('ov');
+    const dragging = ref(false);
+    const loadErr  = ref('');
+    const loadMsg  = ref('');
+    const sortMode = ref('variance');
+    const selIdx   = ref(null);
+    const selCond  = ref('');
+    const selRep   = ref(0);
+    const showRef  = ref(false);
+    const respExpanded = ref(false);
+    const listEl   = ref(null);
+    const detEl    = ref(null);
+    const sidebarCollapsed = ref(false);
+    const mdResp   = ref(true);   // markdown rendering for agent response
+    const mdRef    = ref(true);   // markdown rendering for reference answer
+
+    // ── Derived structure ──────────────────────────────────────────────────
+    const conditions = computed(() => {
+      const s = new Set(records.value.map(r => r.evaluation_name.split('/').slice(1).join('/')));
+      return [...s].sort();
+    });
+
+    const sampleIds = computed(() => {
+      const s = new Set(records.value.map(r => r.sample_idx));
+      return [...s].sort((a, b) => +a - +b);
+    });
+
+    const byKey = computed(() => {
+      const m = {};
+      for (const r of records.value) {
+        const cond = r.evaluation_name.split('/').slice(1).join('/');
+        m[r.sample_idx + '|' + cond] = r;
+      }
+      return m;
+    });
+
+    const evalName  = computed(() => records.value[0]?.evaluation_name.split('/')[0] ?? '');
+    const modelId   = computed(() => records.value[0]?.model_id ?? '');
+    const repCount  = computed(() => records.value[0]?.run_details?.length ?? 0);
+    const evalTs    = computed(() => records.value[0]?.evaluation?.details?.evaluation_timestamp ?? null);
+    const evalElapsed = computed(() => records.value[0]?.evaluation?.details?.elapsed_seconds ?? null);
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function cc(cond) { return CPAL[conditions.value.indexOf(cond) % CPAL.length]; }
+
+    function bp(v) { return Math.max(0, Math.min(100, (v / 5) * 100)); }
+
+    function sc(v) { return v >= 4 ? 's-g' : v >= 3 ? 's-y' : 's-r'; }
+
+    function fmtMs(ms) {
+      if (ms == null) return '—';
+      return ms >= 60000 ? (ms/60000).toFixed(1)+'m' : (ms/1000).toFixed(1)+'s';
+    }
+
+    function fmtDate(ts) {
+      if (!ts) return null;
+      return new Date(ts * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function fmtElapsed(s) {
+      if (s == null) return null;
+      if (s < 60) return s.toFixed(1) + 's';
+      const m = Math.floor(s / 60), rem = (s % 60).toFixed(0).padStart(2, '0');
+      return `${m}m ${rem}s`;
+    }
+
+    function getRec(idx, cond) { return byKey.value[idx + '|' + cond] ?? null; }
+
+    function comp(rec) {
+      if (!rec) return 0;
+      const d = rec.evaluation.details;
+      return (d.factual_adherence_mean + d.completeness_mean + d.helpfulness_and_clarity_mean) / 3;
+    }
+
+    function compScore(cond) { return comp(getRec(selIdx.value, cond)); }
+
+    function mv(cond, key) {
+      const rec = getRec(selIdx.value, cond);
+      return rec?.evaluation?.details?.[key+'_mean'] ?? 0;
+    }
+
+    function sd(cond, key) {
+      const rec = getRec(selIdx.value, cond);
+      return rec?.evaluation?.details?.[key+'_stddev'] ?? 0;
+    }
+
+    // Per-run score for the currently selected run. Returns null for older
+    // files that predate per-run score recording.
+    function rv(key) {
+      const run = selRecord.value?.run_details?.[selRep.value];
+      const v = run?.[key];
+      return (typeof v === 'number') ? v : null;
+    }
+
+    function isWinner(cond) {
+      if (!conditions.value.length) return false;
+      const best = Math.max(...conditions.value.map(c => compScore(c)));
+      return compScore(cond) >= best - 0.001;
+    }
+
+    function bulletColor(best) {
+      return best >= 4 ? 'var(--green)' : best >= 3 ? 'var(--yellow)' : 'var(--red)';
+    }
+
+    function md(text) {
+      if (!text) return '';
+      return marked.parse(text, { gfm: true });
+    }
+
+    // ── Overview computeds ─────────────────────────────────────────────────
+    const condRanking = computed(() => {
+      return conditions.value.map(cond => {
+        const recs = records.value.filter(r => r.evaluation_name.split('/').slice(1).join('/') === cond);
+        const vals = recs.map(r => comp(r));
+        const mean = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+        return { cond, mean };
+      }).sort((a,b) => b.mean - a.mean);
+    });
+
+    function ovMetric(cond, key) {
+      const recs = records.value.filter(r => r.evaluation_name.split('/').slice(1).join('/') === cond);
+      if (!recs.length) return 0;
+      const vals = recs.map(r => r.evaluation.details[key+'_mean'] ?? 0);
+      return vals.reduce((a,b)=>a+b,0) / vals.length;
+    }
+
+    // ── Cost computeds ─────────────────────────────────────────────────────
+    const totalCost = computed(() => {
+      let t = 0;
+      for (const r of records.value) {
+        for (const run of r.run_details ?? []) {
+          if (run.cost_usd != null) t += run.cost_usd;
+        }
+      }
+      return t;
+    });
+
+    const costByCond = computed(() => {
+      const m = {};
+      for (const cond of conditions.value) m[cond] = 0;
+      for (const r of records.value) {
+        const cond = r.evaluation_name.split('/').slice(1).join('/');
+        for (const run of r.run_details ?? []) {
+          if (run.cost_usd != null) m[cond] = (m[cond] ?? 0) + run.cost_usd;
+        }
+      }
+      return m;
+    });
+
+    // Cost for the currently selected sample across all runs for a condition
+    function sampleCondCost(idx, cond) {
+      const rec = getRec(idx, cond);
+      if (!rec) return null;
+      let t = 0; let hasAny = false;
+      for (const run of rec.run_details ?? []) {
+        if (run.cost_usd != null) { t += run.cost_usd; hasAny = true; }
+      }
+      return hasAny ? t : null;
+    }
+
+    function condDuration(idx, cond) {
+      const runs = (getRec(idx, cond)?.run_details ?? []).filter(r => r.duration_ms != null);
+      if (!runs.length) return null;
+      const vals = runs.map(r => r.duration_ms);
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const sd = vals.length > 1
+        ? Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / (vals.length - 1))
+        : 0;
+      return { mean, sd };
+    }
+
+    function condDurationPct(idx, cond) {
+      const maxMs = Math.max(...conditions.value.map(c => condDuration(idx, c)?.mean ?? 0));
+      if (!maxMs) return 0;
+      return ((condDuration(idx, cond)?.mean ?? 0) / maxMs) * 100;
+    }
+
+    function fmtCost(v) {
+      if (v == null) return '—';
+      if (v >= 1) return '$' + v.toFixed(2);
+      return '$' + v.toFixed(4);
+    }
+
+    // ── Cost efficiency helpers ─────────────────────────────────────────────
+    function pctOfTotal(cond) {
+      const t = totalCost.value;
+      if (!t) return '0';
+      return ((costByCond.value[cond] / t) * 100).toFixed(0);
+    }
+
+    // score per cent per sample — higher is better value.
+    // Cost is expressed in cents (cost * 100) per sample so the ratio stays
+    // in a human-readable range even for sub-cent-per-sample evaluations.
+    function efficiencyRaw(cond) {
+      const cost = costByCond.value[cond];
+      if (!cost) return 0;
+      const n = sampleIds.value.length || 1;
+      const costCentsPerSample = (cost / n) * 100;
+      const mean = condRanking.value.find(r => r.cond === cond)?.mean ?? 0;
+      return mean / costCentsPerSample;
+    }
+
+    function efficiencyScore(cond) {
+      return efficiencyRaw(cond).toFixed(2);
+    }
+
+    const bestEffCond = computed(() => {
+      return conditions.value.reduce((best, c) =>
+        efficiencyRaw(c) > efficiencyRaw(best) ? c : best
+      , conditions.value[0] ?? '');
+    });
+
+    const bestEffScore = computed(() => efficiencyRaw(bestEffCond.value).toFixed(2));
+
+    function isBestValue(cond) { return cond === bestEffCond.value; }
+
+    // efficiency bar width as % of best score/$ (longer = better value)
+    function costPct(cond) {
+      if (!conditions.value.length) return 0;
+      const maxEff = Math.max(...conditions.value.map(c => efficiencyRaw(c)));
+      if (!maxEff) return 0;
+      return (efficiencyRaw(cond) / maxEff) * 100;
+    }
+
+    function sampleVariance(idx) {
+      if (!conditions.value.length) return 0;
+      const scores = conditions.value.map(c => comp(getRec(idx, c)));
+      return Math.max(...scores) - Math.min(...scores);
+    }
+
+    function sampleBest(idx) {
+      if (!conditions.value.length) return 0;
+      return Math.max(...conditions.value.map(c => comp(getRec(idx, c))));
+    }
+    function sampleWorst(idx) {
+      if (!conditions.value.length) return 0;
+      return Math.min(...conditions.value.map(c => comp(getRec(idx, c))));
+    }
+
+    const topVariance = computed(() => {
+      return sampleIds.value.map(idx => ({
+        idx,
+        q: getRec(idx, conditions.value[0])?.input?.raw ?? '',
+        delta: sampleVariance(idx),
+      })).sort((a,b) => b.delta - a.delta).slice(0, 8);
+    });
+
+    // ── Sample list ────────────────────────────────────────────────────────
+    const sortedIds = computed(() => {
+      const items = sampleIds.value.map(idx => ({
+        idx,
+        q: getRec(idx, conditions.value[0])?.input?.raw?.slice(0,80) ?? '',
+        delta: sampleVariance(idx),
+        best:  sampleBest(idx),
+        worst: sampleWorst(idx),
+      }));
+      if (sortMode.value === 'variance') return [...items].sort((a,b) => b.delta - a.delta);
+      if (sortMode.value === 'lowest')   return [...items].sort((a,b) => a.worst - b.worst);
+      if (sortMode.value === 'highest')  return [...items].sort((a,b) => b.best - a.best);
+      return [...items].sort((a,b) => +a.idx - +b.idx);
+    });
+
+    // ── Detail computeds ───────────────────────────────────────────────────
+    const selQ    = computed(() => getRec(selIdx.value, conditions.value[0])?.input?.raw ?? '');
+    const selRef  = computed(() => getRec(selIdx.value, conditions.value[0])?.input?.reference ?? '');
+    const selRecord = computed(() => getRec(selIdx.value, selCond.value));
+
+    const spreadDetail = computed(() => {
+      if (!selIdx.value) return null;
+      const scored = conditions.value.map(c => ({ cond: c, score: compScore(c) }));
+      const max = scored.reduce((a,b) => a.score > b.score ? a : b);
+      const min = scored.reduce((a,b) => a.score < b.score ? a : b);
+      return { max, min, spread: max.score - min.score };
+    });
+
+    const spreadLabel = computed(() => {
+      const s = spreadDetail.value?.spread ?? 0;
+      return s >= 1.5 ? 'conditions diverge significantly' : s >= 0.7 ? 'moderate spread' : 'conditions perform similarly';
+    });
+
+    function getReasonings(key) {
+      return selRecord.value?.evaluation?.details?.[key+'_reasonings'] ?? [];
+    }
+
+    function claimsFor(cond) {
+      return getRec(selIdx.value, cond)?.evaluation?.details?.unverified_claims ?? [];
+    }
+
+    const anyClaimsForSample = computed(() => {
+      if (!selIdx.value) return false;
+      return conditions.value.some(c => claimsFor(c).length > 0);
+    });
+
+    // ── Actions ────────────────────────────────────────────────────────────
+    function sel(idx) {
+      selIdx.value = idx;
+      selRep.value = 0;
+      showRef.value = false;
+      respExpanded.value = false;
+      mdResp.value = true;
+      mdRef.value = true;
+
+      // default condition = winner
+      const winner = conditions.value.reduce((best, c) =>
+        comp(getRec(idx, c)) > comp(getRec(idx, best)) ? c : best
+      , conditions.value[0]);
+      selCond.value = winner;
+
+      // scroll selected row into view
+      setTimeout(() => {
+        const el = listEl.value?.querySelector('.smp-row.on');
+        if (el) el.scrollIntoView({ block: 'nearest' });
+        // scroll detail panel to top
+        if (detEl.value) detEl.value.scrollTop = 0;
+      }, 0);
+    }
+
+    function goSample(idx) {
+      view.value = 'smp';
+      setTimeout(() => sel(idx), 0);
+    }
+
+    // Keyboard nav (list-panel focus)
+    function onKey(e) {
+      if (!['ArrowDown','ArrowUp'].includes(e.key)) return;
+      e.preventDefault();
+      const ids = sortedIds.value.map(s => s.idx);
+      const pos = ids.indexOf(selIdx.value);
+      if (e.key === 'ArrowDown') { const n = ids[Math.min(pos+1, ids.length-1)]; if (n) sel(n); }
+      if (e.key === 'ArrowUp')   { const n = ids[Math.max(pos-1, 0)];             if (n) sel(n); }
+    }
+
+    // Global keyboard shortcuts
+    function onGlobalKey(e) {
+      // Ignore when focus is on an input/select/textarea
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+
+      if (e.key === '[' && view.value === 'smp') {
+        sidebarCollapsed.value = !sidebarCollapsed.value;
+      }
+    }
+
+    // Reset rep when condition changes
+    watch(selCond, () => { selRep.value = 0; respExpanded.value = false; });
+
+    // ── File loading ───────────────────────────────────────────────────────
+    function ingest(recs) {
+      records.value = recs;
+      loaded.value = true;
+      view.value = 'ov';
+    }
+
+    function parse(text, name) {
+      loadMsg.value = 'Parsing…'; loadErr.value = '';
+      try {
+        const recs = text.split('\n').filter(l=>l.trim()).map(l=>JSON.parse(l));
+        if (!recs.length) throw new Error('no records');
+        ingest(recs);
+        loadMsg.value = '';
+      } catch(e) {
+        loadErr.value = `Could not read ${name} — expected .jsonl with evaluation records.`;
+        loadMsg.value = '';
+      }
+    }
+
+    function onDrop(e) {
+      dragging.value = false;
+      const f = e.dataTransfer.files[0];
+      if (f) { const r = new FileReader(); r.onload = ev => parse(ev.target.result, f.name); r.readAsText(f); }
+    }
+
+    function onFile(e) {
+      const f = e.target.files[0];
+      if (f) { const r = new FileReader(); r.onload = ev => parse(ev.target.result, f.name); r.readAsText(f); }
+    }
+
+    // ── Boot ───────────────────────────────────────────────────────────────
+    onMounted(() => {
+      if (window.__KEVAL_DATA__?.length) ingest(window.__KEVAL_DATA__);
+      document.addEventListener('keydown', onGlobalKey);
+    });
+
+    onUnmounted(() => {
+      document.removeEventListener('keydown', onGlobalKey);
+    });
+
+    return {
+      METRICS,
+      records, loaded, view, dragging, loadErr, loadMsg,
+      sortMode, selIdx, selCond, selRep, showRef, respExpanded,
+      listEl, detEl, sidebarCollapsed,
+      conditions, sampleIds, evalName, modelId, repCount, evalTs, evalElapsed,
+      condRanking, topVariance, sortedIds,
+      selQ, selRef, selRecord, spreadDetail, spreadLabel,
+      anyClaimsForSample,
+      mdResp, mdRef, md,
+      cc, bp, sc, fmtMs, fmtCost, fmtDate, fmtElapsed, bulletColor,
+      totalCost, costByCond, sampleCondCost, condDuration, condDurationPct,
+      pctOfTotal, efficiencyScore, isBestValue, bestEffCond, bestEffScore, costPct,
+      ovMetric, compScore, mv, sd, rv, isWinner,
+      getReasonings, claimsFor,
+      sel, goSample, onKey, onDrop, onFile,
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

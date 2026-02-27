@@ -1,6 +1,10 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "k-eval"
-version = "0.3.0"
+version = "1.0.0"
 description = "Context-aware evaluation framework for AI agents using MCP."
 readme = "README.md"
 license = "Apache-2.0"
@@ -52,6 +56,9 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["k_eval*"]
+
+[tool.setuptools.package-data]
+"k_eval.viewer" = ["viewer.html"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

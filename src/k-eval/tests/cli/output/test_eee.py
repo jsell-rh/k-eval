@@ -483,3 +483,31 @@ class TestInstanceJsonlLines:
         # Each run has 100 input and 50 output tokens, 2 runs per group
         assert lines[0]["token_usage"]["input_tokens"] == 200
         assert lines[0]["token_usage"]["output_tokens"] == 100
+
+    def test_evaluation_timestamp_and_elapsed_written_to_details(self) -> None:
+        summary, aggregated, agent_cfg, _ = _make_two_run_scenario()
+
+        lines = build_instance_jsonl_lines(
+            summary=summary,
+            aggregated=aggregated,
+            agent_config=agent_cfg,
+            evaluation_timestamp=1700000000,
+            elapsed_seconds=42.5,
+        )
+
+        details = lines[0]["evaluation"]["details"]
+        assert details["evaluation_timestamp"] == 1700000000
+        assert details["elapsed_seconds"] == 42.5
+
+    def test_evaluation_timestamp_defaults_to_zero(self) -> None:
+        summary, aggregated, agent_cfg, _ = _make_two_run_scenario()
+
+        lines = build_instance_jsonl_lines(
+            summary=summary,
+            aggregated=aggregated,
+            agent_config=agent_cfg,
+        )
+
+        details = lines[0]["evaluation"]["details"]
+        assert details["evaluation_timestamp"] == 0
+        assert details["elapsed_seconds"] == 0.0

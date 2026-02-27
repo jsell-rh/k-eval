@@ -18,29 +18,25 @@ Once an evaluation is defined in a `yaml` file, you can invoke
 `k-eval` like:
 
 ```bash
-uvx k-eval /path/to/config.yaml
+uvx --python 3.13 "k-eval[all]" run /path/to/config.yaml
 ```
 
 See [docs/run-configuration.md](docs/run-configuration.md) for authentication setup and all CLI options.
 
-#### CLI Options
+#### CLI Commands
 
 ```bash
-uvx k-eval --help
-                                                                                                                                    
- Usage: python -m cli.main [OPTIONS] CONFIG_PATH                                                                                    
-                                                                                                                                    
- Run a k-eval evaluation from a YAML config file.                                                                                   
-                                                                                                                                    
-╭─ Arguments ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ *    config_path      PATH  Path to evaluation config YAML [required]                                                            │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --output-dir  -o      PATH  Directory for output files [default: results]                                                        │
-│ --log-format          TEXT  Log format: 'console' or 'json' [default: console]                                                   │
-│ --quiet       -q            Suppress debug and info logs; show only the progress bar plus warnings/errors.                       │
-│ --help                      Show this message and exit.                                                                          │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+$ uvx --python 3.13 "k-eval[all]" --help
+                                                                                                                                       
+ Usage: k-eval [OPTIONS] COMMAND [ARGS]...                                                                                                                 
+                                                                                                                                                           
+╭─ Options ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                                                                                             │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ run   Run a k-eval evaluation from a YAML config file.                                                                                                  │
+│ view  Open a k-eval results file in the interactive browser viewer.                                                                                     │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ### Understanding the Output
@@ -76,6 +72,20 @@ The three metrics are scored 1-5 by the judge model:
 | `helpfulness_and_clarity` | Is it well-structured and easy to act on? |
 
 See [evaluation-methodology](docs/evaluation-methodology.md) for more details.
+
+#### Interactive Results Viewer
+
+`k-eval` comes bundled with a web-based interactive results
+viewer. The viewer can be invoked via the `k-eval` command:
+
+```bash
+uvx k-eval view /path/to/results.detailed.jsonl
+```
+
+> [!Note]
+>
+> After running an evaluation, the `k-eval view ...`
+> command will be printed out for easy copy/paste.
 
 ### Configuration
 
