@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/jsell-rh/k-eval/compare/v1.1.0...v1.1.1) (2026-02-27)
+
+
+### Bug Fixes
+
+* release viewer copy button polish ([#27](https://github.com/jsell-rh/k-eval/issues/27)) ([1e6c4ac](https://github.com/jsell-rh/k-eval/commit/1e6c4ac9a0f4e2e774f344a5d71bde81b150d81d))
+
 ## [1.1.0](https://github.com/jsell-rh/k-eval/compare/v1.0.0...v1.1.0) (2026-02-27)
 
 

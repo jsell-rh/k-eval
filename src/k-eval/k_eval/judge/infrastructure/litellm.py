@@ -163,12 +163,16 @@ class LiteLLMJudge:
             )
         except openai.APIError as exc:
             # openai.APIError is the common base class for all litellm API errors.
+            # InternalServerError is included because LiteLLM raises it for transient
+            # upstream failures (e.g. a 502 from the Google OAuth2 token endpoint during
+            # credential refresh) that are unrelated to the model call itself.
             retriable = isinstance(
                 exc,
                 (
                     openai.RateLimitError,
                     openai.APIConnectionError,
                     openai.APITimeoutError,
+                    openai.InternalServerError,
                 ),
             )
             reason = str(exc)
