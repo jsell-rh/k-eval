@@ -1,25 +1,42 @@
 """ClaudeAgentSDKAgent — agent implementation using the Claude Agent SDK."""
 
+import time
+from dataclasses import dataclass
 from typing import Any
 
 from claude_agent_sdk import query
 from claude_agent_sdk._errors import ClaudeSDKError
 from claude_agent_sdk.types import (
+    AssistantMessage,
     ClaudeAgentOptions,
     McpHttpServerConfig,
     McpSdkServerConfig,
     McpSSEServerConfig,
     McpStdioServerConfig,
     ResultMessage,
+    TextBlock,
+    ToolResultBlock,
+    ToolUseBlock,
+    UserMessage,
 )
 
 from k_eval.agent.domain.observer import AgentObserver
 from k_eval.agent.domain.result import AgentResult
+from k_eval.agent.domain.turn import AgentTurn, ToolCall
 from k_eval.agent.domain.usage import UsageMetrics
 from k_eval.agent.infrastructure.errors import AgentInvocationError
 from k_eval.config.domain.agent import AgentConfig
 from k_eval.config.domain.condition_mcp_server import ConditionMcpServer
 from k_eval.config.domain.mcp_server import HttpMcpServer, SseMcpServer, StdioMcpServer
+
+
+@dataclass(frozen=True)
+class _PendingToolCall:
+    """Holds a pending ToolCall and the wall-clock start time for duration tracking."""
+
+    tool_call: ToolCall
+    start_time: float
+
 
 type McpServerConfigMap = dict[
     str,
@@ -79,7 +96,7 @@ class ClaudeAgentSDKAgent:
                 setting_sources=[],
             )
 
-            result_message = await self._collect_result(
+            result_message, turns = await self._collect_result(
                 prompt=question, options=options
             )
         except AgentInvocationError as exc:
@@ -107,28 +124,151 @@ class ClaudeAgentSDKAgent:
             duration_api_ms=result_message.duration_api_ms,
             num_turns=result_message.num_turns,
             usage=self._map_usage(raw=result_message.usage),
+            turns=turns,
         )
 
     async def _collect_result(
         self, prompt: str, options: ClaudeAgentOptions
-    ) -> ResultMessage:
-        """Run the SDK query and extract the single ResultMessage.
+    ) -> tuple[ResultMessage, list[AgentTurn]]:
+        """Run the SDK query, extract the single ResultMessage, and collect turns.
+
+        Iterates the async message stream from the SDK. For each AssistantMessage,
+        text blocks become an assistant turn and tool-use blocks are held as pending
+        until a matching ToolResultBlock arrives in a subsequent UserMessage.
+        Any pending tool calls that are never resolved are emitted at the end as
+        tool_error=True, tool_result=None.
 
         Raises:
             AgentInvocationError: on SDK errors or missing/error ResultMessage.
         """
         result_message: ResultMessage | None = None
+        turns: list[AgentTurn] = []
+        turn_idx: int = 0
+        # Keyed by tool_use_id; holds _PendingToolCall (ToolCall + start_time)
+        # until a ToolResultBlock resolves it.
+        pending_tool_calls: dict[str, _PendingToolCall] = {}
 
         try:
             async for message in query(prompt=prompt, options=options):
                 if isinstance(message, ResultMessage):
                     result_message = message
+                elif isinstance(message, AssistantMessage):
+                    text_parts: list[str] = []
+                    tool_uses: list[ToolUseBlock] = []
+
+                    for block in message.content:
+                        if isinstance(block, TextBlock):
+                            text_parts.append(block.text)
+                        elif isinstance(block, ToolUseBlock):
+                            tool_uses.append(block)
+
+                    # Emit assistant turn if there is text.
+                    if text_parts:
+                        combined_text = "".join(text_parts)
+                        turns.append(
+                            AgentTurn(
+                                turn_idx=turn_idx,
+                                role="assistant",
+                                text=combined_text,
+                                tool_calls=[],
+                            )
+                        )
+                        turn_idx += 1
+
+                    # Queue pending tool calls, recording start time for duration.
+                    for tool_use in tool_uses:
+                        pending_tool_calls[tool_use.id] = _PendingToolCall(
+                            tool_call=ToolCall(
+                                tool_use_id=tool_use.id,
+                                tool_name=tool_use.name,
+                                tool_input=tool_use.input,
+                                tool_result=None,
+                                tool_error=False,
+                            ),
+                            start_time=time.monotonic(),
+                        )
+
+                elif isinstance(message, UserMessage):
+                    # UserMessage.content may be a str (plain text) or a list of blocks.
+                    content = message.content
+                    if not isinstance(content, list):
+                        continue
+
+                    resolved: list[ToolCall] = []
+                    for block in content:
+                        if not isinstance(block, ToolResultBlock):
+                            continue
+                        pending = pending_tool_calls.pop(block.tool_use_id, None)
+                        if pending is None:
+                            # Result for a tool we didn't track, skip.
+                            continue
+
+                        duration_ms = (time.monotonic() - pending.start_time) * 1000.0
+
+                        # content may be str, list-of-dicts, or None.
+                        raw_result = block.content
+                        if isinstance(raw_result, str):
+                            tool_result: str | None = raw_result
+                        elif isinstance(raw_result, list):
+                            # Extract text from content block dicts.
+                            tool_result = " ".join(
+                                str(item.get("text", ""))
+                                for item in raw_result
+                                if isinstance(item, dict)
+                            )
+                        else:
+                            tool_result = None
+
+                        resolved.append(
+                            ToolCall(
+                                tool_use_id=pending.tool_call.tool_use_id,
+                                tool_name=pending.tool_call.tool_name,
+                                tool_input=pending.tool_call.tool_input,
+                                tool_result=tool_result,
+                                tool_error=bool(block.is_error),
+                                duration_ms=duration_ms,
+                            )
+                        )
+
+                    if resolved:
+                        turns.append(
+                            AgentTurn(
+                                turn_idx=turn_idx,
+                                role="tool_use",
+                                text=None,
+                                tool_calls=resolved,
+                            )
+                        )
+                        turn_idx += 1
+
         except ClaudeSDKError as exc:
             raise AgentInvocationError(reason=str(exc), retriable=True) from exc
         except Exception as exc:
             # The SDK internally raises a bare Exception (not ClaudeSDKError) when
             # its message reader encounters a fatal error (e.g. subprocess exit).
             raise AgentInvocationError(reason=str(exc), retriable=True) from exc
+
+        # Emit any pending tool calls that were never resolved (duration_ms=None).
+        if pending_tool_calls:
+            unresolved = [
+                ToolCall(
+                    tool_use_id=p.tool_call.tool_use_id,
+                    tool_name=p.tool_call.tool_name,
+                    tool_input=p.tool_call.tool_input,
+                    tool_result=None,
+                    tool_error=True,
+                    duration_ms=None,
+                )
+                for p in pending_tool_calls.values()
+            ]
+            turns.append(
+                AgentTurn(
+                    turn_idx=turn_idx,
+                    role="tool_use",
+                    text=None,
+                    tool_calls=unresolved,
+                )
+            )
 
         if result_message is None:
             raise AgentInvocationError(reason="no ResultMessage in response stream")
@@ -141,7 +281,7 @@ class ClaudeAgentSDKAgent:
         if result_message.result is None:
             raise AgentInvocationError(reason="ResultMessage has no result text")
 
-        return result_message
+        return result_message, turns
 
     def _build_mcp_servers(self) -> McpServerConfigMap:
         """Convert ConditionMcpServer list to the SDK's TypedDict format."""

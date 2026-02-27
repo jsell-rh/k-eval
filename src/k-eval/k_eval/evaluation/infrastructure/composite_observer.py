@@ -126,3 +126,33 @@ class CompositeEvaluationObserver:
                 reason=reason,
                 backoff_seconds=backoff_seconds,
             )
+
+    def mcp_tool_use_absent(
+        self,
+        run_id: str,
+        condition: str,
+        sample_idx: int,
+        repetition_index: int,
+    ) -> None:
+        for obs in self._observers:
+            obs.mcp_tool_use_absent(
+                run_id=run_id,
+                condition=condition,
+                sample_idx=sample_idx,
+                repetition_index=repetition_index,
+            )
+
+    def mcp_tool_success_absent(
+        self,
+        run_id: str,
+        condition: str,
+        sample_idx: int,
+        repetition_index: int,
+    ) -> None:
+        for obs in self._observers:
+            obs.mcp_tool_success_absent(
+                run_id=run_id,
+                condition=condition,
+                sample_idx=sample_idx,
+                repetition_index=repetition_index,
+            )

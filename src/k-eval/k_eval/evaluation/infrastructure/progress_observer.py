@@ -368,3 +368,21 @@ class ProgressEvaluationObserver:
         if not self._disabled:
             self._update_task(key=condition)
             self._update_task(key="Overall")
+
+    def mcp_tool_use_absent(
+        self,
+        run_id: str,
+        condition: str,
+        sample_idx: int,
+        repetition_index: int,
+    ) -> None:
+        pass
+
+    def mcp_tool_success_absent(
+        self,
+        run_id: str,
+        condition: str,
+        sample_idx: int,
+        repetition_index: int,
+    ) -> None:
+        pass

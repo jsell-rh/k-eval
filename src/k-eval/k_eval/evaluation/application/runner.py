@@ -5,6 +5,10 @@ import time
 import uuid
 
 from k_eval.agent.domain.factory import AgentFactory
+from k_eval.agent.infrastructure.errors import (
+    McpToolSuccessAbsentError,
+    McpToolUseAbsentError,
+)
 from k_eval.config.domain.condition import ConditionConfig
 from k_eval.config.domain.config import EvalConfig
 from k_eval.core.errors import KEvalError
@@ -161,6 +165,48 @@ class EvaluationRunner:
                         mcp_servers=condition.mcp_servers,
                     )
                     agent_result = await agent.ask(question=sample.question)
+
+                    all_tool_calls = [
+                        tc
+                        for turn in agent_result.turns
+                        if turn.role == "tool_use"
+                        for tc in turn.tool_calls
+                    ]
+                    if condition.require_mcp_tool_use and not all_tool_calls:
+                        self._observer.mcp_tool_use_absent(
+                            run_id=run_id,
+                            condition=condition_name,
+                            sample_idx=int(sample.sample_idx)
+                            if sample.sample_idx.isdigit()
+                            else 0,
+                            repetition_index=repetition_index,
+                        )
+                        raise McpToolUseAbsentError(
+                            condition=condition_name,
+                            sample_idx=int(sample.sample_idx)
+                            if sample.sample_idx.isdigit()
+                            else 0,
+                        )
+
+                    if (
+                        condition.require_mcp_tool_success
+                        and all_tool_calls
+                        and all(tc.tool_error for tc in all_tool_calls)
+                    ):
+                        self._observer.mcp_tool_success_absent(
+                            run_id=run_id,
+                            condition=condition_name,
+                            sample_idx=int(sample.sample_idx)
+                            if sample.sample_idx.isdigit()
+                            else 0,
+                            repetition_index=repetition_index,
+                        )
+                        raise McpToolSuccessAbsentError(
+                            condition=condition_name,
+                            sample_idx=int(sample.sample_idx)
+                            if sample.sample_idx.isdigit()
+                            else 0,
+                        )
 
                     judge = self._judge_factory.create(
                         condition=condition_name,

@@ -72,12 +72,27 @@ conditions:
     mcp_servers: [graph] # reference server names defined in mcp_servers above
     system_prompt: |
       You have access to a property graph tool. Use it to answer the question.
+    # Optional. When true, k-eval aborts the triple (and retries up to
+    # max_attempts) if the agent makes no MCP tool calls. This catches
+    # silent failures where the MCP server was unreachable and the agent
+    # fell back to answering from its own knowledge.
+    # Default: false. Omit this field for conditions with no MCP servers.
+    require_mcp_tool_use: true
+    # Optional. When true, k-eval aborts the triple (and retries) if every
+    # MCP tool call in the session resulted in an error. Only fires when
+    # there are tool calls present (zero tool calls is handled by
+    # require_mcp_tool_use). Use alongside require_mcp_tool_use to ensure
+    # the agent was able to successfully invoke the MCP tools..
+    # Default: false.
+    require_mcp_tool_success: true
 
   with_graph_and_search:
     mcp_servers: [graph, rag]
     system_prompt: |
       You have access to a property graph tool and a rag tool.
       Use them to answer the question.
+    require_mcp_tool_use: true
+    require_mcp_tool_success: true
 
 execution:
   # How many times each (question, condition) pair is evaluated. The mean and

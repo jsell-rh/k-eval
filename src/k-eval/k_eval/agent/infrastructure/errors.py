@@ -17,3 +17,25 @@ class AgentTypeNotSupportedError(KEvalError):
         super().__init__(
             f"Failed to create agent factory: unsupported agent type '{agent_type}'"
         )
+
+
+class McpToolUseAbsentError(KEvalError):
+    """Raised when a condition requires MCP tool use but the agent made no tool calls."""
+
+    def __init__(self, condition: str, sample_idx: int) -> None:
+        super().__init__(
+            f"Failed to verify MCP tool use: condition '{condition}' requires at least"
+            f" one MCP tool call but agent called none",
+            retriable=True,
+        )
+
+
+class McpToolSuccessAbsentError(KEvalError):
+    """Raised when all MCP tool calls in a session resulted in errors."""
+
+    def __init__(self, condition: str, sample_idx: int) -> None:
+        super().__init__(
+            f"Failed to verify MCP tool success: condition '{condition}' requires at"
+            f" least one successful MCP tool call but all calls errored",
+            retriable=True,
+        )
