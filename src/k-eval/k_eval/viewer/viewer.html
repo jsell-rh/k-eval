@@ -1913,15 +1913,19 @@ select:focus:not(:focus-visible),
                                 :title="tc.tool_error ? 'Tool call errored' : 'Tool call succeeded'">
                           </span>
                           <span class="trace-tool-name">{{ tc.tool_name }}</span>
-                          <span class="trace-tool-dur" v-if="tc.duration_ms != null">{{ fmtMs(tc.duration_ms) }}</span>
-                          <span class="trace-tool-dur" v-else style="font-style:italic">—</span>
+                           <span class="trace-tool-dur tt tt-down" v-if="tc.duration_ms != null">{{ fmtMs(tc.duration_ms) }}<span class="tt-body">Time from when the agent SDK dispatched the tool call to when the result was received. This includes network latency, MCP server processing, and SDK overhead — it is not a precise measurement of MCP server execution time alone.</span></span>
+                           <span class="trace-tool-dur" v-else style="font-style:italic">—</span>
                           <span class="trace-tool-err-badge" :class="tc.tool_error ? 'err' : 'ok'">{{ tc.tool_error ? 'Error' : 'OK' }}</span>
                           <span class="trace-tool-chevron"
                                 :class="{open: isTraceToolOpen(selRep+'|'+chunk.turn_idx+'|'+tci)}">›</span>
                         </div>
-                        <!-- Tool call body — expandable: shows tool result -->
+                        <!-- Tool call body — expandable: shows input then result -->
                         <div class="trace-tool-body"
                              v-show="isTraceToolOpen(selRep+'|'+chunk.turn_idx+'|'+tci)">
+                          <div v-if="tc.tool_input != null">
+                            <div class="trace-tool-section-lbl">Input</div>
+                            <pre class="trace-tool-result">{{ typeof tc.tool_input === 'object' ? JSON.stringify(tc.tool_input, null, 2) : tc.tool_input }}</pre>
+                          </div>
                           <div>
                             <div class="trace-tool-section-lbl">Result</div>
                             <div class="trace-tool-result" :class="{'err-result': tc.tool_error}">{{ tc.extracted_value || (tc.tool_error ? '(error — no result)' : '(empty result)') }}</div>

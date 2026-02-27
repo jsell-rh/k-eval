@@ -190,6 +190,7 @@ def _build_run_answer_attribution(
                         "extraction_method": "tool_call",
                         "is_terminal": False,
                         "tool_name": tc.tool_name,
+                        "tool_input": tc.tool_input,
                         "tool_error": tc.tool_error,
                         "duration_ms": tc.duration_ms,
                     }

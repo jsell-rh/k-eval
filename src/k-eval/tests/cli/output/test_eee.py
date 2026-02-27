@@ -1069,3 +1069,112 @@ class TestInstanceJsonlLinesAnswerAttributionDuration:
         assert len(agent_entries) >= 1
         for entry in agent_entries:
             assert "duration_ms" not in entry
+
+
+class TestInstanceJsonlLinesAnswerAttributionToolInput:
+    """Tool-call answer_attribution entries include tool_input arguments."""
+
+    def test_tool_entry_has_tool_input_field(self) -> None:
+        """Each mcp_tool attribution entry has a tool_input key."""
+        summary, aggregated, agent_cfg = _make_agentic_scenario()
+
+        lines = build_instance_jsonl_lines(
+            summary=summary,
+            aggregated=aggregated,
+            agent_config=agent_cfg,
+        )
+
+        tool_entries = [
+            e for e in lines[0]["answer_attribution"] if e.get("source") == "mcp_tool"
+        ]
+        assert len(tool_entries) >= 1
+        for entry in tool_entries:
+            assert "tool_input" in entry
+
+    def test_tool_entry_tool_input_matches_tool_call_input(self) -> None:
+        """tool_input value matches the ToolCall.tool_input dict."""
+        s0 = _make_sample(idx="0")
+        run_id = "aaaabbbb-cccc-dddd-eeee-ffffaaaabbbb"
+        tc = ToolCall(
+            tool_use_id="tu-input",
+            tool_name="lookup_tool",
+            tool_input={"key": "value", "count": 3},
+            tool_result="lookup result",
+            tool_error=False,
+            duration_ms=100.0,
+        )
+        turns = [
+            _make_assistant_turn(turn_idx=0, text="Thinking."),
+            _make_tool_use_turn(turn_idx=1, tool_call=tc),
+            _make_assistant_turn(turn_idx=2, text="Done."),
+        ]
+        run = _make_run_with_turns(
+            sample=s0, condition="c", repetition_index=0, turns=turns, run_id=run_id
+        )
+        summary = _make_summary(runs=[run], run_id=run_id)
+        aggregated = aggregate(runs=[run])
+        agent_cfg = _make_agent_config()
+
+        lines = build_instance_jsonl_lines(
+            summary=summary,
+            aggregated=aggregated,
+            agent_config=agent_cfg,
+        )
+
+        tool_entry = next(
+            e for e in lines[0]["answer_attribution"] if e.get("source") == "mcp_tool"
+        )
+        assert tool_entry["tool_input"] == {"key": "value", "count": 3}
+
+    def test_tool_entry_tool_input_is_dict(self) -> None:
+        """tool_input is a dict (not a string), ready for JSON serialization."""
+        summary, aggregated, agent_cfg = _make_agentic_scenario()
+
+        lines = build_instance_jsonl_lines(
+            summary=summary,
+            aggregated=aggregated,
+            agent_config=agent_cfg,
+        )
+
+        tool_entry = next(
+            e for e in lines[0]["answer_attribution"] if e.get("source") == "mcp_tool"
+        )
+        assert isinstance(tool_entry["tool_input"], dict)
+
+    def test_agent_reasoning_entry_has_no_tool_input_field(self) -> None:
+        """agent_reasoning entries do NOT have a tool_input field."""
+        summary, aggregated, agent_cfg = _make_agentic_scenario()
+
+        lines = build_instance_jsonl_lines(
+            summary=summary,
+            aggregated=aggregated,
+            agent_config=agent_cfg,
+        )
+
+        agent_entries = [
+            e
+            for e in lines[0]["answer_attribution"]
+            if e.get("source") == "agent_reasoning"
+        ]
+        assert len(agent_entries) >= 1
+        for entry in agent_entries:
+            assert "tool_input" not in entry
+
+    def test_tool_input_is_json_serializable(self) -> None:
+        """tool_input dict can be round-tripped through JSON."""
+        summary, aggregated, agent_cfg = _make_agentic_scenario()
+
+        lines = build_instance_jsonl_lines(
+            summary=summary,
+            aggregated=aggregated,
+            agent_config=agent_cfg,
+        )
+
+        import json
+
+        tool_entries = [
+            e for e in lines[0]["answer_attribution"] if e.get("source") == "mcp_tool"
+        ]
+        for entry in tool_entries:
+            # Should not raise
+            json.dumps(entry["tool_input"])
