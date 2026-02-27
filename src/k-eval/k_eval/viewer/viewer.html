@@ -1388,6 +1388,35 @@ select:focus:not(:focus-visible),
   line-height: 1.5;
 }
 
+/* ── Copy-button overlay containers ─────────────────────────────────────── */
+/* Question block — button fades in on hover, overlaid top-right */
+.qa-q-wrap {
+  position: relative;
+}
+.qa-q-wrap .copy-btn-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 2;
+}
+.qa-q-wrap:hover .copy-btn-overlay { opacity: 1; }
+
+/* Reference answer block — button fades in on hover, overlaid top-right */
+.qa-ref-wrap {
+  position: relative;
+}
+.qa-ref-wrap .copy-btn-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 2;
+}
+.qa-ref-wrap:hover .copy-btn-overlay { opacity: 1; }
+
 /* ── Judge section condition indicator ─────────────────────────────────── */
 .judge-cond-indicator {
   display: flex;
@@ -1725,30 +1754,30 @@ select:focus:not(:focus-visible),
 
       <!-- A: Question + Reference -->
       <div class="sec-qa">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div class="qa-lbl" style="margin-bottom:0">Sample #{{ selIdx }} &nbsp;·&nbsp; Question</div>
-          <button class="copy-btn" :class="{copied: copiedKey==='question'}"
+        <div class="qa-lbl" style="margin-bottom:8px">Sample #{{ selIdx }} &nbsp;·&nbsp; Question</div>
+        <div class="qa-q-wrap">
+          <div class="qa-q">{{ selQ }}</div>
+          <button class="copy-btn copy-btn-overlay" :class="{copied: copiedKey==='question'}"
                   @click.stop="copyToClipboard(selQ, 'question')"
                   :aria-label="copiedKey==='question' ? 'Copied' : 'Copy question to clipboard'">
             {{ copiedKey==='question' ? '✓ Copied' : '⎘ Copy' }}
           </button>
         </div>
-        <div class="qa-q">{{ selQ }}</div>
         <div class="qa-ref">
           <div style="display:flex;align-items:center;gap:10px">
             <button class="ref-toggle" @click="showRef=!showRef" :aria-expanded="showRef" aria-controls="ref-answer-block">
               {{ showRef ? '▴ Hide reference answer' : '▾ Show reference answer' }}
             </button>
             <button v-if="showRef" class="md-toggle" :class="{on: mdRef}" @click="mdRef=!mdRef" :title="mdRef ? 'Switch to plain text view' : 'Render as Markdown (formatted)'" :aria-pressed="mdRef" aria-label="Toggle markdown rendering for reference answer">{{ mdRef ? 'Rendered' : 'Plain' }}</button>
-            <button v-if="showRef && selRef" class="copy-btn" :class="{copied: copiedKey==='refanswer'}"
+          </div>
+          <div id="ref-answer-block" class="qa-ref-wrap">
+            <div class="qa-ref-text md-body" v-if="showRef && mdRef" v-html="md(selRef)"></div>
+            <div class="qa-ref-text" v-if="showRef && !mdRef">{{ selRef }}</div>
+            <button v-if="showRef && selRef" class="copy-btn copy-btn-overlay" :class="{copied: copiedKey==='refanswer'}"
                     @click.stop="copyToClipboard(selRef, 'refanswer')"
                     :aria-label="copiedKey==='refanswer' ? 'Copied' : 'Copy reference answer to clipboard'">
               {{ copiedKey==='refanswer' ? '✓ Copied' : '⎘ Copy' }}
             </button>
-          </div>
-          <div id="ref-answer-block">
-            <div class="qa-ref-text md-body" v-if="showRef && mdRef" v-html="md(selRef)"></div>
-            <div class="qa-ref-text" v-if="showRef && !mdRef">{{ selRef }}</div>
           </div>
         </div>
       </div>
