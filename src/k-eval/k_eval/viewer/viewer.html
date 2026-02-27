@@ -1231,7 +1231,6 @@ select:focus:not(:focus-visible),
   border: 1px solid rgba(0,102,204,.3);
   border-radius: 3px;
   padding: 1px 5px;
-  margin-left: auto;
 }
 .trace-assistant-text {
   font-size: 13px;
@@ -1251,7 +1250,7 @@ select:focus:not(:focus-visible),
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
+  /* No overflow:hidden — would clip absolutely-positioned tooltip bodies */
 }
 .trace-tool-hdr {
   display: flex;
@@ -1262,6 +1261,7 @@ select:focus:not(:focus-visible),
   cursor: pointer;
   user-select: none;
   transition: background .1s;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 .trace-tool-hdr:hover { background: var(--s3); }
 .trace-tool-status {
@@ -1425,7 +1425,9 @@ select:focus:not(:focus-visible),
   display: flex;
   flex-direction: column;
 }
-.resp-body-wrap .copy-btn-overlay {
+/* Use > child combinator so only the direct overlay button is targeted,
+   not copy buttons inside nested .trace-pre-wrap descendants */
+.resp-body-wrap > .copy-btn-overlay {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -1433,7 +1435,7 @@ select:focus:not(:focus-visible),
   transition: opacity .15s;
   z-index: 2;
 }
-.resp-body-wrap:hover .copy-btn-overlay { opacity: 1; }
+.resp-body-wrap:hover > .copy-btn-overlay { opacity: 1; }
 
 /* Tool call input/output pre blocks — copy button overlaid top-right */
 .trace-pre-wrap {
@@ -2036,7 +2038,7 @@ select:focus:not(:focus-visible),
                                 :title="tc.tool_error ? 'Tool call errored' : 'Tool call succeeded'">
                           </span>
                           <span class="trace-tool-name">{{ tc.tool_name }}</span>
-                           <span class="trace-tool-dur tt tt-down" v-if="tc.duration_ms != null">{{ fmtMs(tc.duration_ms) }}<span class="tt-body">Time from when the agent SDK dispatched the tool call to when the result was received. This includes network latency, MCP server processing, and SDK overhead — it is not a precise measurement of MCP server execution time alone.</span></span>
+                           <span class="trace-tool-dur tt tt-down tt-right" v-if="tc.duration_ms != null">{{ fmtMs(tc.duration_ms) }}<span class="tt-body">Time from when the agent SDK dispatched the tool call to when the result was received. This includes network latency, MCP server processing, and SDK overhead — it is not a precise measurement of MCP server execution time alone.</span></span>
                            <span class="trace-tool-dur" v-else style="font-style:italic">—</span>
                           <span class="trace-tool-err-badge" :class="tc.tool_error ? 'err' : 'ok'">{{ tc.tool_error ? 'Error' : 'OK' }}</span>
                           <span class="trace-tool-chevron"
