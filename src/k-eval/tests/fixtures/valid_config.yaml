@@ -34,10 +34,14 @@ conditions:
     mcp_servers: [graph]
     system_prompt: |
       You have access to a property graph tool. Use it to answer the question.
+    require_mcp_tool_use: true
+    require_mcp_tool_success: true
   with_graph_and_search:
     mcp_servers: [graph, search]
     system_prompt: |
       You have access to a property graph tool and a search tool. Use them to answer the question.
+    require_mcp_tool_use: true
+    require_mcp_tool_success: true
 
 execution:
   num_repetitions: 3

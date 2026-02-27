@@ -10,3 +10,5 @@ class ConditionConfig(BaseModel, frozen=True):
 
     mcp_servers: list[ConditionMcpServer]
     system_prompt: str = Field(min_length=1)
+    require_mcp_tool_use: bool = False
+    require_mcp_tool_success: bool = False

@@ -4,9 +4,11 @@ import time
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
+from k_eval.agent.domain.turn import AgentTurn
 from k_eval.cli.output.aggregator import AggregatedResult
 from k_eval.config.domain.agent import AgentConfig
 from k_eval.config.domain.judge import JudgeConfig
+from k_eval.evaluation.domain.run import EvaluationRun
 from k_eval.evaluation.domain.summary import RunSummary
 
 type JsonDict = dict[str, Any]
@@ -151,6 +153,80 @@ def _sum_tokens(
     return total
 
 
+def _has_tool_use_turns(turns: list[AgentTurn]) -> bool:
+    """Return True if any turn is a tool_use turn."""
+    return any(t.role == "tool_use" for t in turns)
+
+
+def _build_run_answer_attribution(
+    run: EvaluationRun,
+) -> list[JsonDict]:
+    """Build attribution entries for a single run.
+
+    Each tool_use turn produces one entry per ToolCall (source="mcp_tool").
+    Each assistant turn produces one entry (source="agent_reasoning").
+    The last assistant turn is marked is_terminal=True.
+    Each entry carries repetition_index so callers can identify the run.
+    """
+    turns = run.agent_result.turns
+    # Identify the list-index of the last assistant turn for is_terminal logic.
+    last_assistant_idx: int | None = None
+    for i, turn in enumerate(turns):
+        if turn.role == "assistant":
+            last_assistant_idx = i
+
+    entries: list[JsonDict] = []
+    for i, turn in enumerate(turns):
+        if turn.role == "tool_use":
+            for tc in turn.tool_calls:
+                entries.append(
+                    {
+                        "repetition_index": run.repetition_index,
+                        "turn_idx": turn.turn_idx,
+                        "source": "mcp_tool",
+                        "extracted_value": tc.tool_result
+                        if tc.tool_result is not None
+                        else "",
+                        "extraction_method": "tool_call",
+                        "is_terminal": False,
+                        "tool_name": tc.tool_name,
+                        "tool_input": tc.tool_input,
+                        "tool_error": tc.tool_error,
+                        "duration_ms": tc.duration_ms,
+                    }
+                )
+        elif turn.role == "assistant":
+            is_terminal = i == last_assistant_idx
+            entries.append(
+                {
+                    "repetition_index": run.repetition_index,
+                    "turn_idx": turn.turn_idx,
+                    "source": "agent_reasoning",
+                    "extracted_value": turn.text or "",
+                    "extraction_method": "text_generation",
+                    "is_terminal": is_terminal,
+                }
+            )
+    return entries
+
+
+def _build_reasoning_trace(run: EvaluationRun) -> str:
+    """Concatenate text from non-terminal assistant turns for reasoning_trace."""
+    turns = run.agent_result.turns
+    # Identify the last assistant turn index.
+    last_assistant_idx: int | None = None
+    for i, turn in enumerate(turns):
+        if turn.role == "assistant":
+            last_assistant_idx = i
+
+    parts: list[str] = []
+    for i, turn in enumerate(turns):
+        if turn.role == "assistant" and i != last_assistant_idx:
+            if turn.text:
+                parts.append(turn.text)
+    return " ".join(parts)
+
+
 def build_instance_jsonl_lines(
     summary: RunSummary,
     aggregated: list[AggregatedResult],
@@ -171,10 +247,12 @@ def build_instance_jsonl_lines(
             r.judge_result.helpfulness_and_clarity_reasoning for r in agg.runs
         ]
 
+        # Fix 1 — run_details: add reasoning_trace per entry.
         run_details: list[JsonDict] = [
             {
                 "repetition_index": run.repetition_index,
                 "agent_response": run.agent_result.response,
+                "reasoning_trace": _build_reasoning_trace(run=run),
                 "cost_usd": run.agent_result.cost_usd,
                 "duration_ms": run.agent_result.duration_ms,
                 "num_turns": run.agent_result.num_turns,
@@ -188,6 +266,31 @@ def build_instance_jsonl_lines(
         input_tokens = _sum_tokens(aggregated_result=agg, token_attr="input_tokens")
         output_tokens = _sum_tokens(aggregated_result=agg, token_attr="output_tokens")
 
+        # interaction_type: "agentic" if any run has tool_use turns, else "single_turn"
+        has_tool_use = any(
+            _has_tool_use_turns(turns=run.agent_result.turns) for run in agg.runs
+        )
+        interaction_type = "agentic" if has_tool_use else "single_turn"
+
+        # Fix 2 — answer_attribution: flat list with repetition_index on each entry.
+        answer_attribution: list[JsonDict] = []
+        for run in agg.runs:
+            for entry in _build_run_answer_attribution(run=run):
+                answer_attribution.append(entry)
+
+        # Fix 3 — output.raw: single string (rep-0 response); reasoning_trace from rep-0.
+        primary_response = agg.runs[0].agent_result.response if agg.runs else ""
+        reasoning_trace = _build_reasoning_trace(run=agg.runs[0]) if agg.runs else ""
+
+        # Fix 4 — evaluation.details: add reasoning_traces list (one per run).
+        reasoning_traces: list[JsonDict] = [
+            {
+                "repetition_index": run.repetition_index,
+                "reasoning_trace": _build_reasoning_trace(run=run),
+            }
+            for run in agg.runs
+        ]
+
         lines.append(
             {
                 "schema_version": "instance_level_eval_0.2.1",
@@ -195,14 +298,16 @@ def build_instance_jsonl_lines(
                 "model_id": agent_config.model,
                 "evaluation_name": f"{summary.config_name}/{agg.condition}",
                 "sample_idx": agg.sample.sample_idx,
-                "interaction_type": "agentic",
+                "interaction_type": interaction_type,
                 "input": {
                     "raw": agg.sample.question,
                     "reference": agg.sample.answer,
                 },
                 "output": {
-                    "raw_runs": [run.agent_result.response for run in agg.runs],
+                    "raw": primary_response,
+                    "reasoning_trace": reasoning_trace,
                 },
+                "answer_attribution": answer_attribution,
                 "evaluation": {
                     "score": None,
                     "details": {
@@ -218,6 +323,7 @@ def build_instance_jsonl_lines(
                         "helpfulness_and_clarity_stddev": agg.helpfulness_and_clarity_stddev,
                         "helpfulness_and_clarity_reasonings": hc_reasonings,
                         "unverified_claims": agg.unverified_claims,
+                        "reasoning_traces": reasoning_traces,
                     },
                 },
                 "token_usage": {

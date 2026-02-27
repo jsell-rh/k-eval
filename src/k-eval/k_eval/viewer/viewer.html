@@ -957,6 +957,39 @@ select:focus:not(:focus-visible),
 .md-toggle:hover { color: var(--text-2); border-color: var(--border-l); background: var(--s3); }
 .md-toggle.on    { color: var(--accent-h); border-color: var(--accent); background: rgba(0,102,204,.1); }
 
+/* ── Copy-to-clipboard button ───────────────────────────────────────────── */
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 2px 6px;
+  font-size: .68rem;
+  font-family: var(--mono);
+  color: var(--text-m);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color .12s, border-color .12s, background .12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.copy-btn:hover { color: var(--text-2); border-color: var(--border-l); background: var(--s3); }
+.copy-btn.copied { color: var(--green); border-color: rgba(99,153,61,.5); background: rgba(99,153,61,.08); }
+
+/* Wrap that positions copy button at top-right of a content block */
+.copy-wrap {
+  position: relative;
+}
+.copy-wrap > .copy-btn-abs {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+}
+
 /* ── Markdown prose (scoped under .md-body) ────────────────────────────── */
 .md-body {
   font-size: 14px;
@@ -1147,6 +1180,169 @@ select:focus:not(:focus-visible),
   gap: 3px;
 }
 
+/* ── Interaction trace ──────────────────────────────────────────────────── */
+.trace-body {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.7;
+  max-height: 480px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.trace-body.expanded { max-height: none; }
+
+/* Assistant reasoning turn */
+.trace-assistant {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 8px 12px;
+}
+.trace-turn-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+.trace-turn-role {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text-m);
+}
+.trace-turn-idx {
+  font-family: var(--mono);
+  font-size: .65rem;
+  color: var(--border-l);
+}
+.trace-terminal-badge {
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--accent-h);
+  background: rgba(0,102,204,.12);
+  border: 1px solid rgba(0,102,204,.3);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: auto;
+}
+.trace-assistant-text {
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  line-height: 1.65;
+  font-family: var(--mono);
+}
+
+/* Tool use turn */
+.trace-tool-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.trace-tool-call {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.trace-tool-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--s2);
+  cursor: pointer;
+  user-select: none;
+  transition: background .1s;
+}
+.trace-tool-hdr:hover { background: var(--s3); }
+.trace-tool-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.trace-tool-name {
+  font-family: var(--mono);
+  font-size: .8rem;
+  color: var(--text);
+  font-weight: 600;
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.trace-tool-dur {
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--text-m);
+  flex-shrink: 0;
+}
+.trace-tool-err-badge {
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.trace-tool-err-badge.ok  { color: var(--green); background: rgba(99,153,61,.12); border: 1px solid rgba(99,153,61,.3); }
+.trace-tool-err-badge.err { color: var(--red);   background: rgba(240,86,29,.12); border: 1px solid rgba(240,86,29,.3); }
+.trace-tool-chevron {
+  font-size: .75rem;
+  color: var(--text-m);
+  flex-shrink: 0;
+  transition: transform .15s;
+}
+.trace-tool-chevron.open { transform: rotate(90deg); }
+
+/* Tool call body — input + result */
+.trace-tool-body {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.trace-tool-section-lbl {
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--text-m);
+  margin-bottom: 2px;
+}
+.trace-tool-result {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--pre-bg);
+  border: 1px solid var(--pre-bdr);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+.trace-tool-result.err-result { border-color: rgba(240,86,29,.4); color: var(--red); }
+.trace-empty {
+  font-size: .82rem;
+  color: var(--text-m);
+  padding: 16px 0;
+  text-align: center;
+  font-style: italic;
+}
+
 /* ── Sample list sort hint ──────────────────────────────────────────────── */
 .lst-sort-hint {
   padding: 4px 12px 6px;
@@ -1191,6 +1387,67 @@ select:focus:not(:focus-visible),
   margin-bottom: 12px;
   line-height: 1.5;
 }
+
+/* ── Copy-button overlay containers ─────────────────────────────────────── */
+/* Question block — button fades in on hover, overlaid top-right */
+.qa-q-wrap {
+  position: relative;
+}
+.qa-q-wrap .copy-btn-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 2;
+}
+.qa-q-wrap:hover .copy-btn-overlay { opacity: 1; }
+
+/* Reference answer block — button fades in on hover, overlaid top-right */
+.qa-ref-wrap {
+  position: relative;
+}
+.qa-ref-wrap .copy-btn-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 2;
+}
+.qa-ref-wrap:hover .copy-btn-overlay { opacity: 1; }
+
+/* Agent response body — copy button overlaid top-right, fades in on hover */
+.resp-body-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.resp-body-wrap .copy-btn-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 2;
+}
+.resp-body-wrap:hover .copy-btn-overlay { opacity: 1; }
+
+/* Tool call input/output pre blocks — copy button overlaid top-right */
+.trace-pre-wrap {
+  position: relative;
+}
+.trace-pre-wrap .copy-btn-overlay {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  transition: opacity .15s;
+  z-index: 2;
+}
+.trace-pre-wrap:hover .copy-btn-overlay { opacity: 1; }
 
 /* ── Judge section condition indicator ─────────────────────────────────── */
 .judge-cond-indicator {
@@ -1529,8 +1786,15 @@ select:focus:not(:focus-visible),
 
       <!-- A: Question + Reference -->
       <div class="sec-qa">
-        <div class="qa-lbl">Sample #{{ selIdx }} &nbsp;·&nbsp; Question</div>
-        <div class="qa-q">{{ selQ }}</div>
+        <div class="qa-lbl" style="margin-bottom:8px">Sample #{{ selIdx }} &nbsp;·&nbsp; Question</div>
+        <div class="qa-q-wrap">
+          <div class="qa-q">{{ selQ }}</div>
+          <button class="copy-btn copy-btn-overlay" :class="{copied: copiedKey==='question'}"
+                  @click.stop="copyToClipboard(selQ, 'question')"
+                  :aria-label="copiedKey==='question' ? 'Copied' : 'Copy question to clipboard'">
+            {{ copiedKey==='question' ? '✓ Copied' : '⎘ Copy' }}
+          </button>
+        </div>
         <div class="qa-ref">
           <div style="display:flex;align-items:center;gap:10px">
             <button class="ref-toggle" @click="showRef=!showRef" :aria-expanded="showRef" aria-controls="ref-answer-block">
@@ -1538,9 +1802,14 @@ select:focus:not(:focus-visible),
             </button>
             <button v-if="showRef" class="md-toggle" :class="{on: mdRef}" @click="mdRef=!mdRef" :title="mdRef ? 'Switch to plain text view' : 'Render as Markdown (formatted)'" :aria-pressed="mdRef" aria-label="Toggle markdown rendering for reference answer">{{ mdRef ? 'Rendered' : 'Plain' }}</button>
           </div>
-          <div id="ref-answer-block">
+          <div id="ref-answer-block" class="qa-ref-wrap">
             <div class="qa-ref-text md-body" v-if="showRef && mdRef" v-html="md(selRef)"></div>
             <div class="qa-ref-text" v-if="showRef && !mdRef">{{ selRef }}</div>
+            <button v-if="showRef && selRef" class="copy-btn copy-btn-overlay" :class="{copied: copiedKey==='refanswer'}"
+                    @click.stop="copyToClipboard(selRef, 'refanswer')"
+                    :aria-label="copiedKey==='refanswer' ? 'Copied' : 'Copy reference answer to clipboard'">
+              {{ copiedKey==='refanswer' ? '✓ Copied' : '⎘ Copy' }}
+            </button>
           </div>
         </div>
       </div>
@@ -1675,23 +1944,143 @@ select:focus:not(:focus-visible),
             <div class="resp-block">
               <div class="resp-hdr">
                 <span class="resp-lbl">Agent Response</span>
-                <div style="display:flex;align-items:center;gap:8px">
-                  <button class="md-toggle" :class="{on: mdResp}" @click="mdResp=!mdResp" :title="mdResp ? 'Switch to plain text view' : 'Render as Markdown (formatted)'" :aria-pressed="mdResp" aria-label="Toggle markdown rendering for agent response">
-                    <span class="tt">{{ mdResp ? 'Rendered' : 'Plain' }}<span class="tt-body">{{ mdResp ? 'Showing formatted Markdown. Switch to plain text.' : 'Showing raw text. Switch to rendered Markdown.' }}</span></span>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <!-- Rendered / Plain / Trace tabs — consistent md-toggle style -->
+                  <button class="md-toggle" :class="{on: respTab==='rendered'}"
+                          @click="respTab='rendered'"
+                          title="Render as Markdown (formatted)"
+                          :aria-pressed="respTab==='rendered'"
+                          aria-label="Show rendered Markdown view of agent response">
+                    <span class="tt">Rendered<span class="tt-body">Show the agent's final response rendered as Markdown.</span></span>
+                  </button>
+                  <button class="md-toggle" :class="{on: respTab==='plain'}"
+                          @click="respTab='plain'"
+                          title="Show raw plain text"
+                          :aria-pressed="respTab==='plain'"
+                          aria-label="Show plain text view of agent response">
+                    <span class="tt">Plain<span class="tt-body">Show the agent's final response as raw plain text.</span></span>
+                  </button>
+                  <button v-if="selTraceHasTools" class="md-toggle" :class="{on: respTab==='trace'}"
+                          @click="respTab='trace'"
+                          title="Show full turn-by-turn interaction trace including tool calls"
+                          :aria-pressed="respTab==='trace'"
+                          aria-label="Show interaction trace with tool calls">
+                    <span class="tt">Trace<span class="tt-body">Show the full multi-turn interaction: assistant reasoning steps and MCP tool calls with inputs, results, and durations.</span></span>
                   </button>
                   <span class="resp-rep-lbl">Run {{ selRep+1 }}</span>
                 </div>
               </div>
-              <!-- Markdown rendered view -->
-              <div v-if="mdResp"
+
+              <!-- Body wrap — positions the overlay copy button -->
+              <div class="resp-body-wrap">
+                <!-- Overlay copy button — tab-aware text -->
+                <button class="copy-btn copy-btn-overlay" :class="{copied: copiedKey==='agentresp'}"
+                        @click.stop="copyToClipboard(respCopyText, 'agentresp')"
+                        :aria-label="copiedKey==='agentresp' ? 'Copied' : 'Copy to clipboard'">
+                  {{ copiedKey==='agentresp' ? '✓ Copied' : '⎘ Copy' }}
+                </button>
+
+              <!-- Rendered markdown view (default) -->
+              <div v-if="respTab==='rendered'"
                    class="resp-body md-mode md-body"
                    :class="{expanded: respExpanded}"
                    v-html="md(selRecord.run_details[selRep]?.agent_response ?? '')">
               </div>
+
               <!-- Raw text view -->
-              <div v-else
+              <div v-else-if="respTab==='plain'"
                    class="resp-body"
                    :class="{expanded: respExpanded}">{{ selRecord.run_details[selRep]?.agent_response ?? '—' }}</div>
+
+              <!-- Interaction trace view -->
+              <div v-else-if="respTab==='trace'"
+                   class="trace-body"
+                   :class="{expanded: respExpanded}">
+                <template v-if="selTraceChunks.length">
+                  <template v-for="(chunk, ci) in selTraceChunks" :key="ci">
+
+                    <!-- Assistant reasoning turn -->
+                    <div v-if="chunk.kind==='assistant'" class="trace-assistant">
+                      <div class="trace-turn-hdr">
+                        <span class="trace-turn-role">Assistant</span>
+                        <span class="trace-turn-idx">turn {{ chunk.entry.turn_idx }}</span>
+                        <span v-if="chunk.entry.is_terminal" class="trace-terminal-badge">Final response</span>
+                        <button v-if="chunk.entry.extracted_value"
+                                class="copy-btn"
+                                style="margin-left:auto"
+                                :class="{copied: copiedKey==='trace-asst-'+ci}"
+                                @click.stop="copyToClipboard(chunk.entry.extracted_value, 'trace-asst-'+ci)"
+                                :aria-label="copiedKey===('trace-asst-'+ci) ? 'Copied' : 'Copy assistant reasoning to clipboard'">
+                          {{ copiedKey===('trace-asst-'+ci) ? '✓ Copied' : '⎘ Copy' }}
+                        </button>
+                      </div>
+                      <div class="trace-assistant-text">{{ chunk.entry.extracted_value || '—' }}</div>
+                    </div>
+
+                    <!-- Tool use group -->
+                    <div v-else-if="chunk.kind==='tool_group'" class="trace-tool-turn">
+                      <div class="trace-turn-hdr" style="margin-bottom:0">
+                        <span class="trace-turn-role">Tool calls</span>
+                        <span class="trace-turn-idx">turn {{ chunk.turn_idx }}</span>
+                        <span style="margin-left:auto;font-size:.65rem;color:var(--text-m)">{{ chunk.entries.length }} call{{ chunk.entries.length!==1?'s':'' }}</span>
+                      </div>
+                      <div v-for="(tc, tci) in chunk.entries" :key="chunk.turn_idx+'|'+tci" class="trace-tool-call">
+                        <!-- Tool call header row — click to expand result -->
+                        <div class="trace-tool-hdr"
+                             @click="toggleTraceToolCall(selRep+'|'+chunk.turn_idx+'|'+tci)"
+                             :aria-expanded="isTraceToolOpen(selRep+'|'+chunk.turn_idx+'|'+tci)"
+                             role="button"
+                             :aria-label="tc.tool_name + (tc.tool_error ? ' (error)' : ' (success)')">
+                          <span class="trace-tool-status"
+                                :style="{background: tc.tool_error ? 'var(--red)' : 'var(--green)'}"
+                                :title="tc.tool_error ? 'Tool call errored' : 'Tool call succeeded'">
+                          </span>
+                          <span class="trace-tool-name">{{ tc.tool_name }}</span>
+                           <span class="trace-tool-dur tt tt-down" v-if="tc.duration_ms != null">{{ fmtMs(tc.duration_ms) }}<span class="tt-body">Time from when the agent SDK dispatched the tool call to when the result was received. This includes network latency, MCP server processing, and SDK overhead — it is not a precise measurement of MCP server execution time alone.</span></span>
+                           <span class="trace-tool-dur" v-else style="font-style:italic">—</span>
+                          <span class="trace-tool-err-badge" :class="tc.tool_error ? 'err' : 'ok'">{{ tc.tool_error ? 'Error' : 'OK' }}</span>
+                          <span class="trace-tool-chevron"
+                                :class="{open: isTraceToolOpen(selRep+'|'+chunk.turn_idx+'|'+tci)}">›</span>
+                        </div>
+                        <!-- Tool call body — expandable: shows input then result -->
+                         <div class="trace-tool-body"
+                              v-show="isTraceToolOpen(selRep+'|'+chunk.turn_idx+'|'+tci)">
+                           <div v-if="tc.tool_input != null">
+                             <div class="trace-tool-section-lbl">Input</div>
+                             <div class="trace-pre-wrap">
+                               <button class="copy-btn copy-btn-overlay"
+                                       :class="{copied: copiedKey==='tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci}"
+                                       @click.stop="copyToClipboard(typeof tc.tool_input === 'object' ? JSON.stringify(tc.tool_input, null, 2) : String(tc.tool_input), 'tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci)"
+                                       :aria-label="copiedKey===('tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? 'Copied' : 'Copy tool input to clipboard'">
+                                 {{ copiedKey===('tool-in-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? '✓ Copied' : '⎘ Copy' }}
+                               </button>
+                               <pre class="trace-tool-result">{{ typeof tc.tool_input === 'object' ? JSON.stringify(tc.tool_input, null, 2) : tc.tool_input }}</pre>
+                             </div>
+                           </div>
+                           <div>
+                             <div class="trace-tool-section-lbl">Result</div>
+                             <div class="trace-pre-wrap">
+                               <button v-if="tc.extracted_value"
+                                       class="copy-btn copy-btn-overlay"
+                                       :class="{copied: copiedKey==='tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci}"
+                                       @click.stop="copyToClipboard(tc.extracted_value, 'tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci)"
+                                       :aria-label="copiedKey===('tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? 'Copied' : 'Copy tool result to clipboard'">
+                                 {{ copiedKey===('tool-out-'+selRep+'|'+chunk.turn_idx+'|'+tci) ? '✓ Copied' : '⎘ Copy' }}
+                               </button>
+                               <div class="trace-tool-result" :class="{'err-result': tc.tool_error}">{{ tc.extracted_value || (tc.tool_error ? '(error — no result)' : '(empty result)') }}</div>
+                             </div>
+                           </div>
+                         </div>
+                      </div>
+                    </div>
+
+                  </template>
+                </template>
+                <div v-else class="trace-empty">No interaction trace available for this run.</div>
+              </div>
+
+              </div><!-- /.resp-body-wrap -->
+
               <button class="resp-expand-btn" @click="respExpanded=!respExpanded" :aria-expanded="respExpanded">
                 {{ respExpanded ? '▴ Collapse response' : '▾ Show full response' }}
               </button>
@@ -1736,6 +2125,13 @@ select:focus:not(:focus-visible),
                   ±{{ sd(selCond,m.key).toFixed(2) }}
                   <span class="tt-body">Run-to-run variation (std dev across {{ repCount }} runs). A higher value means the agent gave inconsistent responses.</span>
                 </span>
+                <button v-if="getReasonings(m.key)[selRep]"
+                        class="copy-btn"
+                        :class="{copied: copiedKey==='reasoning-'+m.key}"
+                        @click.stop="copyToClipboard(getReasonings(m.key)[selRep], 'reasoning-'+m.key)"
+                        :aria-label="copiedKey==='reasoning-'+m.key ? 'Copied' : 'Copy ' + m.label + ' reasoning to clipboard'">
+                  {{ copiedKey===('reasoning-'+m.key) ? '✓ Copied' : '⎘ Copy' }}
+                </button>
               </div>
               <div class="mb-text">{{ getReasonings(m.key)[selRep] ?? '—' }}</div>
             </div>
@@ -1803,6 +2199,39 @@ createApp({
     const sidebarCollapsed = ref(false);
     const mdResp   = ref(true);   // markdown rendering for agent response
     const mdRef    = ref(true);   // markdown rendering for reference answer
+    const respTab  = ref('rendered'); // 'rendered' | 'plain' | 'trace'
+    // Tracks which tool call bodies are expanded; key = `${repIdx}|${toolUseId}`
+    const traceOpen = ref({});
+
+    // ── Copy to clipboard ──────────────────────────────────────────────────
+    // copiedKey holds the identifier of the button currently showing "✓ Copied"
+    // so multiple buttons can coexist without interfering.
+    const copiedKey = ref(null);
+    let _copyTimer = null;
+
+    function copyToClipboard(text, key) {
+      const finish = () => {
+        copiedKey.value = key;
+        clearTimeout(_copyTimer);
+        _copyTimer = setTimeout(() => { copiedKey.value = null; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(finish).catch(() => _fallbackCopy(text, finish));
+      } else {
+        _fallbackCopy(text, finish);
+      }
+    }
+
+    function _fallbackCopy(text, cb) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch(_) {}
+      document.body.removeChild(ta);
+      cb();
+    }
 
     // ── Derived structure ──────────────────────────────────────────────────
     const conditions = computed(() => {
@@ -1895,6 +2324,98 @@ createApp({
     function md(text) {
       if (!text) return '';
       return marked.parse(text, { gfm: true });
+    }
+
+    // ── Interaction trace helpers ───────────────────────────────────────────
+
+    // Returns ordered trace entries for the currently selected run (repetition_index).
+    // Pulls from selRecord.answer_attribution, filtered by repetition_index and sorted
+    // by turn_idx (then by order-of-appearance for tool calls within the same turn).
+    const selTraceEntries = computed(() => {
+      const attr = selRecord.value?.answer_attribution;
+      if (!attr?.length) return [];
+      const repIdx = selRep.value;
+      return attr
+        .filter(e => e.repetition_index === repIdx)
+        .slice() // avoid mutating reactive array
+        .sort((a, b) => a.turn_idx - b.turn_idx);
+    });
+
+    // True if the selected run has any tool_use entries in the trace.
+    const selTraceHasTools = computed(() =>
+      selTraceEntries.value.some(e => e.source === 'mcp_tool')
+    );
+
+    // Group trace entries into display chunks: each chunk is either
+    // { kind: 'assistant', entry } or { kind: 'tool_group', turn_idx, entries[] }.
+    const selTraceChunks = computed(() => {
+      const entries = selTraceEntries.value;
+      if (!entries.length) return [];
+
+      const chunks = [];
+      let i = 0;
+      while (i < entries.length) {
+        const e = entries[i];
+        if (e.source === 'agent_reasoning') {
+          chunks.push({ kind: 'assistant', entry: e });
+          i++;
+        } else if (e.source === 'mcp_tool') {
+          // Collect all consecutive mcp_tool entries with same turn_idx into a group.
+          const group = [e];
+          i++;
+          while (i < entries.length && entries[i].source === 'mcp_tool' && entries[i].turn_idx === e.turn_idx) {
+            group.push(entries[i]);
+            i++;
+          }
+          chunks.push({ kind: 'tool_group', turn_idx: e.turn_idx, entries: group });
+        } else {
+          i++;
+        }
+      }
+      return chunks;
+    });
+
+    // Text to copy from the agent response area — depends on the active tab.
+    const respCopyText = computed(() => {
+      const run = selRecord.value?.run_details?.[selRep.value];
+      if (respTab.value === 'rendered' || respTab.value === 'plain') {
+        return run?.agent_response ?? '';
+      }
+      // Trace tab — format all chunks as readable plain text
+      const chunks = selTraceChunks.value;
+      if (!chunks.length) return '';
+      const lines = [];
+      let turnNum = 0;
+      for (const chunk of chunks) {
+        turnNum++;
+        if (chunk.kind === 'assistant') {
+          const label = chunk.entry.is_terminal
+            ? `[Turn ${turnNum} - Agent - Final Response]`
+            : `[Turn ${turnNum} - Agent]`;
+          lines.push(label);
+          lines.push(chunk.entry.extracted_value ?? '');
+          lines.push('');
+        } else if (chunk.kind === 'tool_group') {
+          for (const tc of chunk.entries) {
+            const inputStr = tc.tool_input != null
+              ? (typeof tc.tool_input === 'object' ? JSON.stringify(tc.tool_input) : String(tc.tool_input))
+              : '';
+            lines.push(`[Turn ${turnNum} - Tool: ${tc.tool_name}]`);
+            if (inputStr) lines.push(`Input: ${inputStr}`);
+            lines.push(`Result: ${tc.extracted_value ?? ''}`);
+            lines.push('');
+          }
+        }
+      }
+      return lines.join('\n').trimEnd();
+    });
+
+    function toggleTraceToolCall(key) {
+      traceOpen.value = { ...traceOpen.value, [key]: !traceOpen.value[key] };
+    }
+
+    function isTraceToolOpen(key) {
+      return !!traceOpen.value[key];
     }
 
     // ── Overview computeds ─────────────────────────────────────────────────
@@ -2089,6 +2610,8 @@ createApp({
       respExpanded.value = false;
       mdResp.value = true;
       mdRef.value = true;
+      respTab.value = 'rendered';
+      traceOpen.value = {};
 
       // default condition = winner
       const winner = conditions.value.reduce((best, c) =>
@@ -2132,7 +2655,7 @@ createApp({
     }
 
     // Reset rep when condition changes
-    watch(selCond, () => { selRep.value = 0; respExpanded.value = false; });
+    watch(selCond, () => { selRep.value = 0; respExpanded.value = false; respTab.value = 'rendered'; traceOpen.value = {}; });
 
     // ── File loading ───────────────────────────────────────────────────────
     function ingest(recs) {
@@ -2184,13 +2707,16 @@ createApp({
       condRanking, topVariance, sortedIds,
       selQ, selRef, selRecord, spreadDetail, spreadLabel,
       anyClaimsForSample,
-      mdResp, mdRef, md,
+      mdResp, mdRef, md, respTab, traceOpen,
+      selTraceEntries, selTraceHasTools, selTraceChunks, respCopyText,
+      toggleTraceToolCall, isTraceToolOpen,
       cc, bp, sc, fmtMs, fmtCost, fmtDate, fmtElapsed, bulletColor,
       totalCost, costByCond, sampleCondCost, condDuration, condDurationPct,
       pctOfTotal, efficiencyScore, isBestValue, bestEffCond, bestEffScore, costPct,
       ovMetric, compScore, mv, sd, rv, isWinner,
       getReasonings, claimsFor,
       sel, goSample, onKey, onDrop, onFile,
+      copiedKey, copyToClipboard,
     };
   }
 }).mount('#app');

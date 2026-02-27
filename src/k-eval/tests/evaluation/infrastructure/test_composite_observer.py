@@ -257,6 +257,24 @@ class TestCompositeEvaluationObserverOrder:
             ) -> None:
                 pass
 
+            def mcp_tool_use_absent(
+                self,
+                run_id: str,
+                condition: str,
+                sample_idx: int,
+                repetition_index: int,
+            ) -> None:
+                pass
+
+            def mcp_tool_success_absent(
+                self,
+                run_id: str,
+                condition: str,
+                sample_idx: int,
+                repetition_index: int,
+            ) -> None:
+                pass
+
         first = OrderRecorder(name="first")
         second = OrderRecorder(name="second")
         third = OrderRecorder(name="third")
@@ -300,6 +318,44 @@ class TestCompositeEvaluationObserverEmpty:
         composite.evaluation_completed(run_id="r", total_runs=5, elapsed_seconds=1.0)
 
 
+class TestCompositeEvaluationObserverMcpToolUseAbsent:
+    """mcp_tool_use_absent event is forwarded to all observers."""
+
+    def test_mcp_tool_use_absent_forwarded_to_all(self) -> None:
+        obs_a = FakeEvaluationObserver()
+        obs_b = FakeEvaluationObserver()
+        composite = _make_composite(obs_a, obs_b)
+
+        composite.mcp_tool_use_absent(
+            run_id="run-1",
+            condition="with-tools",
+            sample_idx=3,
+            repetition_index=0,
+        )
+
+        assert len(obs_a.mcp_absent) == 1
+        assert len(obs_b.mcp_absent) == 1
+        assert obs_a.mcp_absent[0].condition == "with-tools"
+        assert obs_b.mcp_absent[0].condition == "with-tools"
+
+    def test_mcp_tool_use_absent_preserves_all_fields(self) -> None:
+        obs = FakeEvaluationObserver()
+        composite = _make_composite(obs)
+
+        composite.mcp_tool_use_absent(
+            run_id="run-abc",
+            condition="my-condition",
+            sample_idx=7,
+            repetition_index=2,
+        )
+
+        event = obs.mcp_absent[0]
+        assert event.run_id == "run-abc"
+        assert event.condition == "my-condition"
+        assert event.sample_idx == 7
+        assert event.repetition_index == 2
+
+
 class TestCompositeEvaluationObserverSingleObserver:
     """Smoke-test that a single-observer composite behaves identically to the observer."""
 
@@ -338,6 +394,18 @@ class TestCompositeEvaluationObserverSingleObserver:
             repetition_index=0,
             reason="final err",
         )
+        composite.mcp_tool_use_absent(
+            run_id="r",
+            condition="c",
+            sample_idx=0,
+            repetition_index=0,
+        )
+        composite.mcp_tool_success_absent(
+            run_id="r",
+            condition="c",
+            sample_idx=0,
+            repetition_index=0,
+        )
         composite.evaluation_progress(run_id="r", condition="c", completed=2, total=2)
         composite.evaluation_completed(run_id="r", total_runs=2, elapsed_seconds=0.1)
 
@@ -347,4 +415,44 @@ class TestCompositeEvaluationObserverSingleObserver:
         assert len(obs.sc_completed) == 1
         assert len(obs.sc_retried) == 1
         assert len(obs.sc_failed) == 1
+        assert len(obs.mcp_absent) == 1
+        assert len(obs.mcp_success_absent) == 1
         assert len(obs.completed) == 1
+
+
+class TestCompositeEvaluationObserverMcpToolSuccessAbsent:
+    """mcp_tool_success_absent event is forwarded to all observers."""
+
+    def test_mcp_tool_success_absent_forwarded_to_all(self) -> None:
+        obs_a = FakeEvaluationObserver()
+        obs_b = FakeEvaluationObserver()
+        composite = _make_composite(obs_a, obs_b)
+
+        composite.mcp_tool_success_absent(
+            run_id="run-1",
+            condition="with-tools",
+            sample_idx=3,
+            repetition_index=0,
+        )
+
+        assert len(obs_a.mcp_success_absent) == 1
+        assert len(obs_b.mcp_success_absent) == 1
+        assert obs_a.mcp_success_absent[0].condition == "with-tools"
+        assert obs_b.mcp_success_absent[0].condition == "with-tools"
+
+    def test_mcp_tool_success_absent_preserves_all_fields(self) -> None:
+        obs = FakeEvaluationObserver()
+        composite = _make_composite(obs)
+
+        composite.mcp_tool_success_absent(
+            run_id="run-abc",
+            condition="my-condition",
+            sample_idx=7,
+            repetition_index=2,
+        )
+
+        event = obs.mcp_success_absent[0]
+        assert event.run_id == "run-abc"
+        assert event.condition == "my-condition"
+        assert event.sample_idx == 7
+        assert event.repetition_index == 2
