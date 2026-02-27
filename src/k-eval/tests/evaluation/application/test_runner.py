@@ -6,8 +6,13 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from k_eval.agent.domain.result import AgentResult
+from k_eval.agent.domain.turn import AgentTurn, ToolCall
 from k_eval.agent.domain.usage import UsageMetrics
-from k_eval.agent.infrastructure.errors import AgentInvocationError
+from k_eval.agent.infrastructure.errors import (
+    AgentInvocationError,
+    McpToolSuccessAbsentError,
+    McpToolUseAbsentError,
+)
 from k_eval.config.domain.agent import AgentConfig
 from k_eval.config.domain.condition import ConditionConfig
 from k_eval.config.domain.condition_mcp_server import ConditionMcpServer
@@ -961,3 +966,507 @@ class TestEvaluationRunnerElapsed:
         await runner.run()
 
         assert isinstance(observer.completed[0].elapsed_seconds, float)
+
+
+# ---------------------------------------------------------------------------
+# MCP tool use enforcement gate
+# ---------------------------------------------------------------------------
+
+
+def _make_tool_call(tool_use_id: str = "tu-1", tool_name: str = "search") -> ToolCall:
+    return ToolCall(
+        tool_use_id=tool_use_id,
+        tool_name=tool_name,
+        tool_input={"q": "test"},
+        tool_result="result",
+        tool_error=False,
+    )
+
+
+def _make_agent_result_with_tool_calls() -> AgentResult:
+    tc = _make_tool_call()
+    tool_turn = AgentTurn(
+        turn_idx=0,
+        role="tool_use",
+        text=None,
+        tool_calls=[tc],
+    )
+    return AgentResult(
+        response="The answer.",
+        cost_usd=0.001,
+        duration_ms=500,
+        duration_api_ms=400,
+        num_turns=2,
+        usage=UsageMetrics(input_tokens=50, output_tokens=20),
+        turns=[tool_turn],
+    )
+
+
+def _make_agent_result_without_tool_calls() -> AgentResult:
+    """AgentResult with only an assistant text turn and no tool calls."""
+    text_turn = AgentTurn(
+        turn_idx=0,
+        role="assistant",
+        text="I don't need to use any tools.",
+        tool_calls=[],
+    )
+    return AgentResult(
+        response="The answer without tools.",
+        cost_usd=0.001,
+        duration_ms=500,
+        duration_api_ms=400,
+        num_turns=1,
+        usage=UsageMetrics(input_tokens=50, output_tokens=20),
+        turns=[text_turn],
+    )
+
+
+def _make_condition_requiring_tool_use() -> ConditionConfig:
+    return ConditionConfig(
+        mcp_servers=[],
+        system_prompt="You must use MCP tools.",
+        require_mcp_tool_use=True,
+    )
+
+
+def _make_condition_not_requiring_tool_use() -> ConditionConfig:
+    return ConditionConfig(
+        mcp_servers=[],
+        system_prompt="You are a helpful assistant.",
+        require_mcp_tool_use=False,
+    )
+
+
+def _make_mcp_tool_required_eval_config() -> EvalConfig:
+    return EvalConfig(
+        name="mcp-test",
+        version="1.0",
+        dataset=DatasetConfig(
+            path=Path("/dev/null"),
+            question_key="question",
+            answer_key="answer",
+        ),
+        agent=AgentConfig(type="claude", model="claude-3-5-sonnet"),
+        judge=JudgeConfig(model="gpt-4o", temperature=0.0),
+        mcp_servers={},
+        conditions={"with-tools": _make_condition_requiring_tool_use()},
+        execution=ExecutionConfig(
+            num_repetitions=1,
+            max_concurrent=1,
+            retry=RetryConfig(
+                max_attempts=1,
+                initial_backoff_seconds=1,
+                backoff_multiplier=1,
+            ),
+        ),
+    )
+
+
+class TestMcpToolUseEnforcementGate:
+    """When require_mcp_tool_use is True, runner raises McpToolUseAbsentError if no tools called."""
+
+    async def test_raises_when_no_tool_calls_and_required(self) -> None:
+        config = _make_mcp_tool_required_eval_config()
+        agent_result = _make_agent_result_without_tool_calls()
+
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=agent_result),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        with pytest.raises(McpToolUseAbsentError):
+            await runner.run()
+
+    async def test_does_not_raise_when_tool_calls_present(self) -> None:
+        config = _make_mcp_tool_required_eval_config()
+        agent_result = _make_agent_result_with_tool_calls()
+
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=agent_result),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        result = await runner.run()
+
+        assert len(result.runs) == 1
+
+    async def test_does_not_raise_when_tool_use_not_required(self) -> None:
+        """require_mcp_tool_use=False means no enforcement even with no tool calls."""
+        config = EvalConfig(
+            name="no-requirement",
+            version="1.0",
+            dataset=DatasetConfig(
+                path=Path("/dev/null"),
+                question_key="question",
+                answer_key="answer",
+            ),
+            agent=AgentConfig(type="claude", model="claude-3-5-sonnet"),
+            judge=JudgeConfig(model="gpt-4o", temperature=0.0),
+            mcp_servers={},
+            conditions={"baseline": _make_condition_not_requiring_tool_use()},
+            execution=ExecutionConfig(
+                num_repetitions=1,
+                max_concurrent=1,
+                retry=RetryConfig(
+                    max_attempts=1,
+                    initial_backoff_seconds=1,
+                    backoff_multiplier=1,
+                ),
+            ),
+        )
+        agent_result = _make_agent_result_without_tool_calls()
+
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=agent_result),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        result = await runner.run()
+
+        assert len(result.runs) == 1
+
+    async def test_mcp_tool_use_absent_is_retriable(self) -> None:
+        """McpToolUseAbsentError is retriable — should trigger retry behavior."""
+        config = EvalConfig(
+            name="retry-mcp",
+            version="1.0",
+            dataset=DatasetConfig(
+                path=Path("/dev/null"),
+                question_key="question",
+                answer_key="answer",
+            ),
+            agent=AgentConfig(type="claude", model="claude-3-5-sonnet"),
+            judge=JudgeConfig(model="gpt-4o", temperature=0.0),
+            mcp_servers={},
+            conditions={"with-tools": _make_condition_requiring_tool_use()},
+            execution=ExecutionConfig(
+                num_repetitions=1,
+                max_concurrent=1,
+                retry=RetryConfig(
+                    max_attempts=2,
+                    initial_backoff_seconds=0,
+                    backoff_multiplier=1,
+                ),
+            ),
+        )
+        # First agent call returns no tool calls; second returns tool calls.
+        no_tools_agent = FakeAgent(result=_make_agent_result_without_tool_calls())
+        with_tools_agent = FakeAgent(result=_make_agent_result_with_tool_calls())
+        observer = FakeEvaluationObserver()
+
+        with patch(
+            "k_eval.evaluation.application.runner.asyncio.sleep",
+            new_callable=AsyncMock,
+        ):
+            runner = EvaluationRunner(
+                config=config,
+                dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+                agent_factory=FakeAgentFactory(
+                    result=_make_agent_result_with_tool_calls(),
+                    agents=[no_tools_agent, with_tools_agent],
+                ),
+                judge_factory=FakeJudgeFactory(),
+                observer=observer,
+            )
+
+            result = await runner.run()
+
+        assert len(result.runs) == 1
+        assert len(observer.sc_retried) == 1
+
+    async def test_observer_mcp_tool_use_absent_emitted(self) -> None:
+        """mcp_tool_use_absent observer event is emitted before raising."""
+        config = _make_mcp_tool_required_eval_config()
+        agent_result = _make_agent_result_without_tool_calls()
+        observer = FakeEvaluationObserver()
+
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=agent_result),
+            judge_factory=FakeJudgeFactory(),
+            observer=observer,
+        )
+
+        with pytest.raises(McpToolUseAbsentError):
+            await runner.run()
+
+        assert len(observer.mcp_absent) == 1
+        event = observer.mcp_absent[0]
+        assert event.condition == "with-tools"
+
+
+# ---------------------------------------------------------------------------
+# MCP tool success enforcement gate
+# ---------------------------------------------------------------------------
+
+
+def _make_agent_result_with_all_errored_tool_calls() -> AgentResult:
+    """AgentResult where every tool call has tool_error=True."""
+    tc = ToolCall(
+        tool_use_id="tu-err",
+        tool_name="failing_tool",
+        tool_input={},
+        tool_result="Error: something broke.",
+        tool_error=True,
+    )
+    tool_turn = AgentTurn(
+        turn_idx=0,
+        role="tool_use",
+        text=None,
+        tool_calls=[tc],
+    )
+    return AgentResult(
+        response="I could not get the information.",
+        cost_usd=0.001,
+        duration_ms=500,
+        duration_api_ms=400,
+        num_turns=2,
+        usage=UsageMetrics(input_tokens=50, output_tokens=20),
+        turns=[tool_turn],
+    )
+
+
+def _make_condition_requiring_tool_success() -> ConditionConfig:
+    return ConditionConfig(
+        mcp_servers=[],
+        system_prompt="You must use MCP tools successfully.",
+        require_mcp_tool_use=True,
+        require_mcp_tool_success=True,
+    )
+
+
+def _make_mcp_tool_success_required_eval_config() -> EvalConfig:
+    return EvalConfig(
+        name="mcp-success-test",
+        version="1.0",
+        dataset=DatasetConfig(
+            path=Path("/dev/null"),
+            question_key="question",
+            answer_key="answer",
+        ),
+        agent=AgentConfig(type="claude", model="claude-3-5-sonnet"),
+        judge=JudgeConfig(model="gpt-4o", temperature=0.0),
+        mcp_servers={},
+        conditions={"with-tools": _make_condition_requiring_tool_success()},
+        execution=ExecutionConfig(
+            num_repetitions=1,
+            max_concurrent=1,
+            retry=RetryConfig(
+                max_attempts=1,
+                initial_backoff_seconds=1,
+                backoff_multiplier=1,
+            ),
+        ),
+    )
+
+
+class TestMcpToolSuccessEnforcementGate:
+    """When require_mcp_tool_success is True, runner raises McpToolSuccessAbsentError
+    if all tool calls errored."""
+
+    async def test_raises_when_all_tool_calls_errored(self) -> None:
+        config = _make_mcp_tool_success_required_eval_config()
+        agent_result = _make_agent_result_with_all_errored_tool_calls()
+
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=agent_result),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        with pytest.raises(McpToolSuccessAbsentError):
+            await runner.run()
+
+    async def test_does_not_raise_when_at_least_one_tool_call_succeeded(self) -> None:
+        config = _make_mcp_tool_success_required_eval_config()
+        agent_result = _make_agent_result_with_tool_calls()  # tool_error=False
+
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=agent_result),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        result = await runner.run()
+
+        assert len(result.runs) == 1
+
+    async def test_does_not_raise_when_require_mcp_tool_success_is_false(
+        self,
+    ) -> None:
+        """require_mcp_tool_success=False means all-error tool calls are allowed."""
+        config = EvalConfig(
+            name="no-success-requirement",
+            version="1.0",
+            dataset=DatasetConfig(
+                path=Path("/dev/null"),
+                question_key="question",
+                answer_key="answer",
+            ),
+            agent=AgentConfig(type="claude", model="claude-3-5-sonnet"),
+            judge=JudgeConfig(model="gpt-4o", temperature=0.0),
+            mcp_servers={},
+            conditions={
+                "with-tools": ConditionConfig(
+                    mcp_servers=[],
+                    system_prompt="You are a helpful assistant.",
+                    require_mcp_tool_use=False,
+                    require_mcp_tool_success=False,
+                )
+            },
+            execution=ExecutionConfig(
+                num_repetitions=1,
+                max_concurrent=1,
+                retry=RetryConfig(
+                    max_attempts=1,
+                    initial_backoff_seconds=1,
+                    backoff_multiplier=1,
+                ),
+            ),
+        )
+        agent_result = _make_agent_result_with_all_errored_tool_calls()
+
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=agent_result),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        result = await runner.run()
+
+        assert len(result.runs) == 1
+
+    async def test_gate_does_not_fire_when_no_tool_calls(self) -> None:
+        """require_mcp_tool_success gate only fires if there ARE tool calls but all errored.
+        If zero tool calls, that is handled by require_mcp_tool_use gate (or not at all)."""
+        config = EvalConfig(
+            name="success-gate-no-calls",
+            version="1.0",
+            dataset=DatasetConfig(
+                path=Path("/dev/null"),
+                question_key="question",
+                answer_key="answer",
+            ),
+            agent=AgentConfig(type="claude", model="claude-3-5-sonnet"),
+            judge=JudgeConfig(model="gpt-4o", temperature=0.0),
+            mcp_servers={},
+            conditions={
+                "with-tools": ConditionConfig(
+                    mcp_servers=[],
+                    system_prompt="You are a helpful assistant.",
+                    require_mcp_tool_use=False,
+                    require_mcp_tool_success=True,
+                )
+            },
+            execution=ExecutionConfig(
+                num_repetitions=1,
+                max_concurrent=1,
+                retry=RetryConfig(
+                    max_attempts=1,
+                    initial_backoff_seconds=1,
+                    backoff_multiplier=1,
+                ),
+            ),
+        )
+        agent_result = _make_agent_result_without_tool_calls()
+
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=agent_result),
+            judge_factory=FakeJudgeFactory(),
+            observer=FakeEvaluationObserver(),
+        )
+
+        # No tool calls at all — success gate should NOT fire.
+        result = await runner.run()
+
+        assert len(result.runs) == 1
+
+    async def test_observer_mcp_tool_success_absent_emitted(self) -> None:
+        """mcp_tool_success_absent observer event is emitted before raising."""
+        config = _make_mcp_tool_success_required_eval_config()
+        agent_result = _make_agent_result_with_all_errored_tool_calls()
+        observer = FakeEvaluationObserver()
+
+        runner = EvaluationRunner(
+            config=config,
+            dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+            agent_factory=FakeAgentFactory(result=agent_result),
+            judge_factory=FakeJudgeFactory(),
+            observer=observer,
+        )
+
+        with pytest.raises(McpToolSuccessAbsentError):
+            await runner.run()
+
+        assert len(observer.mcp_success_absent) == 1
+        event = observer.mcp_success_absent[0]
+        assert event.condition == "with-tools"
+
+    async def test_mcp_tool_success_absent_is_retriable(self) -> None:
+        """McpToolSuccessAbsentError is retriable — should trigger retry behavior."""
+        config = EvalConfig(
+            name="retry-mcp-success",
+            version="1.0",
+            dataset=DatasetConfig(
+                path=Path("/dev/null"),
+                question_key="question",
+                answer_key="answer",
+            ),
+            agent=AgentConfig(type="claude", model="claude-3-5-sonnet"),
+            judge=JudgeConfig(model="gpt-4o", temperature=0.0),
+            mcp_servers={},
+            conditions={"with-tools": _make_condition_requiring_tool_success()},
+            execution=ExecutionConfig(
+                num_repetitions=1,
+                max_concurrent=1,
+                retry=RetryConfig(
+                    max_attempts=2,
+                    initial_backoff_seconds=0,
+                    backoff_multiplier=1,
+                ),
+            ),
+        )
+        # First call: all tools errored; second call: tool succeeds.
+        errored_agent = FakeAgent(
+            result=_make_agent_result_with_all_errored_tool_calls()
+        )
+        success_agent = FakeAgent(result=_make_agent_result_with_tool_calls())
+        observer = FakeEvaluationObserver()
+
+        with patch(
+            "k_eval.evaluation.application.runner.asyncio.sleep",
+            new_callable=AsyncMock,
+        ):
+            runner = EvaluationRunner(
+                config=config,
+                dataset_loader=FakeDatasetLoader(samples=_make_samples(1)),
+                agent_factory=FakeAgentFactory(
+                    result=_make_agent_result_with_tool_calls(),
+                    agents=[errored_agent, success_agent],
+                ),
+                judge_factory=FakeJudgeFactory(),
+                observer=observer,
+            )
+
+            result = await runner.run()
+
+        assert len(result.runs) == 1
+        assert len(observer.sc_retried) == 1

@@ -131,6 +131,13 @@ conditions:
     mcp_servers: [graph]
     system_prompt: |
         Use the graph tool to answer the question.
+    # Abort this triple if the agent makes no MCP tool calls.
+    # Prevents silently scoring runs where the MCP server was unreachable.
+    require_mcp_tool_use: true
+    # Abort this triple if every MCP tool call returned an error.
+    # Use alongside require_mcp_tool_use to validate
+    # that MCP tools are working correctly.
+    require_mcp_tool_success: true
 
 execution:
   # How many times each (question, condition) pair is evaluated.

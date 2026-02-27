@@ -1,5 +1,9 @@
 test.conf.yaml
 out.json
+
+# Evaluation results
+**/results/*.jsonl
+**/results/*.json
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

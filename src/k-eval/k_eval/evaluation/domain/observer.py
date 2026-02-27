@@ -69,3 +69,19 @@ class EvaluationObserver(Protocol):
         reason: str,
         backoff_seconds: float,
     ) -> None: ...
+
+    def mcp_tool_use_absent(
+        self,
+        run_id: str,
+        condition: str,
+        sample_idx: int,
+        repetition_index: int,
+    ) -> None: ...
+
+    def mcp_tool_success_absent(
+        self,
+        run_id: str,
+        condition: str,
+        sample_idx: int,
+        repetition_index: int,
+    ) -> None: ...

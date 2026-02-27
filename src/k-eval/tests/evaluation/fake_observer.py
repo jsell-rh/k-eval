@@ -64,6 +64,22 @@ class SampleConditionRetryEvent:
     backoff_seconds: float
 
 
+@dataclass(frozen=True)
+class McpToolUseAbsentEvent:
+    run_id: str
+    condition: str
+    sample_idx: int
+    repetition_index: int
+
+
+@dataclass(frozen=True)
+class McpToolSuccessAbsentEvent:
+    run_id: str
+    condition: str
+    sample_idx: int
+    repetition_index: int
+
+
 class FakeEvaluationObserver:
     """Records all emitted evaluation events as typed frozen dataclasses.
 
@@ -82,6 +98,8 @@ class FakeEvaluationObserver:
         self._sc_completed: list[SampleConditionCompletedEvent] = []
         self._sc_failed: list[SampleConditionFailedEvent] = []
         self._sc_retried: list[SampleConditionRetryEvent] = []
+        self._mcp_tool_use_absent: list[McpToolUseAbsentEvent] = []
+        self._mcp_tool_success_absent: list[McpToolSuccessAbsentEvent] = []
 
     @property
     def started(self) -> list[EvaluationStartedEvent]:
@@ -110,6 +128,14 @@ class FakeEvaluationObserver:
     @property
     def sc_retried(self) -> list[SampleConditionRetryEvent]:
         return self._sc_retried
+
+    @property
+    def mcp_absent(self) -> list[McpToolUseAbsentEvent]:
+        return self._mcp_tool_use_absent
+
+    @property
+    def mcp_success_absent(self) -> list[McpToolSuccessAbsentEvent]:
+        return self._mcp_tool_success_absent
 
     def evaluation_started(
         self,
@@ -230,5 +256,37 @@ class FakeEvaluationObserver:
                 attempt=attempt,
                 reason=reason,
                 backoff_seconds=backoff_seconds,
+            )
+        )
+
+    def mcp_tool_use_absent(
+        self,
+        run_id: str,
+        condition: str,
+        sample_idx: int,
+        repetition_index: int,
+    ) -> None:
+        self._mcp_tool_use_absent.append(
+            McpToolUseAbsentEvent(
+                run_id=run_id,
+                condition=condition,
+                sample_idx=sample_idx,
+                repetition_index=repetition_index,
+            )
+        )
+
+    def mcp_tool_success_absent(
+        self,
+        run_id: str,
+        condition: str,
+        sample_idx: int,
+        repetition_index: int,
+    ) -> None:
+        self._mcp_tool_success_absent.append(
+            McpToolSuccessAbsentEvent(
+                run_id=run_id,
+                condition=condition,
+                sample_idx=sample_idx,
+                repetition_index=repetition_index,
             )
         )

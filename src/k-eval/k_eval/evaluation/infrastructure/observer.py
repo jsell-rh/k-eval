@@ -127,3 +127,33 @@ class StructlogEvaluationObserver:
             reason=reason,
             backoff_seconds=backoff_seconds,
         )
+
+    def mcp_tool_use_absent(
+        self,
+        run_id: str,
+        condition: str,
+        sample_idx: int,
+        repetition_index: int,
+    ) -> None:
+        self._log.warning(
+            "evaluation.mcp_tool_use.absent",
+            run_id=run_id,
+            condition=condition,
+            sample_idx=sample_idx,
+            repetition_index=repetition_index,
+        )
+
+    def mcp_tool_success_absent(
+        self,
+        run_id: str,
+        condition: str,
+        sample_idx: int,
+        repetition_index: int,
+    ) -> None:
+        self._log.warning(
+            "evaluation.mcp_tool_success.absent",
+            run_id=run_id,
+            condition=condition,
+            sample_idx=sample_idx,
+            repetition_index=repetition_index,
+        )
