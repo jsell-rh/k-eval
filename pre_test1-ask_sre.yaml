@@ -1,0 +1,36 @@
+name: "pre_test1-ask_sre"
+version: "1"
+
+dataset:
+  path: "./pre_test1_questions.jsonl"
+  question_key: "question"
+  answer_key: "answer"
+
+agent:
+  type: "claude_code_sdk"
+  model: "claude-sonnet-4-5"
+
+judge:
+  model: "vertex_ai/claude-opus-4-5"
+  temperature: 0.0
+
+mcp_servers:
+  ask_sre:
+    type: "http"
+    url: "http://127.0.0.1:8001/mcp"
+
+conditions:
+  ask_sre:
+    mcp_servers: [ask_sre]
+    system_prompt: |
+      You have access to the Ask-SRE MCP server (search_sre_docs, get_full_document). Use it to answer the question.
+    require_mcp_tool_use: true
+    require_mcp_tool_success: true
+
+execution:
+  num_repetitions: 1
+  max_concurrent: 1
+  retry:
+    max_attempts: 2
+    initial_backoff_seconds: 1
+    backoff_multiplier: 2

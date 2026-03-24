@@ -1,10 +1,12 @@
 """LiteLLMJudge — judge implementation using LiteLLM for structured scoring."""
 
 import json
+import os
 import time
 
 import litellm
 import openai
+import structlog
 from pydantic import ValidationError
 
 from k_eval.config.domain.judge import JudgeConfig
@@ -142,6 +144,18 @@ class LiteLLMJudge:
             condition=self._condition,
             sample_idx=self._sample_idx,
             model=self._config.model,
+        )
+
+        _log = structlog.get_logger()
+        _log.debug(
+            "judge.env_proxy_and_base",
+            condition=self._condition,
+            sample_idx=self._sample_idx,
+            HTTP_PROXY=os.environ.get("HTTP_PROXY", ""),
+            HTTPS_PROXY=os.environ.get("HTTPS_PROXY", ""),
+            http_proxy=os.environ.get("http_proxy", ""),
+            https_proxy=os.environ.get("https_proxy", ""),
+            LITELLM_API_BASE=os.environ.get("LITELLM_API_BASE", ""),
         )
 
         user_message = (
