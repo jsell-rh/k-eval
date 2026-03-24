@@ -24,7 +24,7 @@ classifiers = [
 
 dependencies = [
     "claude-agent-sdk>=0.1.39",
-    "litellm",
+    "litellm==1.81.14",
     "pydantic>=2.12.5",
     "pyyaml>=6.0.3",
     "rich>=14.3.3",
