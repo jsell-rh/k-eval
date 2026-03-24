@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/jsell-rh/k-eval/compare/v1.1.2...v1.1.3) (2026-03-24)
+
+
+### Bug Fixes
+
+* **sec:** pin litellm to prevent exploit ([#31](https://github.com/jsell-rh/k-eval/issues/31)) ([af7582f](https://github.com/jsell-rh/k-eval/commit/af7582f89bbd076dc2489d676d7d986105761a51))
+
 ## [1.1.2](https://github.com/jsell-rh/k-eval/compare/v1.1.1...v1.1.2) (2026-02-27)
 
 
