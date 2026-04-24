@@ -22,9 +22,13 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-      - name: Checkout for uv.lock sync
+      - name: Checkout release PR branch
         if: ${{ steps.release.outputs.pr }}
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          ref: ${{ fromJson(steps.release.outputs.pr).headBranchName }}
+          fetch-depth: 0
 
       - name: Set up uv
         if: ${{ steps.release.outputs.pr }}
@@ -35,12 +39,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
         run: |
-          gh pr checkout "${{ fromJson(steps.release.outputs.pr).number }}"
           cd src/k-eval
-          uvx uv lock
-          git add uv.lock
-          git commit -m "chore: sync uv.lock with version bump" || echo "No changes to commit"
-          git push
+          uv lock
+          if git diff --quiet uv.lock; then
+            echo "uv.lock is already up to date"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add uv.lock
+            git commit -m "chore: sync uv.lock with version bump"
+            git push
+          fi
 
       - name: Enable auto-merge on Release PR
         if: ${{ steps.release.outputs.pr }}
