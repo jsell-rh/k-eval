@@ -21,6 +21,18 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+      - name: Sync uv.lock on release PR
+        if: ${{ steps.release.outputs.pr }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          gh pr checkout "${{ fromJson(steps.release.outputs.pr).number }}"
+          cd src/k-eval
+          uvx uv lock
+          git add uv.lock
+          git commit -m "chore: sync uv.lock with version bump" || echo "No changes to commit"
+          git push
+
       - name: Enable auto-merge on Release PR
         if: ${{ steps.release.outputs.pr }}
         env:
