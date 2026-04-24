@@ -8,21 +8,21 @@ import litellm
 import openai
 from pydantic import ValidationError
 
+from k_eval.config.domain.judge import JudgeConfig
+from k_eval.judge.domain.observer import JudgeObserver
+from k_eval.judge.domain.score import JudgeResult
+from k_eval.judge.infrastructure.errors import JudgeInvocationError
+
 # Suppress Pydantic serialization warnings from LiteLLM internals.
 # LiteLLM's response models (Message, StreamingChoices) sometimes have schema mismatches
 # when responses come from different providers (e.g., Vertex AI). The warning is benign
 # and the serialization still succeeds.
 warnings.filterwarnings(
-    "ignore",
+    action="ignore",
     message=r"Pydantic serializer warnings:",
     category=UserWarning,
     module=r"pydantic\.main",
 )
-
-from k_eval.config.domain.judge import JudgeConfig
-from k_eval.judge.domain.observer import JudgeObserver
-from k_eval.judge.domain.score import JudgeResult
-from k_eval.judge.infrastructure.errors import JudgeInvocationError
 
 _SYSTEM_PROMPT = """\
 You are an expert evaluator assessing the quality of AI agent responses against \
