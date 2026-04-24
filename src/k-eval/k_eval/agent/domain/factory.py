@@ -15,4 +15,5 @@ class AgentFactory(Protocol):
         sample_idx: str,
         system_prompt: str,
         mcp_servers: list[ConditionMcpServer],
+        allowed_tools: list[str] | None = None,
     ) -> Agent: ...

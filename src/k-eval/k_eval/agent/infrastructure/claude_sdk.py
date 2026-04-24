@@ -94,6 +94,7 @@ class ClaudeAgentSDKAgent:
         system_prompt: str,
         mcp_servers: list[ConditionMcpServer],
         observer: AgentObserver,
+        allowed_tools: list[str] | None = None,
     ) -> None:
         self._config = config
         self._condition = condition
@@ -101,6 +102,7 @@ class ClaudeAgentSDKAgent:
         self._system_prompt = system_prompt
         self._mcp_servers = mcp_servers
         self._observer = observer
+        self._allowed_tools = set(allowed_tools) if allowed_tools else set()
 
     async def ask(self, question: str) -> AgentResult:
         """Invoke the agent with a question and return the structured result.
@@ -641,14 +643,17 @@ class ClaudeAgentSDKAgent:
         return server
 
     def _build_disallowed_tools(self) -> list[str]:
-        """Build the disallowed tools list — all Claude built-in tools.
+        """Build the disallowed tools list — all Claude built-in tools except allowed ones.
 
         allowed_tools alone does not remove built-in tools from the agent's
         context; it only controls approval requirements. Explicitly disallowing
         all built-in tools ensures the agent cannot use web search, file I/O,
         or any other built-in capability regardless of permission_mode.
+
+        However, if a condition specifies allowed_tools, those tools are NOT
+        disallowed, enabling conditions that use built-in tools instead of MCP.
         """
-        return [
+        all_builtins = [
             "Bash",
             "Edit",
             "Glob",
@@ -661,10 +666,12 @@ class ClaudeAgentSDKAgent:
             "Task",
             "TodoRead",
             "TodoWrite",
+            "ToolSearch",
             "WebFetch",
             "WebSearch",
             "Write",
         ]
+        return [tool for tool in all_builtins if tool not in self._allowed_tools]
 
     def _map_usage(self, raw: dict[str, Any] | None) -> UsageMetrics | None:
         """Map the SDK's raw usage dict to a typed UsageMetrics value object."""

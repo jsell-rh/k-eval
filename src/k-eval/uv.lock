@@ -231,18 +231,19 @@ wheels = [
 
 [[package]]
 name = "claude-agent-sdk"
-version = "0.1.48"
+version = "0.1.65"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "mcp" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6c/dd/2818538efd18ed4ef72d4775efa75bb36cbea0fa418eda51df85ee9c2424/claude_agent_sdk-0.1.48.tar.gz", hash = "sha256:ee294d3f02936c0b826119ffbefcf88c67731cf8c2d2cb7111ccc97f76344272", size = 87375, upload-time = "2026-03-07T00:21:37.087Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cc/89/246c0fd5ccefdadfe93d3971e3f124a0972adfcb096ea97d152d72741e96/claude_agent_sdk-0.1.65.tar.gz", hash = "sha256:dc9d6c41b004e435e75d1467ddfd1187a1612f000763092dc8e0b727d3300a8d", size = 227604, upload-time = "2026-04-22T00:21:26.143Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c3/cf/bbbdee52ee0c63c8709b0ac03ce3c1da5bdc37def5da0eca63363448744f/claude_agent_sdk-0.1.48-py3-none-macosx_11_0_arm64.whl", hash = "sha256:5761ff1d362e0f17c2b1bfd890d1c897f0aa81091e37bbd15b7d06f05ced552d", size = 57559306, upload-time = "2026-03-07T00:21:20.011Z" },
-    { url = "https://files.pythonhosted.org/packages/57/d1/2179154b88d4cf6ba1cf6a15066ee8e96257aaeb1330e625e809ba2f28eb/claude_agent_sdk-0.1.48-py3-none-manylinux_2_17_aarch64.whl", hash = "sha256:39c1307daa17e42fa8a71180bb20af8a789d72d3891fc93519ff15540badcb83", size = 73980309, upload-time = "2026-03-07T00:21:24.592Z" },
-    { url = "https://files.pythonhosted.org/packages/dc/99/55b0cd3bf54a7449e744d23cf50be104e9445cf623e1ed75722112aa6264/claude_agent_sdk-0.1.48-py3-none-manylinux_2_17_x86_64.whl", hash = "sha256:543d70acba468eccfff836965a14b8ac88cf90809aeeb88431dfcea3ee9a2fa9", size = 74583686, upload-time = "2026-03-07T00:21:28.969Z" },
-    { url = "https://files.pythonhosted.org/packages/c8/f6/4851bd9a238b7aadba7639eb906aca7da32a51f01563fa4488469c608b3a/claude_agent_sdk-0.1.48-py3-none-win_amd64.whl", hash = "sha256:0d37e60bd2b17efc3f927dccef080f14897ab62cd1d0d67a4abc8a0e2d4f1006", size = 74956045, upload-time = "2026-03-07T00:21:33.475Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/99/92368a71f13f6af0ab7b947aa484a21220c2cdd6ef797e69ed10b7ce2c20/claude_agent_sdk-0.1.65-py3-none-macosx_11_0_arm64.whl", hash = "sha256:e9f509dbe37eceb319c2e4ece62bf1a05ba4c620f3ec6e42b3d880e86a0694e6", size = 60995329, upload-time = "2026-04-22T00:21:29.93Z" },
+    { url = "https://files.pythonhosted.org/packages/89/af/0a59e38d35ed7f176ce19fca8ecaad3dc3ce4ee027ede270f7fd9266ffab/claude_agent_sdk-0.1.65-py3-none-macosx_11_0_x86_64.whl", hash = "sha256:fb3a64e7c3638d48a94fcd33f4364d43a5f2f7e5e79ba208e22cf52696a362b1", size = 62877873, upload-time = "2026-04-22T00:21:34.153Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/1b/36befbb152ed80e13b4ef66f7880f514ad436ef8986e43d59db173946182/claude_agent_sdk-0.1.65-py3-none-manylinux_2_17_aarch64.whl", hash = "sha256:345b9d5a09a4e55df5ca43810a01f9a0f5f2cda38ecbe1b512d9c17fb941704a", size = 74237368, upload-time = "2026-04-22T00:21:38.326Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/28/6c6eaffd0dcd74b6412903586cfaee701e1f816a6c33e093ee3e06b0966c/claude_agent_sdk-0.1.65-py3-none-manylinux_2_17_x86_64.whl", hash = "sha256:bbf56628ba78f034ceafca62f1edb3d10677fb38713f17cd129faab87ee7489b", size = 74391477, upload-time = "2026-04-22T00:21:42.242Z" },
+    { url = "https://files.pythonhosted.org/packages/c3/29/33063f31b93fb10cdeaa7c14b17c2b45f678cc56d33af76b17c099cfd145/claude_agent_sdk-0.1.65-py3-none-win_amd64.whl", hash = "sha256:92d1dc54f84ed487996e4a89857693317ea7d1e9705b8f0ea5015d3f3fb5913a", size = 76522710, upload-time = "2026-04-22T00:21:46.087Z" },
 ]
 
 [[package]]
@@ -964,7 +965,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "claude-agent-sdk", specifier = "==0.1.48" },
+    { name = "claude-agent-sdk", specifier = ">=0.1.65" },
     { name = "google-cloud-aiplatform", marker = "extra == 'vertex-ai'", specifier = ">=1.138.0" },
     { name = "k-eval", extras = ["vertex-ai"], marker = "extra == 'all'" },
     { name = "litellm" },

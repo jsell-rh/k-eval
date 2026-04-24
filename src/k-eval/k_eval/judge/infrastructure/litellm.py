@@ -158,6 +158,18 @@ class LiteLLMJudge:
             LITELLM_API_BASE=os.environ.get("LITELLM_API_BASE", ""),
         )
 
+        # Clear proxy env vars that may have been polluted by the claude-agent-sdk.
+        # The SDK sets up a local auth proxy that leaks into os.environ and breaks
+        # litellm's Vertex AI credential refresh via Google OAuth.
+        proxy_keys = ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "NO_PROXY", "no_proxy"]
+        saved_proxies = {k: os.environ.get(k) for k in proxy_keys}
+        
+        # Remove existing proxy settings and set NO_PROXY to bypass for Google APIs
+        for k in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
+            os.environ.pop(k, None)
+        os.environ["NO_PROXY"] = "oauth2.googleapis.com,googleapis.com,*.googleapis.com"
+        os.environ["no_proxy"] = "oauth2.googleapis.com,googleapis.com,*.googleapis.com"
+
         user_message = (
             f"## Question\n{question}\n\n"
             f"## Golden Answer\n{golden_answer}\n\n"
@@ -166,36 +178,44 @@ class LiteLLMJudge:
 
         start = time.monotonic()
         try:
-            response = await litellm.acompletion(
-                model=self._config.model,
-                temperature=self._config.temperature,
-                response_format=JudgeResult,
-                messages=[
-                    {"role": "system", "content": _SYSTEM_PROMPT},
-                    {"role": "user", "content": user_message},
-                ],
-            )
-        except openai.APIError as exc:
-            # openai.APIError is the common base class for all litellm API errors.
-            # InternalServerError is included because LiteLLM raises it for transient
-            # upstream failures (e.g. a 502 from the Google OAuth2 token endpoint during
-            # credential refresh) that are unrelated to the model call itself.
-            retriable = isinstance(
-                exc,
-                (
-                    openai.RateLimitError,
-                    openai.APIConnectionError,
-                    openai.APITimeoutError,
-                    openai.InternalServerError,
-                ),
-            )
-            reason = str(exc)
-            self._observer.judge_scoring_failed(
-                condition=self._condition,
-                sample_idx=self._sample_idx,
-                reason=reason,
-            )
-            raise JudgeInvocationError(reason=reason, retriable=retriable) from exc
+            try:
+                response = await litellm.acompletion(
+                    model=self._config.model,
+                    temperature=self._config.temperature,
+                    response_format=JudgeResult,
+                    messages=[
+                        {"role": "system", "content": _SYSTEM_PROMPT},
+                        {"role": "user", "content": user_message},
+                    ],
+                )
+            except openai.APIError as exc:
+                # openai.APIError is the common base class for all litellm API errors.
+                # InternalServerError is included because LiteLLM raises it for transient
+                # upstream failures (e.g. a 502 from the Google OAuth2 token endpoint during
+                # credential refresh) that are unrelated to the model call itself.
+                retriable = isinstance(
+                    exc,
+                    (
+                        openai.RateLimitError,
+                        openai.APIConnectionError,
+                        openai.APITimeoutError,
+                        openai.InternalServerError,
+                    ),
+                )
+                reason = str(exc)
+                self._observer.judge_scoring_failed(
+                    condition=self._condition,
+                    sample_idx=self._sample_idx,
+                    reason=reason,
+                )
+                raise JudgeInvocationError(reason=reason, retriable=retriable) from exc
+        finally:
+            # Restore proxy env vars in case other code depends on them.
+            for key, value in saved_proxies.items():
+                if value is not None:
+                    os.environ[key] = value
+                else:
+                    os.environ.pop(key, None)
 
         duration_ms = int((time.monotonic() - start) * 1000)
 

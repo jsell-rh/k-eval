@@ -20,6 +20,7 @@ class ClaudeAgentSDKAgentFactory:
         sample_idx: str,
         system_prompt: str,
         mcp_servers: list[ConditionMcpServer],
+        allowed_tools: list[str] | None = None,
     ) -> Agent:
         """Construct a new ClaudeAgentSDKAgent for the given condition and sample."""
         return ClaudeAgentSDKAgent(
@@ -28,5 +29,6 @@ class ClaudeAgentSDKAgentFactory:
             sample_idx=sample_idx,
             system_prompt=system_prompt,
             mcp_servers=mcp_servers,
+            allowed_tools=allowed_tools or [],
             observer=self._observer,
         )

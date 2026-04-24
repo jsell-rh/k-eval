@@ -670,6 +670,7 @@ class ConcurrencyTrackingFakeAgentFactory:
         sample_idx: str,
         system_prompt: str,
         mcp_servers: list[ConditionMcpServer],
+        allowed_tools: list[str] | None = None,
     ) -> ConcurrencyTrackingFakeAgent:
         return ConcurrencyTrackingFakeAgent(tracker=self._tracker)
 

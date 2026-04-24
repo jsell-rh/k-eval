@@ -1,0 +1,127 @@
+name: "k-extract"
+version: "1"
+
+dataset:
+  path: "/home/aredenba/Documents/GitHub/k-eval/k-extract_questions.jsonl"
+  question_key: "question"
+  answer_key: "answer"
+
+agent:
+  type: "claude_code_sdk"
+  model: "claude-sonnet-4-5"
+
+judge:
+  model: "vertex_ai/claude-opus-4-5"
+  temperature: 0.0
+
+mcp_servers:
+  kartograph:
+    type: "http"
+    url: "http://localhost:8000/query/mcp"
+    headers:
+      X-API-Key: "${KARTOGRAPH_MCP_API_KEY}"
+
+conditions:
+  kartograph_mcp:
+    mcp_servers: [kartograph]
+    system_prompt: |
+      You are an expert assistant for analyzing the HyperFleet test codebase using a knowledge graph.
+
+      ## MCP Tools
+      - **query_graph(cypher)**: Execute read-only Cypher queries. Always use LIMIT. Return full nodes (RETURN n) to avoid column mismatch errors.
+      - **get_file_contents**: This tool is broken - ignore it.
+
+      ## Entity Types
+      - **ComponentTest**: Unit/integration tests (properties: name, file_path, test_type, component, description, line_number, package_name)
+      - **E2ETest**: End-to-end tests (properties: name, file_path, test_suite, tier_label, labels, description, line_number)
+
+      ## Key Relationship
+      **EXERCISES_FUNCTIONALITY_OF** / **FUNCTIONALITY_EXERCISED_BY**: Links E2ETests to ComponentTests when the E2E test exercises functionality validated by the component test.
+
+      ```cypher
+      # Find E2ETests that exercise a ComponentTest's functionality
+      MATCH (e:E2ETest)-[:EXERCISES_FUNCTIONALITY_OF]->(c:ComponentTest)
+      WHERE c.name = 'TestSomeName'
+      RETURN e LIMIT 10
+
+      # Find ComponentTests whose functionality is exercised by an E2ETest
+      MATCH (c:ComponentTest)-[:FUNCTIONALITY_EXERCISED_BY]->(e:E2ETest)
+      WHERE e.file_path CONTAINS 'adapter_failover'
+      RETURN c LIMIT 10
+      ```
+
+      ## Query Examples
+      ```cypher
+      MATCH (n:ComponentTest) RETURN keys(n) as properties LIMIT 1
+      MATCH (n:ComponentTest) WHERE n.description CONTAINS 'ID generation' RETURN n LIMIT 5
+      MATCH (n:E2ETest) WHERE n.file_path CONTAINS 'adapter_failover' RETURN n LIMIT 5
+      ```
+    require_mcp_tool_use: true
+    require_mcp_tool_success: true
+
+  repos_only:
+    mcp_servers: []
+    allowed_tools:
+      - Read
+      - Glob
+      - Grep
+      - Bash
+    system_prompt: |
+      You are an expert assistant for analyzing the HyperFleet test codebase by directly reading source files.
+
+      ## Available Repositories
+
+      The following Git repositories are available for analysis:
+
+      ```
+      /home/aredenba/.k-extract/projects/hyperfleet-test-6/data/hyperfleet-adapter/
+      /home/aredenba/.k-extract/projects/hyperfleet-test-6/data/hyperfleet-api/
+      /home/aredenba/.k-extract/projects/hyperfleet-test-6/data/hyperfleet-broker/
+      /home/aredenba/.k-extract/projects/hyperfleet-test-6/data/hyperfleet-e2e/
+      /home/aredenba/.k-extract/projects/hyperfleet-test-6/data/hyperfleet-infra/
+      /home/aredenba/.k-extract/projects/hyperfleet-test-6/data/hyperfleet-sentinel/
+      ```
+
+      ## Test Classification
+
+      There are two categories of tests in this codebase:
+
+      **ComponentTests** (unit and integration tests):
+      - Standard Go tests using `func TestXxx(t *testing.T)` pattern
+      - Located in `*_test.go` files within component repos
+      - Key locations:
+        - `hyperfleet-api/pkg/api/*_test.go` - API type unit tests
+        - `hyperfleet-api/test/integration/*_test.go` - Integration tests
+        - `hyperfleet-adapter/pkg/**/*_test.go` - Adapter framework tests
+      - Properties to note: test name, file path, package name, test type (unit/integration from path)
+
+      **E2ETests** (end-to-end tests):
+      - Ginkgo BDD framework using `ginkgo.Describe()` and `ginkgo.It()` blocks
+      - Located exclusively in `hyperfleet-e2e/e2e/` directory
+      - Key subdirectories:
+        - `hyperfleet-e2e/e2e/adapter/` - Adapter E2E tests
+        - `hyperfleet-e2e/e2e/cluster/` - Cluster lifecycle E2E tests
+        - `hyperfleet-e2e/e2e/nodepool/` - NodePool E2E tests
+      - Properties to note: test name (from Describe/It strings), file path, test suite (from subdirectory), tier label, labels
+      - **Tier labels** are specified via `ginkgo.Label(labels.Tier0)` or `ginkgo.Label(labels.Tier1)` in the Describe block
+
+      ## Search Strategy
+
+      1. Use `Glob` with patterns like `**/*_test.go` to find test files
+      2. Use `Grep` to search for specific test names, patterns, or keywords
+      3. Use `Read` to examine the actual test code and understand what it validates
+
+      ## Understanding Test Relationships
+
+      To determine if a ComponentTest's functionality is "exercised" by an E2ETest:
+      - Read the ComponentTest to understand what specific functionality it validates
+      - Search E2ETests for code that exercises the same API endpoints, functions, or behaviors
+      - An E2ETest exercises a ComponentTest's functionality if the E2E test flow depends on the same code paths being correct
+
+execution:
+  num_repetitions: 2
+  max_concurrent: 10
+  retry:
+    max_attempts: 3
+    initial_backoff_seconds: 20
+    backoff_multiplier: 2
