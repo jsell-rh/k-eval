@@ -25,6 +25,10 @@ jobs:
         if: ${{ steps.release.outputs.pr }}
         uses: actions/checkout@v4
 
+      - name: Set up uv
+        if: ${{ steps.release.outputs.pr }}
+        uses: astral-sh/setup-uv@v5
+
       - name: Sync uv.lock on release PR
         if: ${{ steps.release.outputs.pr }}
         env:
