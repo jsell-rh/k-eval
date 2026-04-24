@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/jsell-rh/k-eval/compare/v1.1.3...v1.2.0) (2026-04-24)
+
+
+### Features
+
+* add allowed_tools condition config for baseline evaluations ([#33](https://github.com/jsell-rh/k-eval/issues/33)) ([aa53c66](https://github.com/jsell-rh/k-eval/commit/aa53c663e9f5ba19d6a6e9849394460d2c2b036b))
+
 ## [1.1.3](https://github.com/jsell-rh/k-eval/compare/v1.1.2...v1.1.3) (2026-03-24)
 
 
