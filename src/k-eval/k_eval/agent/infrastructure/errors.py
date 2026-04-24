@@ -1,13 +1,35 @@
 """Error types raised by agent infrastructure."""
 
+from typing import TYPE_CHECKING, Any
+
 from k_eval.core.errors import KEvalError
+
+if TYPE_CHECKING:
+    from k_eval.agent.domain.turn import AgentTurn
 
 
 class AgentInvocationError(KEvalError):
-    """Raised when the agent cannot be invoked or returns an error response."""
+    """Raised when the agent cannot be invoked or returns an error response.
 
-    def __init__(self, reason: str, retriable: bool = False) -> None:
+    Attributes:
+        result_message: The ResultMessage from the SDK, if available before failure.
+        prompt: The user prompt that was sent to the agent.
+        turns: The conversation turns collected before the error occurred.
+    """
+
+    def __init__(
+        self,
+        reason: str,
+        retriable: bool = False,
+        *,
+        result_message: Any | None = None,
+        prompt: str = "",
+        turns: list["AgentTurn"] | None = None,
+    ) -> None:
         super().__init__(f"Failed to invoke agent: {reason}", retriable=retriable)
+        self.result_message = result_message
+        self.prompt = prompt
+        self.turns = turns if turns is not None else []
 
 
 class AgentTypeNotSupportedError(KEvalError):
