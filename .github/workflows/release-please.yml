@@ -21,6 +21,10 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+      - name: Checkout for uv.lock sync
+        if: ${{ steps.release.outputs.pr }}
+        uses: actions/checkout@v4
+
       - name: Sync uv.lock on release PR
         if: ${{ steps.release.outputs.pr }}
         env:

@@ -418,6 +418,18 @@ def _print_summary(
     typer.echo("")
 
 
+def _clear_proxy_env_vars() -> None:
+    """Clear proxy env vars that may interfere with Google OAuth.
+
+    The claude-agent-sdk sets HTTP_PROXY/HTTPS_PROXY pointing to a local auth
+    proxy. If these leak into the parent process's os.environ, litellm's Vertex
+    AI credential refresh will try to route through the (now dead) proxy and
+    fail. Clearing them once at startup avoids per-call race conditions.
+    """
+    for key in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
+        os.environ.pop(key, None)
+
+
 @app.command()
 def run(
     config_path: Path = typer.Argument(..., help="Path to evaluation config YAML"),
@@ -441,8 +453,8 @@ def run(
 ) -> None:
     """Run a k-eval evaluation from a YAML config file."""
     try:
+        _clear_proxy_env_vars()
         _configure_structlog(log_format=log_format, quiet=quiet)
-
         config_observer = StructlogConfigObserver()
         loader = YamlConfigLoader(observer=config_observer)
         try:
