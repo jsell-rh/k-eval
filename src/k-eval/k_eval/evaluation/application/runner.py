@@ -163,6 +163,7 @@ class EvaluationRunner:
                         sample_idx=sample.sample_idx,
                         system_prompt=condition.system_prompt,
                         mcp_servers=condition.mcp_servers,
+                        allowed_tools=list(condition.allowed_tools),
                     )
                     agent_result = await agent.ask(question=sample.question)
 

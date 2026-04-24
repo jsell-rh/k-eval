@@ -1,8 +1,13 @@
 """ClaudeAgentSDKAgent — agent implementation using the Claude Agent SDK."""
 
+import asyncio
+import json
+import os
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
+
+import structlog
 
 from claude_agent_sdk import query
 from claude_agent_sdk._errors import ClaudeSDKError
@@ -30,6 +35,30 @@ from k_eval.config.domain.condition_mcp_server import ConditionMcpServer
 from k_eval.config.domain.mcp_server import HttpMcpServer, SseMcpServer, StdioMcpServer
 
 
+def _format_invocation_trace(
+    prompt: str,
+    turns: list[AgentTurn],
+    result_message: ResultMessage | None,
+) -> str:
+    """Format user_message + assistant/tool turns + final result for failure diagnostics."""
+    parts: list[str] = ["--- user_message ---", prompt or "(empty)"]
+    for turn in turns:
+        if turn.role == "assistant":
+            parts.append(f"\n--- ASSISTANT (turn {turn.turn_idx}) ---")
+            parts.append(turn.text or "(no text)")
+        else:
+            parts.append(f"\n--- TOOL_USE (turn {turn.turn_idx}) ---")
+            for tc in turn.tool_calls:
+                parts.append(f"  {tc.tool_name}: input={tc.tool_input!r}")
+                parts.append(f"    result={tc.tool_result!r} error={tc.tool_error}")
+    parts.append("\n--- FINAL_RESULT ---")
+    if result_message is not None and result_message.result is not None:
+        parts.append(result_message.result)
+    else:
+        parts.append("(none)")
+    return "\n".join(parts)
+
+
 @dataclass(frozen=True)
 class _PendingToolCall:
     """Holds a pending ToolCall and the wall-clock start time for duration tracking."""
@@ -55,6 +84,8 @@ class ClaudeAgentSDKAgent:
     observer events carry full context without polluting the ask() signature.
     """
 
+    _log = structlog.get_logger()
+
     def __init__(
         self,
         config: AgentConfig,
@@ -63,6 +94,7 @@ class ClaudeAgentSDKAgent:
         system_prompt: str,
         mcp_servers: list[ConditionMcpServer],
         observer: AgentObserver,
+        allowed_tools: list[str] | None = None,
     ) -> None:
         self._config = config
         self._condition = condition
@@ -70,6 +102,7 @@ class ClaudeAgentSDKAgent:
         self._system_prompt = system_prompt
         self._mcp_servers = mcp_servers
         self._observer = observer
+        self._allowed_tools = set(allowed_tools) if allowed_tools else set()
 
     async def ask(self, question: str) -> AgentResult:
         """Invoke the agent with a question and return the structured result.
@@ -86,21 +119,139 @@ class ClaudeAgentSDKAgent:
             model=self._config.model,
         )
 
-        try:
-            options = ClaudeAgentOptions(
-                model=self._config.model,
-                system_prompt=self._system_prompt,
-                mcp_servers=self._build_mcp_servers(),
-                disallowed_tools=self._build_disallowed_tools(),
-                permission_mode="bypassPermissions",
-                setting_sources=[],
+        stderr_lines: list[str] = []
+
+        def _capture_stderr(line: str) -> None:
+            stderr_lines.append(line)
+            self._log.warning(
+                "agent.subprocess.stderr",
+                condition=self._condition,
+                sample_idx=self._sample_idx,
+                line=line,
             )
 
+        try:
+            mcp_servers_config = self._build_mcp_servers()
+            # SDK expects mcp_servers to be a dict and each config to be a dict (calls .items() on both).
+            mcp_servers_config = self._normalize_mcp_servers_for_sdk(mcp_servers_config)
+        except AgentInvocationError as exc:
+            self._observer.agent_invocation_failed(
+                condition=self._condition,
+                sample_idx=self._sample_idx,
+                reason=str(exc).removeprefix("Failed to invoke agent: "),
+            )
+            raise
+
+        # Diagnostic: log what MCP server config is being passed
+        def _extract_header_keys(cfg: Any) -> list[str]:
+            if isinstance(cfg, dict):
+                headers = cfg.get("headers", {})
+                if isinstance(headers, dict):
+                    return list(headers.keys())
+            return []
+
+        self._log.debug(
+            "agent.mcp_servers_config",
+            condition=self._condition,
+            sample_idx=self._sample_idx,
+            mcp_servers={
+                name: {
+                    "type": cfg.get("type") if isinstance(cfg, dict) else None,
+                    "url": cfg.get("url") if isinstance(cfg, dict) else None,
+                    "has_headers": "headers" in cfg if isinstance(cfg, dict) else False,
+                    "header_keys": _extract_header_keys(cfg),
+                }
+                for name, cfg in mcp_servers_config.items()
+            },
+        )
+
+        # Build subprocess environment with explicit credential paths
+        subprocess_env = {
+            **os.environ,
+            "CLAUDE_AGENT_SDK_SKIP_VERSION_CHECK": "1",
+        }
+        # Ensure Google ADC is discoverable if using Vertex AI
+        if "GOOGLE_APPLICATION_CREDENTIALS" not in subprocess_env:
+            adc_path = os.path.expanduser(
+                "~/.config/gcloud/application_default_credentials.json"
+            )
+            if os.path.exists(adc_path):
+                subprocess_env["GOOGLE_APPLICATION_CREDENTIALS"] = adc_path
+
+        self._log.debug(
+            "agent.subprocess_env",
+            condition=self._condition,
+            sample_idx=self._sample_idx,
+            has_vertex=subprocess_env.get("CLAUDE_CODE_USE_VERTEX"),
+            vertex_project=subprocess_env.get("ANTHROPIC_VERTEX_PROJECT_ID"),
+            has_gac=bool(subprocess_env.get("GOOGLE_APPLICATION_CREDENTIALS")),
+            has_home=bool(subprocess_env.get("HOME")),
+        )
+
+        options = ClaudeAgentOptions(
+            model=self._config.model,
+            system_prompt=self._system_prompt,
+            mcp_servers=mcp_servers_config,
+            disallowed_tools=self._build_disallowed_tools(),
+            permission_mode="bypassPermissions",
+            setting_sources=[],
+            stderr=_capture_stderr,
+            env=subprocess_env,
+        )
+
+        try:
             result_message, turns = await self._collect_result(
                 prompt=question, options=options
             )
         except AgentInvocationError as exc:
-            reason = str(exc).removeprefix("Failed to invoke agent: ")
+            base_reason = str(exc).removeprefix("Failed to invoke agent: ")
+            reason = (
+                f"{base_reason}\nstderr: {' | '.join(stderr_lines)}"
+                if stderr_lines
+                else base_reason
+            )
+            exc_result_message: ResultMessage | None = getattr(
+                exc, "result_message", None
+            )
+            exc_prompt = getattr(exc, "prompt", None) or ""
+            exc_turns = getattr(exc, "turns", None) or []
+            invocation_trace = _format_invocation_trace(
+                prompt=exc_prompt, turns=exc_turns, result_message=exc_result_message
+            )
+            exc.invocation_trace = invocation_trace  # type: ignore[attr-defined]
+            self._log.error(
+                "agent.invocation_trace",
+                condition=self._condition,
+                sample_idx=self._sample_idx,
+                full_trace=invocation_trace,
+            )
+            if exc_result_message is not None:
+                result_preview = (exc_result_message.result or "")[:500] + (
+                    "..." if len(exc_result_message.result or "") > 500 else ""
+                )
+                self._log.info(
+                    "agent.result_message_before_failure",
+                    condition=self._condition,
+                    sample_idx=self._sample_idx,
+                    is_error=exc_result_message.is_error,
+                    result_preview=result_preview,
+                    duration_ms=getattr(exc_result_message, "duration_ms", None),
+                    num_turns=getattr(exc_result_message, "num_turns", None),
+                )
+            else:
+                self._log.info(
+                    "agent.result_message_before_failure",
+                    condition=self._condition,
+                    sample_idx=self._sample_idx,
+                    result_message=None,
+                )
+            diagnostic = await self._run_diagnostic(options=options)
+            self._log.error(
+                "agent.subprocess.diagnostic",
+                condition=self._condition,
+                sample_idx=self._sample_idx,
+                result=diagnostic,
+            )
             self._observer.agent_invocation_failed(
                 condition=self._condition,
                 sample_idx=self._sample_idx,
@@ -126,6 +277,100 @@ class ClaudeAgentSDKAgent:
             usage=self._map_usage(raw=result_message.usage),
             turns=turns,
         )
+
+    async def _run_diagnostic(self, options: ClaudeAgentOptions) -> str:
+        """Spawn the claude CLI directly to capture its actual stdout and stderr.
+
+        The SDK's callback-based stderr capture races with task-group cleanup and
+        reliably loses data for fast-failing processes.  Running the subprocess
+        ourselves with asyncio.create_subprocess_exec and awaiting communicate()
+        guarantees that all output is collected before we return.
+        """
+        try:
+            from claude_agent_sdk._internal.transport.subprocess_cli import (  # noqa: PLC0415
+                SubprocessCLITransport,
+            )
+
+            transport = SubprocessCLITransport(prompt="", options=options)
+            cmd = transport._build_command()
+
+            ping_msg = (
+                json.dumps(
+                    {
+                        "type": "user",
+                        "session_id": "",
+                        "message": {"role": "user", "content": "ping"},
+                        "parent_tool_use_id": None,
+                    }
+                )
+                + "\n"
+            )
+
+            proc_env = {
+                **os.environ,
+                **options.env,
+                "CLAUDE_CODE_ENTRYPOINT": "sdk-py",
+            }
+
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=proc_env,
+            )
+            try:
+                stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                    proc.communicate(ping_msg.encode()),
+                    timeout=10.0,
+                )
+            except TimeoutError:
+                proc.kill()
+                return "diagnostic: timed out after 10s (process may be healthy)"
+
+            stdout_text = stdout_bytes.decode(errors="replace").strip()
+            stderr_text = stderr_bytes.decode(errors="replace").strip()
+
+            mcp_status = self._extract_mcp_status(stdout_text)
+
+            return (
+                f"rc={proc.returncode} | "
+                f"mcp_servers={mcp_status} | "
+                f"stderr={stderr_text[:2000]!r} | "
+                f"stdout={stdout_text[:2000]!r}"
+            )
+        except Exception as exc:
+            return f"diagnostic: could not run subprocess: {exc}"
+
+    def _extract_mcp_status(self, stdout_text: str) -> str:
+        """Parse the claude CLI's init JSON from stdout and extract MCP server statuses.
+
+        The init message is the first JSON object on stdout. It contains a
+        ``mcp_servers`` list with ``name``, ``status``, and an optional
+        ``error`` field for each server.  We surface that directly so the
+        diagnostic log line is immediately actionable without reading truncated
+        raw stdout.
+        """
+        for line in stdout_text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                msg = json.loads(line)
+            except (json.JSONDecodeError, ValueError):
+                continue
+            if msg.get("type") == "system" and msg.get("subtype") == "init":
+                servers = msg.get("mcp_servers", [])
+                if not servers:
+                    return "none"
+                parts = []
+                for s in servers:
+                    name = s.get("name", "?")
+                    status = s.get("status", "?")
+                    error = s.get("error") or s.get("error_message") or ""
+                    parts.append(f"{name}:{status}" + (f"({error})" if error else ""))
+                return ", ".join(parts)
+        return "init message not found"
 
     async def _collect_result(
         self, prompt: str, options: ClaudeAgentOptions
@@ -242,11 +487,45 @@ class ClaudeAgentSDKAgent:
                         turn_idx += 1
 
         except ClaudeSDKError as exc:
-            raise AgentInvocationError(reason=str(exc), retriable=True) from exc
+            # If we already have a valid final result, return it instead of failing.
+            # The stream may have died (e.g. MCP timeout) after sending ResultMessage.
+            if (
+                result_message is not None
+                and not result_message.is_error
+                and result_message.result is not None
+            ):
+                self._log.warning(
+                    "agent.stream_error_after_result",
+                    condition=self._condition,
+                    sample_idx=self._sample_idx,
+                    error=str(exc),
+                )
+            else:
+                err = AgentInvocationError(reason=str(exc), retriable=True)
+                err.result_message = result_message  # type: ignore[attr-defined]
+                err.prompt = prompt  # type: ignore[attr-defined]
+                err.turns = list(turns)  # type: ignore[attr-defined]
+                raise err from exc
         except Exception as exc:
             # The SDK internally raises a bare Exception (not ClaudeSDKError) when
             # its message reader encounters a fatal error (e.g. subprocess exit).
-            raise AgentInvocationError(reason=str(exc), retriable=True) from exc
+            if (
+                result_message is not None
+                and not result_message.is_error
+                and result_message.result is not None
+            ):
+                self._log.warning(
+                    "agent.stream_error_after_result",
+                    condition=self._condition,
+                    sample_idx=self._sample_idx,
+                    error=str(exc),
+                )
+            else:
+                err = AgentInvocationError(reason=str(exc), retriable=True)
+                err.result_message = result_message  # type: ignore[attr-defined]
+                err.prompt = prompt  # type: ignore[attr-defined]
+                err.turns = list(turns)  # type: ignore[attr-defined]
+                raise err from exc
 
         # Emit any pending tool calls that were never resolved (duration_ms=None).
         if pending_tool_calls:
@@ -271,15 +550,27 @@ class ClaudeAgentSDKAgent:
             )
 
         if result_message is None:
-            raise AgentInvocationError(reason="no ResultMessage in response stream")
+            err = AgentInvocationError(reason="no ResultMessage in response stream")
+            err.result_message = None  # type: ignore[attr-defined]
+            err.prompt = prompt  # type: ignore[attr-defined]
+            err.turns = list(turns)  # type: ignore[attr-defined]
+            raise err
 
         if result_message.is_error:
-            raise AgentInvocationError(
+            err = AgentInvocationError(
                 reason=f"agent returned error response: {result_message.result}"
             )
+            err.result_message = result_message  # type: ignore[attr-defined]
+            err.prompt = prompt  # type: ignore[attr-defined]
+            err.turns = list(turns)  # type: ignore[attr-defined]
+            raise err
 
         if result_message.result is None:
-            raise AgentInvocationError(reason="ResultMessage has no result text")
+            err = AgentInvocationError(reason="ResultMessage has no result text")
+            err.result_message = result_message  # type: ignore[attr-defined]
+            err.prompt = prompt  # type: ignore[attr-defined]
+            err.turns = list(turns)  # type: ignore[attr-defined]
+            raise err
 
         return result_message, turns
 
@@ -302,6 +593,39 @@ class ClaudeAgentSDKAgent:
                 )
 
         return servers
+
+    def _normalize_mcp_servers_for_sdk(
+        self, raw: McpServerConfigMap | list[Any]
+    ) -> McpServerConfigMap:
+        """Ensure the SDK receives a dict of dicts; it calls .items() on mcp_servers and on each config."""
+        if isinstance(raw, dict):
+            out: McpServerConfigMap = {}
+            for name, config in raw.items():
+                if isinstance(config, dict):
+                    out[name] = config
+                else:
+                    self._log.warning(
+                        "agent.mcp_server_config_skipped",
+                        condition=self._condition,
+                        sample_idx=self._sample_idx,
+                        name=name,
+                        reason=f"config must be a dict for SDK, got {type(config).__name__}",
+                    )
+            return out
+        if isinstance(raw, list):
+            self._log.warning(
+                "agent.mcp_servers_normalized",
+                condition=self._condition,
+                sample_idx=self._sample_idx,
+                reason="mcp_servers was a list; converted to dict for SDK",
+            )
+            list_out: McpServerConfigMap = {}
+            for i, item in enumerate(raw):
+                if isinstance(item, dict):
+                    name = item.get("name", str(i))
+                    list_out[name] = cast(McpStdioServerConfig, item)
+            return list_out
+        return {}
 
     def _build_stdio_server(self, config: StdioMcpServer) -> McpStdioServerConfig:
         """Build a McpStdioServerConfig TypedDict from a StdioMcpServer model."""
@@ -327,14 +651,17 @@ class ClaudeAgentSDKAgent:
         return server
 
     def _build_disallowed_tools(self) -> list[str]:
-        """Build the disallowed tools list — all Claude built-in tools.
+        """Build the disallowed tools list — all Claude built-in tools except allowed ones.
 
         allowed_tools alone does not remove built-in tools from the agent's
         context; it only controls approval requirements. Explicitly disallowing
         all built-in tools ensures the agent cannot use web search, file I/O,
         or any other built-in capability regardless of permission_mode.
+
+        However, if a condition specifies allowed_tools, those tools are NOT
+        disallowed, enabling conditions that use built-in tools instead of MCP.
         """
-        return [
+        all_builtins = [
             "Bash",
             "Edit",
             "Glob",
@@ -347,10 +674,12 @@ class ClaudeAgentSDKAgent:
             "Task",
             "TodoRead",
             "TodoWrite",
+            "ToolSearch",
             "WebFetch",
             "WebSearch",
             "Write",
         ]
+        return [tool for tool in all_builtins if tool not in self._allowed_tools]
 
     def _map_usage(self, raw: dict[str, Any] | None) -> UsageMetrics | None:
         """Map the SDK's raw usage dict to a typed UsageMetrics value object."""

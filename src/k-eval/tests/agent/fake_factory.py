@@ -29,6 +29,7 @@ class FakeAgentFactory:
         sample_idx: str,
         system_prompt: str,
         mcp_servers: list[ConditionMcpServer],
+        allowed_tools: list[str] | None = None,
     ) -> Agent:
         self.created.append(
             {
@@ -36,6 +37,7 @@ class FakeAgentFactory:
                 "sample_idx": sample_idx,
                 "system_prompt": system_prompt,
                 "mcp_servers": mcp_servers,
+                "allowed_tools": allowed_tools or [],
             }
         )
         if self._agents:

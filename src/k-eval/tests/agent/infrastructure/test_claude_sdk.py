@@ -39,6 +39,7 @@ def _make_agent(
     condition: str = "baseline",
     sample_idx: str = "0",
     observer: FakeAgentObserver | None = None,
+    allowed_tools: list[str] | None = None,
 ) -> ClaudeAgentSDKAgent:
     return ClaudeAgentSDKAgent(
         config=AgentConfig(type="claude-sdk", model=model),
@@ -47,6 +48,7 @@ def _make_agent(
         system_prompt="You are a helpful assistant.",
         mcp_servers=mcp_servers if mcp_servers is not None else [],
         observer=observer if observer is not None else FakeAgentObserver(),
+        allowed_tools=allowed_tools,
     )
 
 
@@ -299,6 +301,7 @@ class TestBuildDisallowedTools:
         "Task",
         "TodoRead",
         "TodoWrite",
+        "ToolSearch",
         "WebFetch",
         "WebSearch",
         "Write",
@@ -336,6 +339,39 @@ class TestBuildDisallowedTools:
         result = _make_agent()._build_disallowed_tools()
 
         assert "WebFetch" in result
+
+    def test_allowed_tools_are_not_blocked(self) -> None:
+        agent = _make_agent(allowed_tools=["Read", "Glob", "Grep"])
+
+        result = agent._build_disallowed_tools()
+
+        assert "Read" not in result
+        assert "Glob" not in result
+        assert "Grep" not in result
+
+    def test_allowed_tools_only_unblocks_specified_tools(self) -> None:
+        agent = _make_agent(allowed_tools=["Read"])
+
+        result = agent._build_disallowed_tools()
+
+        assert "Read" not in result
+        assert "Glob" in result
+        assert "Grep" in result
+        assert "Bash" in result
+
+    def test_empty_allowed_tools_blocks_all(self) -> None:
+        agent = _make_agent(allowed_tools=[])
+
+        result = agent._build_disallowed_tools()
+
+        assert result == self._EXPECTED_BUILTINS
+
+    def test_none_allowed_tools_blocks_all(self) -> None:
+        agent = _make_agent(allowed_tools=None)
+
+        result = agent._build_disallowed_tools()
+
+        assert result == self._EXPECTED_BUILTINS
 
 
 # ---------------------------------------------------------------------------
