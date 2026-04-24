@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/jsell-rh/k-eval/compare/v1.2.0...v1.2.1) (2026-04-24)
+
+
+### Bug Fixes
+
+* add checkout step before uv.lock sync in release workflow ([#38](https://github.com/jsell-rh/k-eval/issues/38)) ([dff1435](https://github.com/jsell-rh/k-eval/commit/dff1435a5a8cdd119b48e3549364255c4b65b9a2))
+* cleanup diagnostic infrastructure and sync uv.lock on release ([#36](https://github.com/jsell-rh/k-eval/issues/36)) ([2e5f351](https://github.com/jsell-rh/k-eval/commit/2e5f351940bf6a1b79ada16e4b8698f97e70db07))
+
 ## [1.2.0](https://github.com/jsell-rh/k-eval/compare/v1.1.3...v1.2.0) (2026-04-24)
 
 
