@@ -5,7 +5,7 @@ import json
 import os
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import structlog
 
@@ -30,6 +30,9 @@ from k_eval.agent.domain.result import AgentResult
 from k_eval.agent.domain.turn import AgentTurn, ToolCall
 from k_eval.agent.domain.usage import UsageMetrics
 from k_eval.agent.infrastructure.errors import AgentInvocationError
+from k_eval.config.domain.agent import AgentConfig
+from k_eval.config.domain.condition_mcp_server import ConditionMcpServer
+from k_eval.config.domain.mcp_server import HttpMcpServer, SseMcpServer, StdioMcpServer
 
 
 def _format_invocation_trace(
@@ -54,9 +57,6 @@ def _format_invocation_trace(
     else:
         parts.append("(none)")
     return "\n".join(parts)
-from k_eval.config.domain.agent import AgentConfig
-from k_eval.config.domain.condition_mcp_server import ConditionMcpServer
-from k_eval.config.domain.mcp_server import HttpMcpServer, SseMcpServer, StdioMcpServer
 
 
 @dataclass(frozen=True)
@@ -143,16 +143,23 @@ class ClaudeAgentSDKAgent:
             raise
 
         # Diagnostic: log what MCP server config is being passed
+        def _extract_header_keys(cfg: Any) -> list[str]:
+            if isinstance(cfg, dict):
+                headers = cfg.get("headers", {})
+                if isinstance(headers, dict):
+                    return list(headers.keys())
+            return []
+
         self._log.debug(
             "agent.mcp_servers_config",
             condition=self._condition,
             sample_idx=self._sample_idx,
             mcp_servers={
                 name: {
-                    "type": cfg.get("type"),
-                    "url": cfg.get("url"),
-                    "has_headers": "headers" in cfg,
-                    "header_keys": list(cfg.get("headers", {}).keys()),
+                    "type": cfg.get("type") if isinstance(cfg, dict) else None,
+                    "url": cfg.get("url") if isinstance(cfg, dict) else None,
+                    "has_headers": "headers" in cfg if isinstance(cfg, dict) else False,
+                    "header_keys": _extract_header_keys(cfg),
                 }
                 for name, cfg in mcp_servers_config.items()
             },
@@ -203,11 +210,13 @@ class ClaudeAgentSDKAgent:
                 if stderr_lines
                 else base_reason
             )
-            result_message = getattr(exc, "result_message", None)
-            prompt = getattr(exc, "prompt", None) or ""
-            turns = getattr(exc, "turns", None) or []
+            exc_result_message: ResultMessage | None = getattr(
+                exc, "result_message", None
+            )
+            exc_prompt = getattr(exc, "prompt", None) or ""
+            exc_turns = getattr(exc, "turns", None) or []
             invocation_trace = _format_invocation_trace(
-                prompt=prompt, turns=turns, result_message=result_message
+                prompt=exc_prompt, turns=exc_turns, result_message=exc_result_message
             )
             exc.invocation_trace = invocation_trace  # type: ignore[attr-defined]
             self._log.error(
@@ -216,19 +225,18 @@ class ClaudeAgentSDKAgent:
                 sample_idx=self._sample_idx,
                 full_trace=invocation_trace,
             )
-            if result_message is not None:
-                result_preview = (
-                    (result_message.result or "")[:500]
-                    + ("..." if len(result_message.result or "") > 500 else "")
+            if exc_result_message is not None:
+                result_preview = (exc_result_message.result or "")[:500] + (
+                    "..." if len(exc_result_message.result or "") > 500 else ""
                 )
                 self._log.info(
                     "agent.result_message_before_failure",
                     condition=self._condition,
                     sample_idx=self._sample_idx,
-                    is_error=result_message.is_error,
+                    is_error=exc_result_message.is_error,
                     result_preview=result_preview,
-                    duration_ms=getattr(result_message, "duration_ms", None),
-                    num_turns=getattr(result_message, "num_turns", None),
+                    duration_ms=getattr(exc_result_message, "duration_ms", None),
+                    num_turns=getattr(exc_result_message, "num_turns", None),
                 )
             else:
                 self._log.info(
@@ -611,12 +619,12 @@ class ClaudeAgentSDKAgent:
                 sample_idx=self._sample_idx,
                 reason="mcp_servers was a list; converted to dict for SDK",
             )
-            out = {}
+            list_out: McpServerConfigMap = {}
             for i, item in enumerate(raw):
                 if isinstance(item, dict):
                     name = item.get("name", str(i))
-                    out[name] = item
-            return out
+                    list_out[name] = cast(McpStdioServerConfig, item)
+            return list_out
         return {}
 
     def _build_stdio_server(self, config: StdioMcpServer) -> McpStdioServerConfig:

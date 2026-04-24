@@ -161,9 +161,16 @@ class LiteLLMJudge:
         # Clear proxy env vars that may have been polluted by the claude-agent-sdk.
         # The SDK sets up a local auth proxy that leaks into os.environ and breaks
         # litellm's Vertex AI credential refresh via Google OAuth.
-        proxy_keys = ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "NO_PROXY", "no_proxy"]
+        proxy_keys = [
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "http_proxy",
+            "https_proxy",
+            "NO_PROXY",
+            "no_proxy",
+        ]
         saved_proxies = {k: os.environ.get(k) for k in proxy_keys}
-        
+
         # Remove existing proxy settings and set NO_PROXY to bypass for Google APIs
         for k in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
             os.environ.pop(k, None)
