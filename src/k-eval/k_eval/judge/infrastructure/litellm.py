@@ -2,10 +2,22 @@
 
 import json
 import time
+import warnings
 
 import litellm
 import openai
 from pydantic import ValidationError
+
+# Suppress Pydantic serialization warnings from LiteLLM internals.
+# LiteLLM's response models (Message, StreamingChoices) sometimes have schema mismatches
+# when responses come from different providers (e.g., Vertex AI). The warning is benign
+# and the serialization still succeeds.
+warnings.filterwarnings(
+    "ignore",
+    message=r"Pydantic serializer warnings:",
+    category=UserWarning,
+    module=r"pydantic\.main",
+)
 
 from k_eval.config.domain.judge import JudgeConfig
 from k_eval.judge.domain.observer import JudgeObserver
